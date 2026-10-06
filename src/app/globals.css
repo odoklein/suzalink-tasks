@@ -1,26 +1,182 @@
 @import "tailwindcss";
 
+/* Suzali Tasks — outil interne, lu toute la journée : neutres froids légèrement
+   teintés, un accent cobalt, et des couleurs de statut sémantiques. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --surface-2: #f8f8f6;
+  --sunken: #ecedea;
+  --ink: #15181d;
+  --ink-2: #3b4048;
+  --muted: #727781;
+  --faint: #a3a7ae;
+  --line: #e3e4df;
+  --line-strong: #d2d4cd;
+  --accent: #2b59f2;
+  --accent-soft: #e6ecff;
+  --accent-ink: #ffffff;
+  --danger: #d23f2e;
+  --danger-soft: #fdecea;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --st-todo: #8a8f98;
+  --st-progress: #2b59f2;
+  --st-waiting: #c98206;
+  --st-review: #7656ef;
+  --st-done: #1d9a62;
+
+  --shadow-pop: 0 1px 2px rgb(16 24 40 / 0.06), 0 12px 32px -8px rgb(16 24 40 / 0.18);
+  --shadow-card: 0 1px 1px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0e1013;
+    --surface: #15181d;
+    --surface-2: #1a1e24;
+    --sunken: #0b0d10;
+    --ink: #eceef1;
+    --ink-2: #c4c8cf;
+    --muted: #8b919b;
+    --faint: #5d636d;
+    --line: #252a31;
+    --line-strong: #323842;
+    --accent: #6f8cff;
+    --accent-soft: #1c2440;
+    --accent-ink: #0b0d10;
+    --danger: #ff7a66;
+    --danger-soft: #3a1c18;
+
+    --st-todo: #8b919b;
+    --st-progress: #6f8cff;
+    --st-waiting: #f0aa2c;
+    --st-review: #a38bff;
+    --st-done: #3fc488;
+
+    --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-st-todo: var(--st-todo);
+  --color-st-progress: var(--st-progress);
+  --color-st-waiting: var(--st-waiting);
+  --color-st-review: var(--st-review);
+  --color-st-done: var(--st-done);
+
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-body), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-code), ui-monospace, monospace;
+
+  --shadow-pop: var(--shadow-pop);
+  --shadow-card: var(--shadow-card);
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barres de défilement discrètes dans les colonnes du tableau */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    transform: translateY(6px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
+.animate-pop-in {
+  animation: pop-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
