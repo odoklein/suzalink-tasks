@@ -20,13 +20,13 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const pin = String(formData.get("pin") ?? "");
   if (!email) return { error: "Renseignez votre email." };
-  if (!PIN.test(pin)) return { error: "Le code PIN fait 6 chiffres." };
+  if (!PIN.test(pin)) return { error: "Entrez les 6 chiffres de votre code." };
 
   const user = await db.user.findUnique({ where: { email } });
 
   if (user?.lockedUntil && user.lockedUntil > new Date()) {
     const minutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-    return { error: `Trop d'essais. Réessayez dans ${minutes} min.` };
+    return { error: `Trop d’erreurs. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.` };
   }
 
   const valid = await bcrypt.compare(pin, user?.passwordHash ?? DUMMY_HASH);
@@ -41,10 +41,9 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
           lockedUntil: locked ? new Date(Date.now() + LOCK_MINUTES * 60000) : null,
         },
       });
-      if (locked) return { error: `Trop d'essais. Compte bloqué ${LOCK_MINUTES} min.` };
-      const left = MAX_ATTEMPTS - failed;
-      return { error: `Email ou code incorrect. Encore ${left} essai${left > 1 ? "s" : ""}.` };
+      if (locked) return { error: `Trop d’erreurs. Réessayez dans ${LOCK_MINUTES} minutes.` };
     }
+    // Même message que l'email existe ou non.
     return { error: "Email ou code incorrect." };
   }
 

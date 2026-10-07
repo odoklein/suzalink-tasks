@@ -192,23 +192,3 @@ h3 {
 .animate-shake {
   animation: shake 0.36s ease-in-out;
 }
-
-@keyframes float-card {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-.animate-float {
-  animation: float-card 6s ease-in-out infinite;
-}
-
-@keyframes glide {
-  0% { transform: translate(0, 0); opacity: 0; }
-  12% { opacity: 1; }
-  45% { transform: translate(var(--glide-x, 188px), 0); opacity: 1; }
-  60%, 100% { transform: translate(var(--glide-x, 188px), 0); opacity: 0; }
-}
-
-.animate-glide {
-  animation: glide 7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
