@@ -17,7 +17,8 @@ const TEAM = [
   { name: "Amine", email: "amine@suzaliconseil.com", color: "#C98206", role: "MEMBER" as const },
   { name: "Chahinez A.", email: "chahinez@suzaliconseil.com", color: "#B04FA8", role: "MEMBER" as const },
   { name: "Anaïs Morales", email: "anais@suzaliconseil.com", color: "#E5533D", role: "MEMBER" as const },
-  { name: "Biba Slimani", email: "biba@suzaliconseil.com", color: "#1F8A9E", role: "MEMBER" as const },
+  { name: "Biba Slimani", email: "marketing@suzaliconseil.com", color: "#1F8A9E", role: "MEMBER" as const },
+  { name: "Antoine", email: "antoine@suzaliconseil.com", color: "#6A5AE0", role: "MEMBER" as const },
 ];
 
 type SeedTask = {
