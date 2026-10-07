@@ -1,6 +1,7 @@
 "use client";
 
 import type { ClientKind, ProjectStatus } from "@prisma/client";
+import { differenceInCalendarDays } from "date-fns";
 import { ExternalLink, FileSpreadsheet, MessageSquareText, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -10,6 +11,7 @@ import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
 import { GhostButton, PrimaryButton } from "@/components/dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
+import { ProjectNote } from "@/components/project-note";
 import { DeliveryDialog, ImportDialog, RecapDialog } from "@/components/project-dialogs";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
@@ -28,6 +30,8 @@ type ProjectData = {
   endClient: string | null;
   siteUrl: string | null;
   description: string | null;
+  statusNote: string | null;
+  statusNoteAt: Date | null;
   client: { name: string; kind: ClientKind; contacts: string | null } | null;
   lead: { name: string; color: string } | null;
   tasks: TaskCard[];
@@ -65,6 +69,13 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
   const waiting = project.tasks.filter((task) => task.status === "WAITING_CLIENT").length;
   const billable = project.tasks.filter((task) => task.billable).length;
   const status = PROJECT_STATUS_BY_VALUE[project.status];
+  const oldestWaiting = project.tasks
+    .filter((task) => task.status === "WAITING_CLIENT")
+    .reduce<Date | null>((oldest, task) => {
+      const since = new Date(task.statusChangedAt);
+      return !oldest || since < oldest ? since : oldest;
+    }, null);
+  const oldestWaitingDays = oldestWaiting ? Math.max(0, differenceInCalendarDays(new Date(), oldestWaiting)) : 0;
 
   const selectTab = (next: ProjectTab) => {
     setTab(next);
@@ -73,7 +84,7 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-line bg-surface px-6 pt-5">
+      <header className="border-b border-line bg-surface px-4 pt-5 sm:px-6">
         <div className="flex flex-wrap items-start gap-4">
           <ProjectTile color={project.color} label={project.key} size={40} />
           <div className="min-w-0 flex-1">
@@ -120,7 +131,14 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
             </p>
             <p className="tabular mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2">
               <span><strong className="font-semibold">{open}</strong> ouvertes</span>
-              {waiting > 0 && <span className="text-st-waiting"><strong className="font-semibold">{waiting}</strong> chez le client</span>}
+              {waiting > 0 && (
+                <span className="text-st-waiting">
+                  <strong className="font-semibold">{waiting}</strong> chez le client
+                  <span className={cn("ml-1", oldestWaitingDays >= 5 && "font-semibold")}>
+                    · la plus ancienne depuis {oldestWaitingDays === 0 ? "aujourd'hui" : `${oldestWaitingDays} j`}
+                  </span>
+                </span>
+              )}
               {billable > 0 && <span><strong className="font-semibold">{billable}</strong> hors périmètre (€)</span>}
               {project.lead && (
                 <span className="flex items-center gap-1.5">
@@ -128,6 +146,7 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
                 </span>
               )}
             </p>
+            <ProjectNote projectId={project.id} note={project.statusNote} noteAt={project.statusNoteAt} />
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -146,7 +165,7 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
           </div>
         </div>
 
-        <nav className="mt-4 flex gap-5" aria-label="Vues du projet">
+        <nav className="mt-4 flex gap-5 overflow-x-auto scroll-thin" aria-label="Vues du projet">
           {(Object.keys(TAB_LABELS) as ProjectTab[]).map((key) => (
             <button
               key={key}

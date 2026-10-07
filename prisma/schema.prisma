@@ -78,19 +78,21 @@ model Client {
 }
 
 model Project {
-  id          String        @id @default(cuid())
-  name        String
-  slug        String        @unique
-  key         String        @unique // préfixe des tâches : BG-12
-  color       String        @default("#3B6CF6")
-  status      ProjectStatus @default(ACTIVE)
-  endClient   String? // client final quand le projet passe par une agence
-  siteUrl     String?
-  description String?
-  dueDate     DateTime?
-  archived    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  key          String        @unique // préfixe des tâches : BG-12
+  color        String        @default("#3B6CF6")
+  status       ProjectStatus @default(ACTIVE)
+  endClient    String? // client final quand le projet passe par une agence
+  siteUrl      String?
+  description  String?
+  statusNote   String? // « point d'étape » : où on en est, et la prochaine action
+  statusNoteAt DateTime?
+  dueDate      DateTime?
+  archived     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   clientId String?
   client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
@@ -104,20 +106,21 @@ model Project {
 }
 
 model Task {
-  id          String     @id @default(cuid())
-  number      Int // numéro dans le projet (BG-12)
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(NONE)
-  zone        String? // page ou section concernée : « Homepage », « Fiche produit »
-  source      String? // origine : « Retours Luna 06/10 »
-  billable    Boolean    @default(false) // modification hors périmètre, à facturer
-  dueDate     DateTime?
-  position    Float      @default(0)
-  completedAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id              String     @id @default(cuid())
+  number          Int // numéro dans le projet (BG-12)
+  title           String
+  description     String?
+  status          TaskStatus @default(TODO)
+  priority        Priority   @default(NONE)
+  zone            String? // page ou section concernée : « Homepage », « Fiche produit »
+  source          String? // origine : « Retours Luna 06/10 »
+  billable        Boolean    @default(false) // modification hors périmètre, à facturer
+  dueDate         DateTime?
+  position        Float      @default(0)
+  completedAt     DateTime?
+  statusChangedAt DateTime   @default(now()) // depuis quand la tâche est dans son statut (ex. « chez le client depuis 4 j »)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   projectId  String
   project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -140,9 +143,9 @@ model Comment {
   createdAt DateTime @default(now())
 
   taskId   String
-  task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task     Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
   authorId String?
-  author   User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
 }
 
 /// Mise en ligne datée — la preuve de ce qui a été livré et quand.

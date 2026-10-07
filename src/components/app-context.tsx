@@ -18,6 +18,8 @@ type AppContextValue = {
   setNewProjectOpen: (open: boolean) => void;
   newTaskOpen: boolean;
   setNewTaskOpen: (open: boolean) => void;
+  navOpen: boolean;
+  setNavOpen: (open: boolean) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -39,6 +41,7 @@ export function AppProvider({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const openTask = useCallback((taskId: string) => setOpenTaskId(taskId), []);
   const closeTask = useCallback(() => setOpenTaskId(null), []);
@@ -58,8 +61,10 @@ export function AppProvider({
       setNewProjectOpen,
       newTaskOpen,
       setNewTaskOpen,
+      navOpen,
+      setNavOpen,
     }),
-    [user, team, projects, clients, openTaskId, openTask, closeTask, paletteOpen, newProjectOpen, newTaskOpen],
+    [user, team, projects, clients, openTaskId, openTask, closeTask, paletteOpen, newProjectOpen, newTaskOpen, navOpen],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

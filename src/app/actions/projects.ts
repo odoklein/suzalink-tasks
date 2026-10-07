@@ -66,6 +66,19 @@ export async function updateProjectStatus(projectId: string, status: ProjectStat
   return { ok: true as const };
 }
 
+/** « Point d'étape » : où en est le projet et quelle est la prochaine action. */
+export async function updateProjectNote(projectId: string, note: string) {
+  const { userId } = await verifySession();
+  const text = note.trim().slice(0, 600);
+  await db.project.update({
+    where: { id: projectId },
+    data: { statusNote: text || null, statusNoteAt: text ? new Date() : null },
+  });
+  if (text) await db.activity.create({ data: { projectId, actorId: userId, message: "a mis à jour le point d'étape" } });
+  revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
 export async function archiveProject(projectId: string) {
   await verifySession();
   await db.project.update({ where: { id: projectId }, data: { archived: true } });

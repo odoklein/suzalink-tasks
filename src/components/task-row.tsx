@@ -47,7 +47,7 @@ export function TaskRow({
   return (
     <li
       className={cn(
-        "group flex items-center gap-2 border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
+        "group flex items-center gap-2 overflow-hidden border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
         pending && "opacity-60",
       )}
     >
@@ -71,7 +71,11 @@ export function TaskRow({
           {task.title}
         </span>
         {task.billable && <BillableBadge />}
-        {showZone && <ZoneChip zone={task.zone} />}
+        {showZone && (
+          <span className="hidden sm:contents">
+            <ZoneChip zone={task.zone} />
+          </span>
+        )}
         {task._count.comments > 0 && (
           <span className="tabular flex items-center gap-0.5 text-[11px] text-muted">
             <MessageSquare className="size-3" />

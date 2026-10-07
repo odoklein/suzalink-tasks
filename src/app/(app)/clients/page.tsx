@@ -31,7 +31,7 @@ export default async function ClientsPage() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-      <div className="mx-auto max-w-[980px] px-8 py-8">
+      <div className="mx-auto max-w-[980px] px-4 py-6 sm:px-8 sm:py-8">
         <h1 className="font-display text-[28px] font-semibold tracking-tight">Clients</h1>
         <p className="mt-1 text-[14px] text-muted">Agences partenaires et clients directs, avec leurs projets.</p>
 

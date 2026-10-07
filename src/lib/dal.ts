@@ -53,7 +53,8 @@ export const getProjectsNav = cache(async () => {
       status: true,
       _count: { select: { tasks: { where: { status: { not: "DONE" } } } } },
     },
-    orderBy: { updatedAt: "desc" },
+    // Ordre stable : la liste ne doit pas se réorganiser à chaque modification.
+    orderBy: { name: "asc" },
   });
 });
 

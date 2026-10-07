@@ -8,12 +8,12 @@ import {
   subDays,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import { AlarmClock, CalendarDays, Hourglass, Rocket } from "lucide-react";
+import { AlarmClock, CalendarDays, Hourglass, Rocket, UserRoundPlus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NewTaskButton } from "@/components/new-task-button";
-import { ProjectTile, StatusIcon } from "@/components/primitives";
+import { Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
 import { TaskRow } from "@/components/task-row";
 import { TASK_STATUSES } from "@/lib/constants";
 import { getCurrentUser } from "@/lib/dal";
@@ -38,7 +38,7 @@ export default async function TodayPage() {
   const endWeek = endOfDay(addDays(now, 6));
   const live = { archived: false };
 
-  const [mine, waiting, review, deliveries, deliveredThisWeek, activeProjects] = await Promise.all([
+  const [mine, waiting, review, deliveries, deliveredThisWeek, activeProjects, unassigned, unassignedCount, workload, team] = await Promise.all([
     db.task.findMany({
       where: { assigneeId: user.id, status: { not: "DONE" }, project: live },
       select: withProject,
@@ -47,7 +47,7 @@ export default async function TodayPage() {
     db.task.findMany({
       where: { status: "WAITING_CLIENT", project: live },
       select: withProject,
-      orderBy: { updatedAt: "asc" },
+      orderBy: { statusChangedAt: "asc" },
     }),
     db.task.findMany({
       where: { status: "REVIEW", project: live },
@@ -65,8 +65,29 @@ export default async function TodayPage() {
       where: { ...live, status: { not: "DONE" } },
       orderBy: { updatedAt: "desc" },
       take: 6,
-      select: { id: true, name: true, slug: true, key: true, color: true, tasks: { select: { status: true } } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        key: true,
+        color: true,
+        statusNote: true,
+        tasks: { select: { status: true } },
+      },
     }),
+    db.task.findMany({
+      where: { assigneeId: null, status: { notIn: ["DONE", "WAITING_CLIENT"] }, project: live },
+      select: withProject,
+      orderBy: [{ priority: "desc" }, { dueDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+      take: 8,
+    }),
+    db.task.count({ where: { assigneeId: null, status: { notIn: ["DONE", "WAITING_CLIENT"] }, project: live } }),
+    db.task.groupBy({
+      by: ["assigneeId"],
+      where: { assigneeId: { not: null }, status: { not: "DONE" }, project: live },
+      _count: { _all: true },
+    }),
+    db.user.findMany({ select: { id: true, name: true, color: true }, orderBy: { name: "asc" } }),
   ]);
 
   const overdue = mine.filter((task) => task.dueDate && task.dueDate < today);
@@ -74,7 +95,7 @@ export default async function TodayPage() {
   const thisWeek = mine.filter((task) => task.dueDate && task.dueDate > endToday && task.dueDate <= endWeek);
   const later = mine.filter((task) => !task.dueDate || task.dueDate > endWeek);
 
-  const oldestWaitingDays = waiting.length ? differenceInCalendarDays(now, waiting[0].updatedAt) : 0;
+  const oldestWaitingDays = waiting.length ? differenceInCalendarDays(now, waiting[0].statusChangedAt) : 0;
   const waitingByProject = new Map<string, TaskWithProject[]>();
   for (const task of waiting) {
     waitingByProject.set(task.project.slug, [...(waitingByProject.get(task.project.slug) ?? []), task]);
@@ -85,6 +106,12 @@ export default async function TodayPage() {
     return { day, tasks: mine.filter((task) => task.dueDate && isSameDay(task.dueDate, day)) };
   });
 
+  const loadByUser = new Map(workload.map((row) => [row.assigneeId, row._count._all]));
+  const teamLoad = team
+    .map((member) => ({ ...member, open: loadByUser.get(member.id) ?? 0 }))
+    .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
+  const maxLoad = Math.max(1, ...teamLoad.map((member) => member.open));
+
   const firstName = user.name.split(" ")[0];
   // Les serveurs tournent en UTC : l'heure et la date affichées suivent Paris.
   const parisHour = Number(new Intl.DateTimeFormat("fr-FR", { hour: "numeric", hour12: false, timeZone: "Europe/Paris" }).format(now));
@@ -94,11 +121,12 @@ export default async function TodayPage() {
     overdue.length && `${overdue.length} en retard`,
     dueToday.length && `${dueToday.length} pour aujourd'hui`,
     waiting.length && `${waiting.length} bloquées côté client`,
+    unassignedCount && `${unassignedCount} à attribuer`,
   ].filter(Boolean);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-      <div className="mx-auto max-w-[1220px] px-8 pb-12 pt-8">
+      <div className="mx-auto max-w-[1220px] px-4 pb-12 pt-6 sm:px-8 sm:pt-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[13px] font-medium capitalize text-muted">{parisDate}</p>
@@ -167,13 +195,22 @@ export default async function TodayPage() {
             <Group title="Cette semaine" tasks={thisWeek} />
             <Group title="Plus tard ou sans échéance" tasks={later} />
             {mine.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
-                <p className="font-display text-[18px] font-semibold">Aucune tâche assignée</p>
+              <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-10 text-center">
+                <p className="font-display text-[18px] font-semibold">Rien ne vous est attribué</p>
                 <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted">
-                  Tapez C pour créer une tâche, ou ouvrez un projet pour vous en attribuer.
+                  {unassignedCount > 0
+                    ? "Des tâches attendent un responsable juste en dessous : ouvrez-en une pour vous l'attribuer."
+                    : "Tapez C pour créer une tâche, ou ouvrez un projet pour vous en attribuer."}
                 </p>
               </div>
             )}
+            <Group
+              title="À attribuer"
+              icon={<UserRoundPlus className="size-3.5" />}
+              tasks={unassigned}
+              total={unassignedCount}
+              hint="Ouvrez une tâche pour choisir qui s'en occupe."
+            />
           </div>
 
           <aside className="space-y-5">
@@ -183,11 +220,16 @@ export default async function TodayPage() {
                   <Link href={`/projects/${tasks[0].project.slug}`} className="flex items-center gap-2 text-[13px] font-medium hover:underline">
                     <ProjectTile color={tasks[0].project.color} label={tasks[0].project.key} size={16} />
                     {tasks[0].project.name}
+                    {tasks.some((task) => differenceInCalendarDays(now, task.statusChangedAt) >= 5) && (
+                      <span className="rounded bg-[color-mix(in_srgb,var(--st-waiting)_16%,transparent)] px-1.5 text-[10px] font-semibold uppercase tracking-wide text-st-waiting">
+                        À relancer
+                      </span>
+                    )}
                     <span className="tabular ml-auto text-[11px] font-normal text-muted">{tasks.length}</span>
                   </Link>
                   <ul className="mt-1.5 space-y-1 pl-6">
                     {tasks.slice(0, 4).map((task) => {
-                      const days = differenceInCalendarDays(now, task.updatedAt);
+                      const days = differenceInCalendarDays(now, task.statusChangedAt);
                       return (
                         <li key={task.id} className="flex items-baseline gap-2 text-[12px]">
                           <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
@@ -228,6 +270,7 @@ export default async function TodayPage() {
                           <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{project.name}</span>
                           <span className="tabular text-muted">{total ? Math.round((done / total) * 100) : 0} %</span>
                         </div>
+                        {project.statusNote && <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-muted">{project.statusNote}</p>}
                         <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-sunken">
                           {TASK_STATUSES.slice()
                             .reverse()
@@ -240,6 +283,21 @@ export default async function TodayPage() {
                     </li>
                   );
                 })}
+              </ul>
+            </Panel>
+
+            <Panel icon={<Users className="size-4 text-muted" />} title="Charge de l'équipe" count={teamLoad.length} empty="Aucun membre.">
+              <ul className="space-y-2.5">
+                {teamLoad.map((member) => (
+                  <li key={member.id} className="flex items-center gap-2.5 text-[12px]">
+                    <Avatar name={member.name} color={member.color} size={20} />
+                    <span className="w-24 shrink-0 truncate">{member.name.split(" ")[0]}</span>
+                    <span className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-sunken">
+                      <span className="rounded-full" style={{ width: `${(member.open / maxLoad) * 100}%`, backgroundColor: member.color }} />
+                    </span>
+                    <span className="tabular w-5 text-right text-muted">{member.open}</span>
+                  </li>
+                ))}
               </ul>
             </Panel>
 
@@ -295,19 +353,38 @@ function Stat({
   );
 }
 
-function Group({ title, tasks, tone }: { title: string; tasks: TaskWithProject[]; tone?: "danger" }) {
+function Group({
+  title,
+  tasks,
+  tone,
+  icon,
+  total,
+  hint,
+}: {
+  title: string;
+  tasks: TaskWithProject[];
+  tone?: "danger";
+  icon?: React.ReactNode;
+  total?: number;
+  hint?: string;
+}) {
   if (tasks.length === 0) return null;
   return (
     <section>
       <h2 className={cn("mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider", tone === "danger" ? "text-danger" : "text-faint")}>
+        {icon}
         {title}
-        <span className="tabular font-normal">{tasks.length}</span>
+        <span className="tabular font-normal">{total ?? tasks.length}</span>
+        {hint && <span className="ml-1 hidden font-normal normal-case tracking-normal text-faint sm:inline">{hint}</span>}
       </h2>
       <ul className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
         {tasks.map((task) => (
           <TaskRow key={task.id} task={task} projectKey={task.project.key} project={task.project} />
         ))}
       </ul>
+      {total !== undefined && total > tasks.length && (
+        <p className="mt-1.5 text-[12px] text-faint">+ {total - tasks.length} autres, à retrouver dans les projets.</p>
+      )}
     </section>
   );
 }

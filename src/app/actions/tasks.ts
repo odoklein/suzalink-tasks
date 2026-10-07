@@ -133,6 +133,7 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
   if (patch.dueDate !== undefined) data.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
   if (patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status) {
     data.status = patch.status;
+    data.statusChangedAt = new Date();
     data.position = await nextPosition(current.projectId, patch.status);
     data.completedAt = patch.status === "DONE" ? new Date() : null;
   }
@@ -165,6 +166,7 @@ export async function moveTask(taskId: string, status: TaskStatus, position: num
       status,
       position,
       completedAt: status === "DONE" ? (current.completedAt ?? new Date()) : null,
+      ...(status !== current.status ? { statusChangedAt: new Date() } : {}),
     },
   });
   if (status !== current.status) {
