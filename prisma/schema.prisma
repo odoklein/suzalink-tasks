@@ -49,10 +49,14 @@ model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  passwordHash String
+  passwordHash String // hash du code PIN à 6 chiffres
   color        String   @default("#3B6CF6")
   role         Role     @default(MEMBER)
   createdAt    DateTime @default(now())
+
+  // Protection contre les essais en série : 5 erreurs → 15 min de blocage
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
 
   assignedTasks Task[]     @relation("TaskAssignee")
   createdTasks  Task[]     @relation("TaskCreator")

@@ -158,8 +158,8 @@ const PROJECTS: SeedProject[] = [
 
 async function main() {
   const password = process.env.SEED_PASSWORD;
-  if (!password || password.length < 10) {
-    throw new Error("Définissez SEED_PASSWORD (10 caractères minimum) avant de lancer le seed.");
+  if (!password || !/^\d{6}$/.test(password)) {
+    throw new Error("Définissez SEED_PASSWORD (code PIN à 6 chiffres) avant de lancer le seed.");
   }
   const passwordHash = await bcrypt.hash(password, 12);
 

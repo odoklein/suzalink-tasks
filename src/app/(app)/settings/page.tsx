@@ -26,8 +26,10 @@ export default async function SettingsPage() {
         </section>
 
         <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
-          <h2 className="font-display text-[17px] font-semibold">Mot de passe</h2>
-          <p className="mt-1 text-[13px] text-muted">10 caractères minimum.</p>
+          <h2 className="font-display text-[17px] font-semibold">Code PIN</h2>
+          <p className="mt-1 text-[13px] text-muted">
+            6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes.
+          </p>
           <PasswordForm />
         </section>
       </div>

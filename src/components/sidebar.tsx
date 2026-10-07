@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarCheck2, FolderKanban, LogOut, Plus, Search, Settings } from "lucide-react";
+import { Building2, CalendarCheck2, FolderKanban, LogOut, Plus, Search, Settings, SquarePen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,7 +18,7 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, projects, setPaletteOpen, setNewProjectOpen } = useApp();
+  const { user, projects, setPaletteOpen, setNewProjectOpen, setNewTaskOpen } = useApp();
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -34,7 +34,16 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="px-3">
+      <div className="space-y-1.5 px-3">
+        <button
+          type="button"
+          onClick={() => setNewTaskOpen(true)}
+          className="flex w-full items-center gap-2 rounded-lg bg-ink px-2.5 py-2 text-[13px] font-semibold text-bg shadow-card transition-opacity hover:opacity-90"
+        >
+          <SquarePen className="size-3.5" />
+          <span className="flex-1 text-left">Nouvelle tâche</span>
+          <kbd className="rounded bg-bg/15 px-1.5 font-mono text-[10px] font-medium">C</kbd>
+        </button>
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}

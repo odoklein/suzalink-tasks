@@ -180,3 +180,35 @@ h3 {
 .animate-pop-in {
   animation: pop-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+@keyframes shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+.animate-shake {
+  animation: shake 0.36s ease-in-out;
+}
+
+@keyframes float-card {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float-card 6s ease-in-out infinite;
+}
+
+@keyframes glide {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 1; }
+  45% { transform: translate(var(--glide-x, 188px), 0); opacity: 1; }
+  60%, 100% { transform: translate(var(--glide-x, 188px), 0); opacity: 0; }
+}
+
+.animate-glide {
+  animation: glide 7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}

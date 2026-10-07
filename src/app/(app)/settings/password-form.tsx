@@ -2,31 +2,41 @@
 
 import { useActionState } from "react";
 
-import { changePassword } from "@/app/actions/auth";
-import { fieldClass, labelClass, PrimaryButton } from "@/components/dialog";
+import { changePin, type FormState } from "@/app/actions/auth";
+import { labelClass, PrimaryButton } from "@/components/dialog";
+import { PinInput } from "@/components/pin-input";
+
+type PinState = (FormState & { at?: number }) | undefined;
 
 export function PasswordForm() {
-  const [state, action, pending] = useActionState(changePassword, undefined);
+  const [state, action, pending] = useActionState<PinState, FormData>(async (previous, formData) => {
+    const result = await changePin(previous, formData);
+    return result ? { ...result, at: Date.now() } : result;
+  }, undefined);
+
+  // Après chaque essai, les champs repartent à vide.
+  const key = state?.at ?? 0;
 
   return (
-    <form action={action} className="mt-4 space-y-3">
-      <div>
-        <label htmlFor="current" className={labelClass}>Mot de passe actuel</label>
-        <input id="current" name="current" type="password" autoComplete="current-password" required className={fieldClass} />
+    <form action={action} className="mt-5 space-y-4">
+      <div className="max-w-[340px]">
+        <p className={labelClass}>Code actuel</p>
+        <PinInput key={`current-${key}`} name="current" label="Code actuel" size="md" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="next" className={labelClass}>Nouveau mot de passe</label>
-          <input id="next" name="next" type="password" autoComplete="new-password" minLength={10} required className={fieldClass} />
+          <p className={labelClass}>Nouveau code</p>
+          <PinInput key={`next-${key}`} name="next" label="Nouveau code" size="md" />
         </div>
         <div>
-          <label htmlFor="confirm" className={labelClass}>Confirmation</label>
-          <input id="confirm" name="confirm" type="password" autoComplete="new-password" minLength={10} required className={fieldClass} />
+          <p className={labelClass}>Confirmation</p>
+          <PinInput key={`confirm-${key}`} name="confirm" label="Confirmation du nouveau code" size="md" />
         </div>
       </div>
-      {state?.error && <p role="alert" className="text-[13px] text-danger">{state.error}</p>}
-      {state?.success && <p role="status" className="text-[13px] text-st-done">{state.success}</p>}
-      <PrimaryButton type="submit" disabled={pending}>{pending ? "Enregistrement…" : "Changer le mot de passe"}</PrimaryButton>
+      <p role="status" aria-live="polite" className={`min-h-[1.25rem] text-[13px] ${state?.error ? "text-danger" : "text-st-done"}`}>
+        {state?.error ?? state?.success}
+      </p>
+      <PrimaryButton type="submit" disabled={pending}>{pending ? "Enregistrement…" : "Changer le code"}</PrimaryButton>
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import { AppProvider } from "@/components/app-context";
 import { CommandPalette } from "@/components/command-palette";
+import { NewTaskDialog } from "@/components/new-task-dialog";
 import { NewProjectDialog } from "@/components/project-dialogs";
 import { Sidebar } from "@/components/sidebar";
 import { TaskDrawer } from "@/components/task-drawer";
@@ -22,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <TaskDrawer />
       <CommandPalette />
       <NewProjectDialog />
+      <NewTaskDialog />
     </AppProvider>
   );
 }
