@@ -1,19 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { decrypt, SESSION_COOKIE } from "@/lib/session";
+import { SESSION_COOKIE } from "@/lib/session-cookie";
 
-// Vérification optimiste (cookie seulement) : la vraie vérification se fait
-// dans la couche d'accès aux données (lib/dal.ts) et dans chaque Server Action.
-export default async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const session = await decrypt(request.cookies.get(SESSION_COOKIE)?.value);
-  const isLogin = pathname === "/login";
-
-  if (!session?.userId && !isLogin) {
+// Vérification optimiste : présence du cookie seulement. Le proxy n'importe
+// jamais le secret de session (Next.js l'intégrerait au bundle compilé) ;
+// la signature est vérifiée dans lib/dal.ts et dans chaque Server Action.
+export default function proxy(request: NextRequest) {
+  const hasSession = request.cookies.has(SESSION_COOKIE);
+  if (!hasSession && request.nextUrl.pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", request.nextUrl));
-  }
-  if (session?.userId && isLogin) {
-    return NextResponse.redirect(new URL("/", request.nextUrl));
   }
   return NextResponse.next();
 }

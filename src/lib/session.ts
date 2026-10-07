@@ -3,7 +3,10 @@ import "server-only";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 
-export const SESSION_COOKIE = "suzali_session";
+import { SESSION_COOKIE } from "@/lib/session-cookie";
+
+export { SESSION_COOKIE };
+
 const SESSION_DAYS = 30;
 
 export type SessionPayload = {

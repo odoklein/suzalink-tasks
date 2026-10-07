@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+import { decrypt, SESSION_COOKIE } from "@/lib/session";
 
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Déjà connecté avec une session valide : direction l'accueil.
+  // (Un cookie invalide reste ici, sans boucle de redirection.)
+  const session = await decrypt((await cookies()).get(SESSION_COOKIE)?.value);
+  if (session?.userId) redirect("/");
+
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
       <section className="relative hidden overflow-hidden bg-ink p-12 text-bg lg:flex lg:flex-col lg:justify-between">
