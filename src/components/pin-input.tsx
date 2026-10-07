@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,9 @@ export function PinInput({
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
   const update = (next: string[]) => {
-    setDigits(next);
+    // Le champ caché doit contenir les 6 chiffres AVANT l'envoi automatique :
+    // on applique la mise à jour tout de suite, puis on prévient le formulaire.
+    flushSync(() => setDigits(next));
     if (next.every(Boolean)) onComplete?.(next.join(""));
   };
 
