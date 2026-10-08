@@ -47,7 +47,7 @@ export function TaskRow({
   return (
     <li
       className={cn(
-        "group flex items-center gap-2 overflow-hidden border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
+        "group flex items-center gap-2 border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
         pending && "opacity-60",
       )}
     >

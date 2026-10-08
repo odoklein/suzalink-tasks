@@ -111,7 +111,7 @@ export function TaskDrawer() {
   useEffect(() => {
     if (!openTaskId) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox]")) requestClose();
+      if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox],[data-select-menu]")) requestClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
