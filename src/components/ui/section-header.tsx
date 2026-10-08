@@ -11,6 +11,7 @@ export function SectionHeader({
   action,
   as: Heading = "h2",
   id,
+  tone,
   className,
 }: {
   title: React.ReactNode;
@@ -19,11 +20,13 @@ export function SectionHeader({
   action?: React.ReactNode;
   as?: "h2" | "h3" | "h4";
   id?: string;
+  /** « danger » pour une section en alerte (En retard). */
+  tone?: "danger";
   className?: string;
 }) {
   return (
     <div className={cn("mb-2 flex items-center gap-2", className)}>
-      <Heading id={id} className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+      <Heading id={id} className={cn("flex items-center gap-1.5 text-xs font-semibold", tone === "danger" ? "text-danger-text" : "text-muted")}>
         {icon}
         {title}
         {count !== undefined && (

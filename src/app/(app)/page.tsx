@@ -5,7 +5,6 @@ import {
   format,
   isSameDay,
   startOfDay,
-  subDays,
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlarmClock, CalendarDays, Rocket, UserRoundPlus, Users } from "lucide-react";
@@ -14,6 +13,7 @@ import Link from "next/link";
 
 import { NewTaskButton } from "@/components/new-task-button";
 import { AgeChip, Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
+import { SectionHeader } from "@/components/ui/section-header";
 import { Tooltip } from "@/components/ui/tooltip";
 import { TaskRow } from "@/components/task-row";
 import { projectSwatchVars } from "@/lib/color";
@@ -40,7 +40,7 @@ export default async function TodayPage() {
   const endWeek = endOfDay(addDays(now, 6));
   const live = { archived: false };
 
-  const [mine, waiting, review, deliveries, deliveredThisWeek, activeProjects, unassigned, unassignedCount, workload, team] = await Promise.all([
+  const [mine, waiting, review, deliveries, activeProjects, unassigned, unassignedCount, workload, team] = await Promise.all([
     db.task.findMany({
       where: { assigneeId: user.id, status: { not: "DONE" }, project: live },
       select: withProject,
@@ -62,7 +62,6 @@ export default async function TodayPage() {
       take: 5,
       include: { project: { select: { name: true, color: true, key: true, slug: true } } },
     }),
-    db.delivery.count({ where: { deployedAt: { gte: subDays(today, 6) } } }),
     db.project.findMany({
       where: { ...live, status: { not: "DONE" } },
       orderBy: { updatedAt: "desc" },
@@ -127,7 +126,7 @@ export default async function TodayPage() {
   ].filter(Boolean);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+    <div className="@container min-h-0 flex-1 overflow-y-auto scroll-thin">
       <div className="mx-auto max-w-[var(--page-wide)] px-4 pb-12 pt-6 sm:px-8 sm:pt-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -143,23 +142,39 @@ export default async function TodayPage() {
         </header>
 
         {/* Chiffres clés */}
-        <section aria-label="Chiffres clés" className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section aria-label="Chiffres clés" className="mt-7 grid grid-cols-2 gap-3 @min-[720px]:grid-cols-4">
           <Stat
+            href="#en-retard"
             icon={<AlarmClock className="size-4" />}
             tone={overdue.length ? "var(--danger)" : "var(--todo)"}
             label="En retard"
             value={overdue.length}
             hint={overdue.length ? "À traiter en premier" : "Rien en retard"}
           />
-          <Stat icon={<CalendarDays className="size-4" />} tone="var(--progress)" label="Aujourd'hui" value={dueToday.length} hint={`${thisWeek.length} d'ici 7 jours`} />
           <Stat
+            href="#aujourdhui"
+            icon={<CalendarDays className="size-4" />}
+            tone="var(--progress)"
+            label="Aujourd'hui"
+            value={dueToday.length}
+            hint={`${thisWeek.length} d'ici 7 jours`}
+          />
+          <Stat
+            href="#chez-le-client"
             icon={<StatusIcon status="WAITING_CLIENT" size={16} />}
             tone="var(--waiting)"
             label="Chez le client"
             value={waiting.length}
             hint={waiting.length ? `La plus ancienne : ${oldestWaitingDays} j` : "Rien en attente"}
           />
-          <Stat icon={<Rocket className="size-4" />} tone="var(--done)" label="Mises en ligne" value={deliveredThisWeek} hint="Sur les 7 derniers jours" />
+          <Stat
+            href="#a-attribuer"
+            icon={<UserRoundPlus className="size-4" />}
+            tone="var(--review)"
+            label="À attribuer"
+            value={unassignedCount}
+            hint={unassignedCount ? "Sans responsable" : "Tout est attribué"}
+          />
         </section>
 
         {/* Les 7 prochains jours */}
@@ -168,22 +183,29 @@ export default async function TodayPage() {
             <div
               key={day.toISOString()}
               title={tasks.map((task) => `${task.project.key}-${task.number} ${task.title}`).join("\n") || "Aucune échéance"}
-              className={cn("rounded-md px-2.5 py-2", index === 0
+              className={cn("rounded-md px-1.5 py-2 sm:px-2.5", index === 0
                   ? "bg-ink text-bg dark:bg-accent-soft dark:text-accent dark:ring-1 dark:ring-accent/30"
                   : "hover:bg-surface-2")}
             >
-              <p className={cn("text-meta font-medium capitalize", index === 0 ? "text-bg/70" : "text-muted")}>
-                {index === 0 ? "Auj." : format(day, "EEE", { locale: fr })}
+              <p className={cn("text-meta font-medium capitalize", index === 0 ? "text-bg/70 dark:text-accent" : "text-muted")}>
+                <span className="max-sm:hidden">{index === 0 ? "Auj." : format(day, "EEE", { locale: fr })}</span>
+                <span className="sm:hidden">{format(day, "EEEEE", { locale: fr })}</span>
               </p>
               <div className="mt-0.5 flex items-baseline justify-between gap-2">
                 <span className="tabular text-title font-semibold">{format(day, "d")}</span>
                 {tasks.length > 0 && (
-                  <span className={cn("tabular rounded-full px-1.5 text-meta font-semibold", index === 0 ? "bg-bg/15" : "bg-accent-soft text-accent")}>
+                  <span className={cn("tabular rounded-full px-1.5 text-meta font-semibold max-sm:hidden", index === 0 ? "bg-bg/15" : "bg-accent-soft text-accent")}>
                     {tasks.length}
                   </span>
                 )}
               </div>
-              <div className="mt-1.5 flex h-1 gap-0.5">
+              {/* Téléphone : un point par tâche (5 au plus) */}
+              <div className="mt-1 flex gap-0.5 sm:hidden" aria-hidden="true">
+                {tasks.slice(0, 5).map((task) => (
+                  <span key={task.id} className="project-swatch size-1.5 rounded-full" style={projectSwatchVars(task.project.color)} />
+                ))}
+              </div>
+              <div className="mt-1.5 flex h-1 gap-0.5 max-sm:hidden">
                 {tasks.slice(0, 5).map((task) => (
                   <span key={task.id} className="project-swatch flex-1 rounded-full" style={projectSwatchVars(task.project.color)} />
                 ))}
@@ -192,10 +214,42 @@ export default async function TodayPage() {
           ))}
         </section>
 
-        <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_340px]">
+        {/* Ancre commune : en tête du bandeau (étroit) comme du rail (large), toujours visible. */}
+        <div id="chez-le-client" aria-hidden="true" className="scroll-mt-6" />
+        {/* Sous 1000 px de contenu : « Chez le client » d’abord, en bandeau horizontal par projet. */}
+        {waiting.length > 0 && (
+          <section aria-labelledby="chez-le-client-bandeau" className="mt-8 @min-[1000px]:hidden">
+            <SectionHeader id="chez-le-client-bandeau" title="Chez le client" count={waiting.length} />
+            <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 scroll-thin sm:-mx-8 sm:px-8">
+              {[...waitingByProject.values()].map((tasks) => {
+                const oldest = tasks[0];
+                return (
+                  <li key={oldest.project.slug} className="w-60 shrink-0 snap-start">
+                    <Link
+                      href={`/projects/${oldest.project.slug}`}
+                      className="flex h-full flex-col gap-2 rounded-lg border border-line bg-surface p-3 shadow-card transition-shadow hover:shadow-raised"
+                    >
+                      <span className="flex items-center gap-2 text-ui font-medium">
+                        <ProjectTile color={oldest.project.color} label={oldest.project.key} size={16} />
+                        <span className="min-w-0 flex-1 truncate">{oldest.project.name}</span>
+                        <span className="tabular text-xs text-muted">{tasks.length}</span>
+                      </span>
+                      <span className="flex items-center gap-2 text-xs text-ink-2">
+                        <AgeChip since={oldest.statusChangedAt} className="shrink-0" />
+                        <span className="min-w-0 truncate">{oldest.title}</span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <div className="mt-8 grid gap-8 @min-[1000px]:grid-cols-[1fr_340px]">
           <div className="min-w-0 space-y-6">
-            <Group title="En retard" tone="danger" tasks={overdue} />
-            <Group title="Aujourd'hui" tasks={dueToday} />
+            <Group id="en-retard" title="En retard" tone="danger" tasks={overdue} />
+            <Group id="aujourdhui" title="Aujourd'hui" tasks={dueToday} />
             <Group title="Cette semaine" tasks={thisWeek} />
             <Group title="Plus tard ou sans échéance" tasks={later} />
             {mine.length === 0 && (
@@ -209,6 +263,7 @@ export default async function TodayPage() {
               </div>
             )}
             <Group
+              id="a-attribuer"
               title="À attribuer"
               icon={<UserRoundPlus className="size-3.5" />}
               tasks={unassigned}
@@ -218,7 +273,13 @@ export default async function TodayPage() {
           </div>
 
           <aside className="space-y-5">
-            <Panel icon={<StatusIcon status="WAITING_CLIENT" size={16} />} title="Bloqué côté client" count={waiting.length} empty="Rien n'attend le client.">
+            <Panel
+              className="hidden @min-[1000px]:block"
+              icon={<StatusIcon status="WAITING_CLIENT" size={14} />}
+              title="Chez le client"
+              count={waiting.length}
+              empty="Rien n'attend le client."
+            >
               {[...waitingByProject.values()].map((tasks) => (
                 <div key={tasks[0].project.slug} className="py-2.5 first:pt-0 last:pb-0">
                   <Link href={`/projects/${tasks[0].project.slug}`} className="flex items-center gap-2 text-ui font-medium hover:underline">
@@ -244,13 +305,28 @@ export default async function TodayPage() {
               ))}
             </Panel>
 
-            <Panel icon={<StatusIcon status="REVIEW" size={16} />} title="À valider" count={review.length} empty="Rien à valider.">
+            <Panel icon={<StatusIcon status="REVIEW" size={14} />} title="À valider" count={review.length} empty="Rien à valider.">
               <ul className="space-y-1.5">
                 {review.map((task) => (
                   <li key={task.id} className="flex items-center gap-2 text-xs">
                     <ProjectTile color={task.project.color} label={task.project.key} size={14} />
                     <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
                     <span className="font-mono text-meta text-muted">{task.project.key}-{task.number}</span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+
+            <Panel icon={<Users className="size-4 text-muted" />} title="Charge de l'équipe" count={teamLoad.length} empty="Aucun membre.">
+              <ul className="space-y-2.5">
+                {teamLoad.map((member) => (
+                  <li key={member.id} className="flex items-center gap-2.5 text-xs">
+                    <Avatar name={member.name} color={member.color} size={20} />
+                    <span className="w-24 shrink-0 truncate">{member.name.split(" ")[0]}</span>
+                    <span className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-sunken">
+                      <span className="rounded-full" style={{ width: `${(member.open / maxLoad) * 100}%`, backgroundColor: member.color }} />
+                    </span>
+                    <span className="tabular w-5 text-right text-muted">{member.open}</span>
                   </li>
                 ))}
               </ul>
@@ -267,10 +343,9 @@ export default async function TodayPage() {
                         <div className="flex items-center gap-2 text-xs">
                           <ProjectTile color={project.color} label={project.key} size={16} />
                           <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{project.name}</span>
-                          <span className="tabular text-muted">{total ? Math.round((done / total) * 100) : 0} %</span>
                         </div>
                         {project.statusNote && <p className="mt-1 line-clamp-2 text-meta leading-snug text-muted">{project.statusNote}</p>}
-                        <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-sunken">
+                        <div role="img" aria-label={`${done} sur ${total} faites`} className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-sunken">
                           {TASK_STATUSES.slice()
                             .reverse()
                             .map((status) => {
@@ -282,21 +357,6 @@ export default async function TodayPage() {
                     </li>
                   );
                 })}
-              </ul>
-            </Panel>
-
-            <Panel icon={<Users className="size-4 text-muted" />} title="Charge de l'équipe" count={teamLoad.length} empty="Aucun membre.">
-              <ul className="space-y-2.5">
-                {teamLoad.map((member) => (
-                  <li key={member.id} className="flex items-center gap-2.5 text-xs">
-                    <Avatar name={member.name} color={member.color} size={20} />
-                    <span className="w-24 shrink-0 truncate">{member.name.split(" ")[0]}</span>
-                    <span className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-sunken">
-                      <span className="rounded-full" style={{ width: `${(member.open / maxLoad) * 100}%`, backgroundColor: member.color }} />
-                    </span>
-                    <span className="tabular w-5 text-right text-muted">{member.open}</span>
-                  </li>
-                ))}
               </ul>
             </Panel>
 
@@ -325,12 +385,14 @@ export default async function TodayPage() {
 }
 
 function Stat({
+  href,
   icon,
   tone,
   label,
   value,
   hint,
 }: {
+  href: string;
   icon: React.ReactNode;
   tone: string;
   label: string;
@@ -338,7 +400,10 @@ function Stat({
   hint: string;
 }) {
   return (
-    <div className="rounded-lg border border-line bg-surface p-4 shadow-card">
+    <a
+      href={value > 0 ? href : undefined}
+      className="block rounded-lg border border-line bg-surface p-4 shadow-card outline-hidden transition-shadow hover:shadow-raised focus-visible:shadow-[var(--ring)] [&:not([href])]:pointer-events-none"
+    >
       <div className="flex items-center gap-2 text-xs font-medium text-muted">
         <span
           className="flex size-6 items-center justify-center rounded-sm"
@@ -350,11 +415,12 @@ function Stat({
       </div>
       <p className="tabular mt-3 font-display text-hero font-semibold leading-none tracking-tight">{value}</p>
       <p className="mt-1.5 text-xs text-muted">{hint}</p>
-    </div>
+    </a>
   );
 }
 
 function Group({
+  id,
   title,
   tasks,
   tone,
@@ -362,6 +428,7 @@ function Group({
   total,
   hint,
 }: {
+  id?: string;
   title: string;
   tasks: TaskWithProject[];
   tone?: "danger";
@@ -371,13 +438,15 @@ function Group({
 }) {
   if (tasks.length === 0) return null;
   return (
-    <section>
-      <h2 className={cn("mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider", tone === "danger" ? "text-danger-text" : "text-muted")}>
-        {icon}
-        {title}
-        <span className="tabular font-normal">{total ?? tasks.length}</span>
-        {hint && <span className="ml-1 hidden font-normal normal-case tracking-normal text-muted sm:inline">{hint}</span>}
-      </h2>
+    <section id={id} aria-labelledby={id && `${id}-titre`} className="scroll-mt-6">
+      <SectionHeader
+        id={id && `${id}-titre`}
+        icon={icon}
+        title={title}
+        tone={tone}
+        count={total ?? tasks.length}
+        action={hint && <span className="hidden text-xs text-muted sm:inline">{hint}</span>}
+      />
       <ul className="overflow-hidden rounded-lg border border-line bg-surface shadow-card">
         {tasks.map((task) => (
           <TaskRow key={task.id} task={task} projectKey={task.project.key} project={task.project} />
@@ -391,12 +460,16 @@ function Group({
 }
 
 function Panel({
+  id,
+  className,
   icon,
   title,
   count,
   empty,
   children,
 }: {
+  id?: string;
+  className?: string;
   icon: React.ReactNode;
   title: string;
   count: number;
@@ -404,12 +477,8 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-line bg-surface p-4 shadow-card">
-      <h2 className="mb-3 flex items-center gap-2 text-ui font-semibold">
-        {icon}
-        {title}
-        <span className="tabular ml-auto text-xs font-normal text-muted">{count}</span>
-      </h2>
+    <section id={id} className={cn("scroll-mt-6 rounded-lg border border-line bg-surface p-4 shadow-card", className)}>
+      <SectionHeader icon={icon} title={title} count={count} className="mb-3" />
       {count === 0 ? <p className="text-xs text-muted">{empty}</p> : <div className="divide-y divide-line">{children}</div>}
     </section>
   );
