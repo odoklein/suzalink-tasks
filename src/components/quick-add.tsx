@@ -26,6 +26,7 @@ export function QuickAdd({
   compact = false,
   autoFocus = false,
   onDone,
+  roundId,
 }: {
   projectId: string;
   status?: TaskStatus;
@@ -33,6 +34,8 @@ export function QuickAdd({
   compact?: boolean;
   autoFocus?: boolean;
   onDone?: () => void;
+  /** Ajoute la tâche à ce lot de retours ouvert (P4-06). */
+  roundId?: string;
 }) {
   const { team } = useApp();
   const [value, setValue] = useState("");
@@ -43,7 +46,7 @@ export function QuickAdd({
   const submit = () => {
     if (!parsed.title.trim()) return;
     startTransition(async () => {
-      const result = await quickAddTask(projectId, value, status);
+      const result = await quickAddTask(projectId, value, status, { roundId });
       if ("error" in result && result.error) {
         toast.error(result.error);
         return;

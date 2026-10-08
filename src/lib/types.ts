@@ -19,6 +19,7 @@ export type TaskCard = {
   waitingFor: string | null;
   followUpAt: Date | null;
   lastChasedAt: Date | null;
+  roundId: string | null;
   assigneeId: string | null;
   assignee: { id: string; name: string; color: string } | null;
   _count: { comments: number };
@@ -42,6 +43,7 @@ export const taskCardSelect = {
   waitingFor: true,
   followUpAt: true,
   lastChasedAt: true,
+  roundId: true,
   assigneeId: true,
   assignee: { select: { id: true, name: true, color: true } },
   _count: { select: { comments: true } },

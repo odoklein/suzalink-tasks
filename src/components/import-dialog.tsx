@@ -51,7 +51,10 @@ export function ImportDialog({
   onClose,
   projectId,
   initialText = "",
+  contacts = [],
 }: {
+  /** Contacts du client, contact principal en premier. */
+  contacts?: { id: string; name: string }[];
   onClose: () => void;
   projectId: string;
   initialText?: string;
@@ -68,6 +71,7 @@ export function ImportDialog({
   const [assigneeId, setAssigneeId] = useState("");
   const [priority, setPriority] = useState<Priority>("NONE");
   const [dueDate, setDueDate] = useState("");
+  const [fromContactId, setFromContactId] = useState(contacts[0]?.id ?? "");
 
   const detected = useMemo(() => detectTable(text), [text]);
   const mapping = mappingOverride ?? detected.mapping;
@@ -143,6 +147,8 @@ export function ImportDialog({
         assigneeId: assigneeId || null,
         priority,
         dueDate: dueDate || null,
+        receivedAt: receivedDates.length ? received.toISOString() : null,
+        fromContactId: fromContactId || null,
       });
       if ("error" in result) {
         toast.error(result.error);
@@ -310,10 +316,21 @@ export function ImportDialog({
         {rows.length > 0 && (
           <fieldset className="grid gap-2 sm:grid-cols-4">
             <legend className="sr-only">Valeurs communes aux tâches créées</legend>
-            <div className="sm:col-span-4">
-              <label htmlFor="import-source" className={labelClass}>Source</label>
+            <div className={contacts.length > 0 ? "sm:col-span-2" : "sm:col-span-4"}>
+              <label htmlFor="import-source" className={labelClass}>Lot de retours</label>
               <input id="import-source" value={source} onChange={(event) => setSourceInput(event.target.value)} className={fieldClass} />
             </div>
+            {contacts.length > 0 && (
+              <div className="sm:col-span-2">
+                <label htmlFor="import-from" className={labelClass}>De la part de</label>
+                <select id="import-from" value={fromContactId} onChange={(event) => setFromContactId(event.target.value)} className={fieldClass}>
+                  <option value="">Non précisé</option>
+                  {contacts.map((contact) => (
+                    <option key={contact.id} value={contact.id}>{contact.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label htmlFor="import-assignee" className={labelClass}>Attribuer à</label>
               <select id="import-assignee" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className={fieldClass}>

@@ -6,7 +6,7 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { taskCardSelect } from "@/lib/types";
 
-const TABS: ProjectTab[] = ["tableau", "liste", "mises-en-ligne", "activite"];
+const TABS: ProjectTab[] = ["tableau", "liste", "retours", "mises-en-ligne", "activite"];
 
 export async function generateMetadata(props: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -29,8 +29,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
           contacts: true,
           contactRecords: {
             orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
-            take: 1,
-            select: { name: true, role: true, email: true },
+            select: { id: true, name: true, role: true, email: true },
           },
         },
       },
@@ -46,6 +45,18 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
         include: { actor: { select: { name: true, color: true } } },
       },
       clientMessages: { orderBy: { sentAt: "desc" }, take: 30, select: { id: true, body: true } },
+      rounds: {
+        orderBy: { receivedAt: "desc" },
+        select: {
+          id: true,
+          label: true,
+          receivedAt: true,
+          status: true,
+          rawText: true,
+          fromContact: { select: { name: true } },
+          closedBy: { select: { title: true, deployedAt: true } },
+        },
+      },
     },
   });
   if (!project || project.archived) notFound();

@@ -114,6 +114,35 @@ model Contact {
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   messages ClientMessage[]
+  rounds   FeedbackRound[]
+}
+
+enum RoundStatus {
+  OPEN
+  DELIVERED
+  CLOSED
+}
+
+/// Lot de retours client (un tableau collé, un e-mail…) : la preuve de ce qui a été demandé et quand.
+model FeedbackRound {
+  id         String      @id @default(cuid())
+  label      String
+  receivedAt DateTime    @default(now())
+  channel    Channel     @default(SHEETS)
+  sheetUrl   String?
+  rawText    String? // collage d'origine, conservé tel quel
+  status     RoundStatus @default(OPEN)
+  createdAt  DateTime    @default(now())
+
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromContactId String?
+  fromContact   Contact?  @relation(fields: [fromContactId], references: [id], onDelete: SetNull)
+  closedById    String?
+  closedBy      Delivery? @relation(fields: [closedById], references: [id], onDelete: SetNull)
+  tasks         Task[]
+
+  @@index([projectId, receivedAt])
 }
 
 enum MessageKind {
@@ -187,6 +216,7 @@ model Project {
 
   lastChasedAt   DateTime? // dernière relance du client sur ce projet
   clientMessages ClientMessage[]
+  rounds         FeedbackRound[]
 }
 
 model Task {
@@ -224,6 +254,9 @@ model Task {
   lastChasedAt DateTime?
   messages     ClientMessage[] @relation("MessageTasks")
 
+  roundId String? // lot de retours d'origine (P4-06)
+  round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
+
   @@unique([projectId, number])
   @@unique([projectId, externalKey]) // plusieurs NULL autorisés
   @@index([projectId, status, position])
@@ -254,6 +287,8 @@ model Delivery {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   authorId  String?
   author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  closedRounds FeedbackRound[]
 }
 
 model Activity {

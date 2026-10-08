@@ -40,6 +40,7 @@ type NewTask = {
   billable?: boolean;
   assigneeId?: string | null;
   dueDate?: Date | null;
+  roundId?: string | null;
 };
 
 async function insertTask(input: NewTask, creatorId: string) {
@@ -68,6 +69,7 @@ async function insertTask(input: NewTask, creatorId: string) {
         position,
         completedAt: status === "DONE" ? new Date() : null,
         waitingSince: status === "WAITING_CLIENT" ? new Date() : null,
+        roundId: input.roundId ?? null,
       },
     });
     const ref = `${project.key}-${task.number}`;
@@ -82,11 +84,24 @@ async function insertTask(input: NewTask, creatorId: string) {
 }
 
 /** Saisie rapide depuis un projet ou depuis « Aujourd'hui ». */
-export async function quickAddTask(projectId: string, input: string, status?: TaskStatus) {
+export async function quickAddTask(
+  projectId: string,
+  input: string,
+  status?: TaskStatus,
+  options: { roundId?: string | null } = {},
+) {
   const { userId } = await verifySession();
   const team = await db.user.findMany({ select: { id: true, name: true } });
   const parsed = parseQuickAdd(input, team);
   if (!parsed.title) return { error: "Donnez un titre à la tâche." };
+
+  // Ajout à un lot de retours ouvert (P4-06) : la tâche hérite de son libellé comme source.
+  const round = options.roundId
+    ? await db.feedbackRound.findFirst({
+        where: { id: options.roundId, projectId, status: "OPEN" },
+        select: { id: true, label: true },
+      })
+    : null;
 
   const { ref } = await insertTask(
     {
@@ -98,6 +113,8 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
       billable: parsed.billable,
       assigneeId: parsed.assigneeId ?? null,
       dueDate: parsed.dueDate ?? null,
+      roundId: round?.id ?? null,
+      source: round?.label,
     },
     userId,
   );

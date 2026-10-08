@@ -77,6 +77,10 @@ export type ImportInput = {
   priority?: Priority;
   /** `yyyy-MM-dd`, minuit à Paris. */
   dueDate?: string | null;
+  /** Date de réception du lot (colonne Date du tableau), ISO. */
+  receivedAt?: string | null;
+  /** « De la part de » : contact du client. */
+  fromContactId?: string | null;
 };
 
 export type ImportResult = {
@@ -85,6 +89,7 @@ export type ImportResult = {
   skipped: number;
   taskIds: string[];
   source: string;
+  roundId: string | null;
 };
 
 /**
@@ -134,6 +139,27 @@ export async function runImport(projectId: string, userId: string, input: Import
       now,
     });
 
+    // Chaque import crée un lot de retours qui garde le collage d'origine comme preuve.
+    let roundId: string | null = null;
+    if (writes.creates.length > 0 || writes.updates.length > 0) {
+      const received = input.receivedAt ? new Date(input.receivedAt) : now;
+      const fromContact = input.fromContactId
+        ? await tx.contact.findUnique({ where: { id: input.fromContactId }, select: { id: true } })
+        : null;
+      const round = await tx.feedbackRound.create({
+        data: {
+          projectId,
+          label: source,
+          receivedAt: Number.isNaN(received.getTime()) ? now : received,
+          channel: "SHEETS",
+          rawText: input.text.slice(0, 200_000),
+          fromContactId: fromContact?.id ?? null,
+        },
+        select: { id: true },
+      });
+      roundId = round.id;
+    }
+
     let taskIds: string[] = [];
     if (writes.creates.length > 0) {
       const count = writes.creates.length;
@@ -161,6 +187,7 @@ export async function runImport(projectId: string, userId: string, input: Import
           completedAt: draft.completedAt,
           waitingSince: draft.waitingSince,
           statusChangedAt: now,
+          roundId,
         })),
       });
       const created = await tx.task.findMany({
@@ -206,6 +233,7 @@ export async function runImport(projectId: string, userId: string, input: Import
       skipped: writes.skipped,
       taskIds,
       source,
+      roundId,
     };
   });
 }

@@ -16,6 +16,7 @@ import { ImportDialog } from "@/components/import-dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
 import { DeliveryDialog, RecapDialog } from "@/components/project-dialogs";
+import { RoundsView, type RoundData } from "@/components/rounds-view";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
@@ -24,7 +25,7 @@ import { looksLikeTable } from "@/lib/feedback-import";
 import type { TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
-export type ProjectTab = "tableau" | "liste" | "mises-en-ligne" | "activite";
+export type ProjectTab = "tableau" | "liste" | "retours" | "mises-en-ligne" | "activite";
 
 type ProjectData = {
   id: string;
@@ -42,7 +43,7 @@ type ProjectData = {
     kind: ClientKind;
     contacts: string | null;
     /** Contact principal (le premier, déjà trié côté serveur). */
-    contactRecords: { name: string; role: string | null; email: string | null }[];
+    contactRecords: { id: string; name: string; role: string | null; email: string | null }[];
   } | null;
   lead: { name: string; color: string } | null;
   tasks: TaskCard[];
@@ -65,11 +66,13 @@ type ProjectData = {
   lastChasedAt: Date | null;
   /** Messages envoyés au client (relances, récaps), pour les déplier dans l'historique. */
   clientMessages: { id: string; body: string }[];
+  rounds: RoundData[];
 };
 
 const TAB_LABELS: Record<ProjectTab, string> = {
   tableau: "Tableau",
   liste: "Liste",
+  retours: "Retours",
   "mises-en-ligne": "Mises en ligne",
   activite: "Activité",
 };
@@ -258,6 +261,9 @@ export function ProjectView({
               )}
             >
               {TAB_LABELS[key]}
+              {key === "retours" && project.rounds.some((round) => round.status === "OPEN") && (
+                <span className="tabular ml-1.5 text-[11px] text-faint">{project.rounds.filter((round) => round.status === "OPEN").length}</span>
+              )}
               {key === "mises-en-ligne" && project.deliveries.length > 0 && (
                 <span className="tabular ml-1.5 text-[11px] text-faint">{project.deliveries.length}</span>
               )}
@@ -271,12 +277,29 @@ export function ProjectView({
         {tab === "liste" && (
           <TaskList projectId={project.id} projectKey={project.key} tasks={project.tasks} sourceFilter={sourceFilter} />
         )}
+        {tab === "retours" && (
+          <RoundsView
+            projectId={project.id}
+            rounds={project.rounds}
+            tasks={project.tasks}
+            deliveries={project.deliveries}
+            onImport={() => {
+              setImportText("");
+              setDialog("import");
+            }}
+          />
+        )}
         {tab === "mises-en-ligne" && <Deliveries deliveries={project.deliveries} onAdd={() => setDialog("delivery")} />}
         {tab === "activite" && <ActivityFeed activities={project.activities} messages={project.clientMessages} />}
       </div>
 
       {dialog === "import" && (
-        <ImportDialog onClose={() => setDialog(null)} projectId={project.id} initialText={importText} />
+        <ImportDialog
+          onClose={() => setDialog(null)}
+          projectId={project.id}
+          initialText={importText}
+          contacts={project.client?.contactRecords ?? []}
+        />
       )}
       <RecapDialog
         open={dialog === "recap"}
