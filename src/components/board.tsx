@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { TaskStatus } from "@prisma/client";
-import { Plus } from "lucide-react";
+import { ChevronsLeft, Plus } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +29,7 @@ import { moveTask } from "@/app/actions/tasks";
 import { StatusIcon } from "@/components/primitives";
 import { QuickAdd } from "@/components/quick-add";
 import { TaskCard } from "@/components/task-card";
+import { IconButton } from "@/components/ui/button";
 import { TASK_STATUSES } from "@/lib/constants";
 import { computePosition } from "@/lib/position";
 import { oldestWaitingDays } from "@/lib/waiting";
@@ -37,14 +38,20 @@ import { cn } from "@/lib/utils";
 
 type Columns = Record<TaskStatus, TaskCardData[]>;
 
+const DONE_PREVIEW = 7;
+
 function toColumns(tasks: TaskCardData[]): Columns {
   const columns = Object.fromEntries(TASK_STATUSES.map((s) => [s.value, [] as TaskCardData[]])) as Columns;
   for (const task of tasks) columns[task.status].push(task);
   for (const key of Object.keys(columns) as TaskStatus[]) {
     columns[key].sort((a, b) => a.position - b.position);
   }
+  // « Fait » : les plus récemment terminées d’abord (l’ordre manuel n’y a pas de sens).
+  columns.DONE.sort((a, b) => doneTime(b) - doneTime(a));
   return columns;
 }
+
+const doneTime = (task: TaskCardData) => new Date(task.completedAt ?? task.updatedAt).getTime();
 
 function findColumn(columns: Columns, id: string): TaskStatus | undefined {
   if (id in columns) return id as TaskStatus;
@@ -102,6 +109,9 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     const column = findColumn(columns, String(active.id));
     if (!column) return;
 
+    // Réordonner à l’intérieur de « Fait » ne change rien : la colonne est triée par date.
+    if (column === "DONE" && findColumn(toColumns(tasks), String(active.id)) === "DONE") return;
+
     const list = [...columns[column]];
     const fromIndex = list.findIndex((task) => task.id === active.id);
     const overIndex = list.findIndex((task) => task.id === over.id);
@@ -133,7 +143,24 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
         setColumns(toColumns(tasks));
       }}
     >
-      <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto px-6 pb-6 scroll-thin">
+      {/* Téléphone : une colonne par écran, et des pastilles pour sauter de l’une à l’autre. */}
+      <nav aria-label="Colonnes" className="mb-3 flex gap-1.5 overflow-x-auto px-4 md:hidden">
+        {TASK_STATUSES.map((status) => (
+          <button
+            key={status.value}
+            type="button"
+            onClick={() =>
+              document.getElementById(`colonne-${status.value}`)?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+            }
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-2"
+          >
+            <StatusIcon status={status.value} size={12} />
+            {status.short}
+            <span className="tabular text-muted">{columns[status.value].length}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-6 scroll-thin sm:px-8 md:snap-none">
         {TASK_STATUSES.map((status) => (
           <Column
             key={status.value}
@@ -171,17 +198,45 @@ function Column({
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const oldest = status === "WAITING_CLIENT" ? oldestWaitingDays(tasks) : 0;
   const [adding, setAdding] = useState(false);
+  // « Fait » est replié par défaut en rail de 44 px ; déplié, il montre les 7 plus récentes.
+  const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const isDone = status === "DONE";
+  const visible = isDone && !showAll ? tasks.slice(0, DONE_PREVIEW) : tasks;
+
+  if (isDone && !expanded) {
+    return (
+      <section id={`colonne-${status}`} aria-label={label} className="shrink-0 snap-center">
+        <button
+          ref={setNodeRef}
+          type="button"
+          onClick={() => setExpanded(true)}
+          aria-expanded={false}
+          aria-label={`Afficher la colonne « ${label} » (${tasks.length})`}
+          className={cn(
+            "flex h-full min-h-40 w-11 flex-col items-center gap-2 rounded-lg bg-sunken py-3 text-ui font-semibold text-ink-2 transition-colors hover:bg-line",
+            isOver && "ring-2 ring-inset ring-accent/40",
+          )}
+        >
+          <StatusIcon status={status} />
+          <span className="[writing-mode:vertical-rl]">{label}</span>
+          <span className="tabular text-xs font-medium text-muted">{tasks.length}</span>
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section
+      id={`colonne-${status}`}
       aria-label={label}
       className={cn(
-        "flex w-[296px] shrink-0 flex-col rounded-lg bg-sunken/70 transition-colors",
-        isOver && "bg-accent-soft/60",
+        "flex w-[85vw] shrink-0 snap-center flex-col rounded-lg bg-sunken transition-shadow sm:w-[272px]",
         status === "WAITING_CLIENT" && "bg-waiting-soft/60",
+        isOver && "ring-2 ring-inset ring-accent/40",
       )}
     >
-      <header className="flex items-center gap-2 px-3 pb-2 pt-3">
+      <header className="sticky top-0 z-[1] flex items-center gap-2 rounded-t-lg px-3 pb-2 pt-3">
         <StatusIcon status={status} />
         <h3 className="text-ui font-semibold">{label}</h3>
         <span className="tabular text-xs text-muted">
@@ -190,24 +245,35 @@ function Column({
             <span className={cn(oldest >= 5 && "font-semibold text-waiting-text")}> · la plus ancienne : {oldest} j</span>
           )}
         </span>
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          aria-label={`Ajouter une tâche dans « ${label} »`}
-          className="ml-auto rounded-xs p-0.5 text-muted hover:bg-surface hover:text-ink"
-        >
-          <Plus className="size-4" />
-        </button>
+        <span className="ml-auto flex items-center">
+          {isDone && (
+            <IconButton label="Replier la colonne" size="sm" onClick={() => setExpanded(false)}>
+              <ChevronsLeft className="size-4" />
+            </IconButton>
+          )}
+          <IconButton label={`Ajouter une tâche dans « ${label} »`} size="sm" onClick={() => setAdding(true)}>
+            <Plus className="size-4" />
+          </IconButton>
+        </span>
       </header>
 
-      <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={visible.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="flex min-h-[80px] flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 scroll-thin">
           {adding && (
             <QuickAdd projectId={projectId} status={status} compact autoFocus onDone={() => setAdding(false)} />
           )}
-          {tasks.map((task) => (
+          {visible.map((task) => (
             <SortableCard key={task.id} task={task} projectKey={projectKey} />
           ))}
+          {visible.length < tasks.length && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mx-1 rounded-sm py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink"
+            >
+              Voir les {tasks.length - visible.length} autres
+            </button>
+          )}
           {tasks.length === 0 && !adding && (
             <p
               className={cn(
@@ -225,12 +291,16 @@ function Column({
 }
 
 function SortableCard({ task, projectKey }: { task: TaskCardData; projectKey: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({ id: task.id });
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(isDragging && "opacity-30")}
+      className={cn(
+        "relative",
+        isDragging && "opacity-30",
+        isOver && !isDragging && "before:absolute before:-top-[5px] before:inset-x-1 before:h-0.5 before:rounded-full before:bg-accent",
+      )}
       {...attributes}
       {...listeners}
     >
