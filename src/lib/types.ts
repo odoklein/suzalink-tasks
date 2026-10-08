@@ -20,6 +20,8 @@ export type TaskCard = {
   followUpAt: Date | null;
   lastChasedAt: Date | null;
   roundId: string | null;
+  estimatedAmountCents: number | null;
+  extraId: string | null;
   assigneeId: string | null;
   assignee: { id: string; name: string; color: string } | null;
   _count: { comments: number };
@@ -44,6 +46,8 @@ export const taskCardSelect = {
   followUpAt: true,
   lastChasedAt: true,
   roundId: true,
+  estimatedAmountCents: true,
+  extraId: true,
   assigneeId: true,
   assignee: { select: { id: true, name: true, color: true } },
   _count: { select: { comments: true } },

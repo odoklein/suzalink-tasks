@@ -6,7 +6,7 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { taskCardSelect } from "@/lib/types";
 
-const TABS: ProjectTab[] = ["tableau", "liste", "retours", "mises-en-ligne", "activite"];
+const TABS: ProjectTab[] = ["tableau", "liste", "retours", "avenants", "mises-en-ligne", "activite"];
 
 export async function generateMetadata(props: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -49,6 +49,22 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
         include: { actor: { select: { name: true, color: true } } },
       },
       clientMessages: { orderBy: { sentAt: "desc" }, take: 30, select: { id: true, body: true, kind: true, sentAt: true } },
+      extras: {
+        orderBy: { number: "desc" },
+        select: {
+          id: true,
+          number: true,
+          title: true,
+          amountCents: true,
+          status: true,
+          quotedAt: true,
+          approvedAt: true,
+          approvedBy: true,
+          invoicedAt: true,
+          invoiceRef: true,
+          paidAt: true,
+        },
+      },
       rounds: {
         orderBy: { receivedAt: "desc" },
         select: {

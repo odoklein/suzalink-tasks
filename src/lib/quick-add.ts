@@ -8,6 +8,8 @@ export type QuickAddResult = {
   zone?: string;
   dueDate?: Date;
   billable: boolean;
+  /** Montant estimé du hors périmètre (« $150 »), en centimes. */
+  amountCents?: number;
   tokens: { kind: "assignee" | "priority" | "zone" | "due" | "billable"; label: string }[];
 };
 
@@ -118,9 +120,15 @@ export function parseQuickAdd(
       continue;
     }
 
-    if (word === "$") {
+    // « $ » : hors périmètre ; « $150 » ou « $150,50 » : avec un montant estimé (P4-10).
+    const money = /^\$(\d{1,6}(?:[.,]\d{1,2})?)?$/.exec(word);
+    if (money) {
       result.billable = true;
-      result.tokens.push({ kind: "billable", label: "Hors périmètre" });
+      if (money[1]) result.amountCents = Math.round(Number(money[1].replace(",", ".")) * 100);
+      result.tokens.push({
+        kind: "billable",
+        label: money[1] ? `Hors périmètre · ${money[1].replace(".", ",")} €` : "Hors périmètre",
+      });
       continue;
     }
 

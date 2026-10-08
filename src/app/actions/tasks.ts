@@ -39,6 +39,7 @@ type NewTask = {
   zone?: string;
   source?: string;
   billable?: boolean;
+  estimatedAmountCents?: number | null;
   assigneeId?: string | null;
   dueDate?: Date | null;
   roundId?: string | null;
@@ -65,6 +66,7 @@ async function insertTask(input: NewTask, creatorId: string) {
         zone: input.zone,
         source: input.source,
         billable: input.billable ?? false,
+        estimatedAmountCents: input.estimatedAmountCents ?? null,
         assigneeId: input.assigneeId ?? null,
         dueDate: input.dueDate ?? null,
         creatorId,
@@ -114,6 +116,7 @@ export async function quickAddTask(
       priority: parsed.priority,
       zone: parsed.zone,
       billable: parsed.billable,
+      estimatedAmountCents: parsed.amountCents ?? null,
       assigneeId: parsed.assigneeId ?? null,
       dueDate: parsed.dueDate ?? null,
       roundId: round?.id ?? null,
@@ -133,6 +136,8 @@ export type TaskPatch = Partial<{
   zone: string | null;
   source: string | null;
   billable: boolean;
+  billingNote: string | null;
+  estimatedAmountCents: number | null;
   assigneeId: string | null;
   dueDate: string | null;
 }>;
@@ -156,6 +161,12 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
   if (patch.zone !== undefined) data.zone = patch.zone?.trim() || null;
   if (patch.source !== undefined) data.source = patch.source?.trim() || null;
   if (patch.billable !== undefined) data.billable = patch.billable;
+  if (patch.billingNote !== undefined) data.billingNote = patch.billingNote?.trim().slice(0, 500) || null;
+  if (patch.estimatedAmountCents !== undefined) {
+    const cents = patch.estimatedAmountCents;
+    if (cents !== null && (!Number.isInteger(cents) || cents < 0)) return { error: "Montant invalide." };
+    data.estimatedAmountCents = cents;
+  }
   if (patch.assigneeId !== undefined) data.assigneeId = patch.assigneeId || null;
   if (patch.dueDate !== undefined) data.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
   if (patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status) {

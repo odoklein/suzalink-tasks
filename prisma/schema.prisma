@@ -223,6 +223,40 @@ model Project {
   startDate  DateTime?
   zones      Zone[]
   milestones Milestone[]
+  extras     Extra[]
+}
+
+enum ExtraStatus {
+  DRAFT
+  QUOTED
+  APPROVED
+  REJECTED
+  INVOICED
+  PAID
+}
+
+/// Avenant : modifications hors périmètre chiffrées, devisées puis facturées.
+/// La facture elle-même est émise ailleurs : `invoiceRef` n'est qu'une référence (jamais de numérotation ici).
+model Extra {
+  id          String      @id @default(cuid())
+  number      Int
+  title       String
+  amountCents Int?
+  status      ExtraStatus @default(DRAFT)
+  quotedAt    DateTime?
+  approvedAt  DateTime?
+  approvedBy  String?
+  invoicedAt  DateTime?
+  invoiceRef  String?
+  paidAt      DateTime?
+  createdAt   DateTime    @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([projectId, number])
+  @@index([status])
 }
 
 enum ProjectType {
@@ -327,6 +361,12 @@ model Task {
   zoneRef     Zone?      @relation(fields: [zoneId], references: [id], onDelete: SetNull)
   milestoneId String?
   milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  // P4-10 : hors périmètre chiffré, regroupé en avenants
+  billingNote          String?
+  estimatedAmountCents Int?
+  extraId              String?
+  extra                Extra?  @relation(fields: [extraId], references: [id], onDelete: SetNull)
 
   roundId String? // lot de retours d'origine (P4-06)
   round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)

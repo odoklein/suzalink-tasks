@@ -17,6 +17,7 @@ import { ImportDialog } from "@/components/import-dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
 import { DeliveryDialog, type EditableDelivery } from "@/components/delivery-dialog";
+import { ExtrasView, type ExtraData } from "@/components/extras-view";
 import { RecapDialog } from "@/components/recap-dialog";
 import { RoundsView, type RoundData } from "@/components/rounds-view";
 import { SelectMenu } from "@/components/select-menu";
@@ -28,7 +29,7 @@ import { plural } from "@/lib/plural";
 import type { TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
-export type ProjectTab = "tableau" | "liste" | "retours" | "mises-en-ligne" | "activite";
+export type ProjectTab = "tableau" | "liste" | "retours" | "avenants" | "mises-en-ligne" | "activite";
 
 type ProjectData = {
   id: string;
@@ -71,12 +72,14 @@ type ProjectData = {
   /** Messages envoyés au client (relances, récaps), pour les déplier dans l'historique. */
   clientMessages: { id: string; body: string; kind: MessageKind; sentAt: Date }[];
   rounds: RoundData[];
+  extras: ExtraData[];
 };
 
 const TAB_LABELS: Record<ProjectTab, string> = {
   tableau: "Tableau",
   liste: "Liste",
   retours: "Retours",
+  avenants: "Avenants",
   "mises-en-ligne": "Mises en ligne",
   activite: "Activité",
 };
@@ -304,6 +307,14 @@ export function ProjectView({
               setImportText("");
               setDialog("import");
             }}
+          />
+        )}
+        {tab === "avenants" && (
+          <ExtrasView
+            projectId={project.id}
+            projectKey={project.key}
+            extras={project.extras}
+            tasks={project.tasks}
           />
         )}
         {tab === "mises-en-ligne" && (

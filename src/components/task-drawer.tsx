@@ -25,6 +25,7 @@ import {
 import { SelectMenu } from "@/components/select-menu";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
+import { parseEuros } from "@/lib/extras";
 import { promptWaitingFor } from "@/lib/waiting-prompt";
 
 const inputClass =
@@ -209,6 +210,27 @@ export function TaskDrawer() {
                     {task.billable ? "À facturer en supplément" : "Non"}
                   </label>
                 </Prop>
+                {task.billable && (
+                  <>
+                    <Prop label="Montant estimé">
+                      <InlineInput
+                        value={task.estimatedAmountCents !== null ? String(task.estimatedAmountCents / 100).replace(".", ",") : ""}
+                        placeholder="150 (€ HT)"
+                        onSave={(value) => {
+                          const cents = parseEuros(value);
+                          if (value.trim() && cents === null) {
+                            toast.error("Montant illisible : écrivez par exemple 150 ou 150,50.");
+                            return;
+                          }
+                          patch({ estimatedAmountCents: cents });
+                        }}
+                      />
+                    </Prop>
+                    <Prop label="Note de facturation">
+                      <InlineInput value={task.billingNote ?? ""} placeholder="Demandé par Luna le 06/10…" onSave={(billingNote) => patch({ billingNote })} />
+                    </Prop>
+                  </>
+                )}
               </dl>
 
               <section className="mt-5 border-t border-line px-5 pt-4">
