@@ -8,9 +8,26 @@ import {
   isYesterday,
 } from "date-fns";
 import { fr } from "date-fns/locale";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * tailwind-merge doit connaître nos jetons : sans cela, `text-ui` (taille) serait
+ * pris pour une couleur et écraserait `text-muted`, et inversement.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: ["meta", "ui", "body", "title", "h2", "h1", "hero"],
+      shadow: ["xs", "card", "raised", "pop", "overlay"],
+    },
+    classGroups: {
+      z: [{ z: ["sidebar", "drawer", "dialog", "palette", "popover", "toast"] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
+  return twMerge(clsx(inputs));
 }
 
 export function initials(name: string) {

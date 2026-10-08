@@ -40,4 +40,16 @@ describe("cn", () => {
   it("ignore les valeurs fausses", () => {
     expect(cn("a", false, null, "b")).toBe("a b");
   });
+
+  it("résout les conflits Tailwind : la dernière classe gagne", () => {
+    expect(cn("px-3.5 py-2 text-[13px]", "px-3 text-[12px]")).toBe("py-2 px-3 text-[12px]");
+  });
+
+  it("distingue taille et couleur pour les jetons du design system", () => {
+    expect(cn("text-ui text-muted", "text-meta")).toBe("text-muted text-meta");
+    expect(cn("text-ui text-muted", "text-ink")).toBe("text-ui text-ink");
+    expect(cn("shadow-card", "shadow-raised")).toBe("shadow-raised");
+    expect(cn("z-dialog", "z-popover")).toBe("z-popover");
+    expect(cn("rounded-md", "rounded-xs")).toBe("rounded-xs");
+  });
 });
