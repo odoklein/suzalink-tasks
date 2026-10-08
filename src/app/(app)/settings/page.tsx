@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { Avatar } from "@/components/primitives";
 import { getCurrentUser } from "@/lib/dal";
@@ -59,6 +60,16 @@ export default async function SettingsPage() {
             6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes.
           </p>
           <PasswordForm />
+        </section>
+
+        <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="font-display text-[17px] font-semibold">Modèles de projet</h2>
+          <p className="mt-1 text-[13px] text-muted">
+            Jalons, pages et tâches de départ proposés à la création d&apos;un projet (site vitrine, e-commerce…).
+          </p>
+          <Link href="/settings/templates" className="mt-3 inline-block text-[13px] font-medium text-accent hover:underline">
+            Gérer les modèles
+          </Link>
         </section>
 
         {user.role === "ADMIN" && (

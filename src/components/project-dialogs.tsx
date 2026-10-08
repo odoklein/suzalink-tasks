@@ -7,6 +7,7 @@ import { createProject } from "@/app/actions/projects";
 import { useApp } from "@/components/app-context";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { PROJECT_COLORS } from "@/lib/constants";
+import { ProjectTemplateFields } from "@/components/project-template-fields";
 import { cn } from "@/lib/utils";
 
 export function NewProjectDialog() {
@@ -65,6 +66,8 @@ export function NewProjectDialog() {
             </div>
           )}
         </fieldset>
+
+        {newProjectOpen && <ProjectTemplateFields />}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>

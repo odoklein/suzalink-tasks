@@ -1,10 +1,14 @@
 "use server";
 
-import type { ClientKind, ProjectStatus } from "@prisma/client";
+import type { ClientKind, ProjectStatus, ProjectType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logActivity } from "@/lib/activity";
+import { applyTemplate } from "@/lib/apply-template";
+import { plural } from "@/lib/plural";
+import { PROJECT_TYPES } from "@/lib/templates";
+import { fromParisDateTimeInput, startOfDayParis } from "@/lib/time";
 import { PROJECT_COLORS } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -37,6 +41,12 @@ export async function createProject(_state: ProjectFormState, formData: FormData
 
   const color = String(formData.get("color") ?? "") || PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)];
   const due = String(formData.get("dueDate") ?? "");
+  const templateId = String(formData.get("templateId") ?? "") || null;
+  const typeValue = String(formData.get("type") ?? "");
+  const type: ProjectType = PROJECT_TYPES.some((t) => t.value === typeValue) ? (typeValue as ProjectType) : "OTHER";
+  const startValue = String(formData.get("startDate") ?? "");
+  const start = startValue ? fromParisDateTimeInput(`${startValue}T00:00`) : startOfDayParis(new Date());
+  if (Number.isNaN(start.getTime())) return { error: "Date de démarrage invalide." };
   const slug = await uniqueValue(slugify(name) || "projet", "slug");
   const key = await uniqueValue(String(formData.get("key") ?? "").trim().toUpperCase() || projectKey(name), "key");
 
@@ -53,9 +63,21 @@ export async function createProject(_state: ProjectFormState, formData: FormData
         description: String(formData.get("description") ?? "").trim() || null,
         dueDate: due ? new Date(due) : null,
         leadId: userId,
+        type,
+        startDate: start,
       },
     });
     await logActivity(tx, { projectId: created.id, actorId: userId, event: { type: "PROJECT_UPDATED", change: "created" } });
+    if (templateId) {
+      const applied = await applyTemplate(tx, { projectId: created.id, templateId, start, creatorId: userId });
+      if (applied) {
+        await logActivity(tx, {
+          projectId: created.id,
+          actorId: userId,
+          event: { type: "NOTE", message: `a appliqué le modèle « ${applied.name} » (${plural(applied.count, "tâche")})` },
+        });
+      }
+    }
     return created;
   });
   revalidatePath("/", "layout");

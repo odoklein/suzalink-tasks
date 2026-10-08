@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { QuickAdd } from "@/components/quick-add";
 import { TaskRow } from "@/components/task-row";
+import { ZonesButton } from "@/components/zones-dialog";
 import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,12 @@ export function TaskList({
       }));
   }, [groupBy, visible]);
 
+  const zoneCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const task of tasks) if (task.zone) counts.set(task.zone, (counts.get(task.zone) ?? 0) + 1);
+    return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name, "fr"));
+  }, [tasks]);
+
   const toggle = (key: string) =>
     setCollapsed((current) => {
       const next = new Set(current);
@@ -88,6 +95,9 @@ export function TaskList({
           <input type="checkbox" checked={hideDone} onChange={(event) => setHideDone(event.target.checked)} className="accent-[var(--accent)]" />
           Masquer les tâches faites
         </label>
+        <span className="ml-auto">
+          <ZonesButton projectId={projectId} zones={zoneCounts} />
+        </span>
       </div>
 
       {activeSource && (

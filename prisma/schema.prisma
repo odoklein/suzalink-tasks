@@ -217,6 +217,72 @@ model Project {
   lastChasedAt   DateTime? // dernière relance du client sur ce projet
   clientMessages ClientMessage[]
   rounds         FeedbackRound[]
+
+  // P4-09 : type, modèle de départ, pages et jalons
+  type       ProjectType @default(OTHER)
+  startDate  DateTime?
+  zones      Zone[]
+  milestones Milestone[]
+}
+
+enum ProjectType {
+  VITRINE
+  ECOMMERCE
+  REFONTE
+  MAINTENANCE
+  SOCIAL
+  OTHER
+}
+
+/// Page ou section d'un projet (« Homepage », « Fiche produit ») : référentiel des zones des tâches.
+model Zone {
+  id        String  @id @default(cuid())
+  name      String
+  url       String?
+  position  Float   @default(0)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([projectId, name])
+}
+
+/// Jalon de projet (« Maquettes validées », « Mise en ligne »).
+model Milestone {
+  id          String    @id @default(cuid())
+  name        String
+  dueDate     DateTime?
+  completedAt DateTime?
+  position    Float     @default(0)
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId, position])
+}
+
+/// Modèle de projet : jalons, pages et tâches de départ (échéances relatives au démarrage).
+model ProjectTemplate {
+  id         String         @id @default(cuid())
+  name       String         @unique
+  type       ProjectType    @default(OTHER)
+  milestones String[]
+  zones      String[]
+  tasks      TemplateTask[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model TemplateTask {
+  id          String          @id @default(cuid())
+  title       String
+  zone        String?
+  milestone   String?
+  estimateMin Int?
+  offsetDays  Int? // échéance = démarrage + N jours
+  position    Float           @default(0)
+  templateId  String
+  template    ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 model Task {
@@ -255,6 +321,12 @@ model Task {
   messages     ClientMessage[] @relation("MessageTasks")
 
   deliveries DeliveryTask[]
+
+  // P4-09 : référentiels (Task.zone reste le libellé pendant la transition)
+  zoneId      String?
+  zoneRef     Zone?      @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
 
   roundId String? // lot de retours d'origine (P4-06)
   round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)

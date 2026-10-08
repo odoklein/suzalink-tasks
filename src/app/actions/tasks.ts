@@ -12,6 +12,7 @@ import { ImportError, matchImportRows, runImport, type ImportInput } from "@/lib
 import { waitingSinceFor } from "@/lib/metrics";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { diffTask } from "@/lib/task-changes";
+import { ensureZone } from "@/lib/zones";
 
 const STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS", "WAITING_CLIENT", "REVIEW", "DONE"];
 const PRIORITIES: Priority[] = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"];
@@ -52,6 +53,7 @@ async function insertTask(input: NewTask, creatorId: string) {
       data: { taskCounter: { increment: 1 } },
       select: { taskCounter: true, key: true },
     });
+    const zoneId = await ensureZone(tx, input.projectId, input.zone);
     const task = await tx.task.create({
       data: {
         projectId: input.projectId,
@@ -70,6 +72,7 @@ async function insertTask(input: NewTask, creatorId: string) {
         completedAt: status === "DONE" ? new Date() : null,
         waitingSince: status === "WAITING_CLIENT" ? new Date() : null,
         roundId: input.roundId ?? null,
+        zoneId,
       },
     });
     const ref = `${project.key}-${task.number}`;
@@ -166,6 +169,7 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
 
   const ref = `${current.project.key}-${current.number}`;
   await db.$transaction(async (tx) => {
+    if (data.zone !== undefined) data.zoneId = await ensureZone(tx, current.projectId, data.zone as string | null);
     const updated = await tx.task.update({ where: { id: taskId }, data });
 
     // Une ligne d'historique par champ réellement modifié, dans la même transaction.

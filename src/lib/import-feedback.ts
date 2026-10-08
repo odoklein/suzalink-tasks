@@ -9,6 +9,7 @@ import { importKey } from "@/lib/import-key";
 import { classifyRows, type ExistingMatch } from "@/lib/import-plan";
 import { MAX_IMPORT_ROWS, planImportWrites, type RowOverride } from "@/lib/import-writes";
 import { fromParisDateTimeInput } from "@/lib/time";
+import { ensureZones } from "@/lib/zones";
 
 type Tx = Prisma.TransactionClient;
 
@@ -169,6 +170,7 @@ export async function runImport(projectId: string, userId: string, input: Import
         select: { taskCounter: true },
       });
       const first = project.taskCounter - count + 1;
+      const zoneIds = await ensureZones(tx, projectId, writes.creates.map((draft) => draft.zone));
       await tx.task.createMany({
         data: writes.creates.map((draft, offset) => ({
           projectId,
@@ -188,6 +190,7 @@ export async function runImport(projectId: string, userId: string, input: Import
           waitingSince: draft.waitingSince,
           statusChangedAt: now,
           roundId,
+          zoneId: draft.zone ? (zoneIds.get(draft.zone) ?? null) : null,
         })),
       });
       const created = await tx.task.findMany({
