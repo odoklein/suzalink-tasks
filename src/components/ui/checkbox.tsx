@@ -22,7 +22,7 @@ export function Checkbox({ label, className, ...props }: Props) {
           "[&>svg]:opacity-0 peer-checked:[&>svg]:opacity-100",
         )}
       >
-        <Check className="size-3" strokeWidth={3} />
+        <Check className="size-3 [stroke-width:3]" />
       </span>
       {label}
     </label>

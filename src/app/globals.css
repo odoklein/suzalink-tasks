@@ -302,6 +302,14 @@
   z-index: var(--z-toast);
 }
 
+@layer base {
+  /* Icônes lucide : trait 1,75 partout (une classe utilitaire peut encore le changer).
+     Tailles : 12 px dans les pastilles, 14 px en ligne avec text-ui, 16 px dans les boutons. */
+  .lucide {
+    stroke-width: 1.75;
+  }
+}
+
 html,
 body {
   height: 100%;

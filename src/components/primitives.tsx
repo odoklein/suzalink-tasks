@@ -114,7 +114,7 @@ export function StatusIcon({ status, size = 15 }: { status: TaskStatus; size?: n
     return (
       <svg {...common}>
         <circle cx="8" cy="8" r="6.2" fill="none" stroke={color} strokeWidth="1.6" />
-        <path d="M5.6 4.9h4.8L8 8l2.4 3.1H5.6L8 8Z" fill={color} />
+        <path d="M5.2 4.4h5.6L8 8l2.8 3.6H5.2L8 8Z" fill={color} />
       </svg>
     );
   }
@@ -206,7 +206,7 @@ export function DueChip({
       muted={tone === "muted"}
       className={cn("tabular min-w-[5.25rem]", className)}
       icon={
-        <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
         <rect x="2" y="3" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
         <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
@@ -231,7 +231,7 @@ export function AgeChip({ since, className }: { since: Date | string; className?
       muted={level === "calm"}
       aria-label={days === 0 ? "Chez le client depuis aujourd’hui" : `Chez le client depuis ${days} jour${days > 1 ? "s" : ""}`}
       className={cn("tabular", level === "chase" && "font-bold", className)}
-      icon={<StatusIcon status="WAITING_CLIENT" size={11} />}
+      icon={<StatusIcon status="WAITING_CLIENT" size={12} />}
     >
       {days === 0 ? "auj." : `${days} j`}
     </Chip>
