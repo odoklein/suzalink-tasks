@@ -43,9 +43,14 @@ const detail = {
 function Opener() {
   const { openTask } = useApp();
   return (
-    <button type="button" onClick={() => openTask("t1")}>
-      ouvrir
-    </button>
+    <>
+      <button type="button" onClick={() => openTask("t1")}>
+        ouvrir
+      </button>
+      <button type="button" onClick={() => openTask("t2")}>
+        ouvrir 2
+      </button>
+    </>
   );
 }
 
@@ -72,6 +77,59 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+describe("TaskDrawer : états de chargement (P1-09)", () => {
+  it("affiche « Cette tâche a été supprimée. » (et non un squelette sans fin) quand la tâche n'existe plus", async () => {
+    vi.mocked(getTaskDetail).mockResolvedValue(null);
+    const user = userEvent.setup();
+    renderDrawer();
+    await user.click(screen.getByText("ouvrir"));
+
+    expect(await screen.findByText("Cette tâche a été supprimée.")).toBeTruthy();
+    expect(screen.queryByText("Réessayer")).toBeNull();
+    await user.click(screen.getAllByRole("button", { name: "Fermer" }).at(-1)!);
+    expect(screen.queryByText("Cette tâche a été supprimée.")).toBeNull();
+  });
+
+  it("propose « Réessayer » après une erreur de chargement, puis affiche la tâche", async () => {
+    vi.mocked(getTaskDetail)
+      .mockResolvedValueOnce({ error: "Une erreur est survenue. Réessayez." })
+      .mockResolvedValueOnce(detail as never);
+    const user = userEvent.setup();
+    renderDrawer();
+    await user.click(screen.getByText("ouvrir"));
+
+    await user.click(await screen.findByRole("button", { name: "Réessayer" }));
+    expect(await screen.findByLabelText("Titre de la tâche")).toHaveProperty("value", "Titre");
+    expect(getTaskDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it("traite un rejet réseau comme une erreur de chargement", async () => {
+    vi.mocked(getTaskDetail).mockRejectedValueOnce(new Error("réseau"));
+    const user = userEvent.setup();
+    renderDrawer();
+    await user.click(screen.getByText("ouvrir"));
+    expect(await screen.findByText("Impossible de charger la tâche.")).toBeTruthy();
+  });
+
+  it("ignore une réponse tardive d'une tâche précédente", async () => {
+    let resolveFirst: (value: never) => void = () => {};
+    vi.mocked(getTaskDetail)
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveFirst = resolve as never)))
+      .mockResolvedValueOnce({ ...detail, id: "t2", title: "Deuxième" } as never);
+    const user = userEvent.setup();
+    renderDrawer();
+    await user.click(screen.getByText("ouvrir"));
+    await user.click(screen.getByText("ouvrir 2"));
+    expect(await screen.findByDisplayValue("Deuxième")).toBeTruthy();
+
+    // la réponse de t1 arrive après : elle ne doit ni écraser t2 ni bloquer le tiroir
+    resolveFirst({ ...detail, title: "Première" } as never);
+    await Promise.resolve();
+    expect(screen.queryByDisplayValue("Première")).toBeNull();
+    expect(screen.getByDisplayValue("Deuxième")).toBeTruthy();
+  });
 });
 
 describe("TaskDrawer : brouillons (P1-04)", () => {

@@ -30,18 +30,18 @@ import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 const inputClass =
   "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
 
-/** Détail d’une tâche, ou `null` si elle n’existe plus ou si le chargement a échoué. */
-function unwrapDetail(detail: Awaited<ReturnType<typeof getTaskDetail>>): TaskDetail | null {
-  if (detail && "error" in detail) {
-    toast.error(detail.error);
-    return null;
-  }
-  return detail;
-}
+/**
+ * Ce que le tiroir sait de la tâche `id` : détail chargé, tâche disparue, ou échec de chargement.
+ * Sans entrée pour la tâche ouverte, l'état est « loading » (squelette).
+ */
+type DrawerData =
+  | { id: string; status: "ready"; task: TaskDetail }
+  | { id: string; status: "missing" }
+  | { id: string; status: "error" };
 
 export function TaskDrawer() {
   const { openTaskId, closeTask, team } = useApp();
-  const [loaded, setLoaded] = useState<TaskDetail | null>(null);
+  const [data, setData] = useState<DrawerData | null>(null);
   const [, startTransition] = useTransition();
   // Brouillons du titre et de la description : ils survivent au démontage des champs
   // (Échap, clic sur le fond…) et sont envoyés par `flushDrafts` avant la fermeture.
@@ -50,35 +50,53 @@ export function TaskDrawer() {
   const loadSeq = useRef(0);
 
   // Le détail affiché est celui de la tâche ouverte ; sinon on montre le squelette.
-  const task = loaded && loaded.id === openTaskId ? loaded : null;
+  const current = data && data.id === openTaskId ? data : null;
+  const status = !current ? "loading" : current.status;
+  const task = current?.status === "ready" ? current.task : null;
 
   useEffect(() => {
     latestTask.current = task;
   });
 
-  const load = useCallback(async (id: string) => {
+  /**
+   * Charge le détail. `background` : rechargement après une modification, un échec réseau ne doit pas
+   * remplacer par une erreur un détail déjà affiché (mais une tâche supprimée entre-temps passe bien en « supprimée »).
+   */
+  const load = useCallback(async (id: string, background = false) => {
     const seq = ++loadSeq.current;
-    const detail = await getTaskDetail(id);
+    let next: DrawerData | null;
+    try {
+      const detail = await getTaskDetail(id);
+      if (detail === null) next = { id, status: "missing" };
+      else if ("error" in detail) next = background ? null : { id, status: "error" };
+      else next = { id, status: "ready", task: detail };
+    } catch {
+      next = background ? null : { id, status: "error" };
+    }
     // Une réponse plus ancienne que la dernière demande ne doit jamais écraser les données.
-    if (seq !== loadSeq.current) return;
-    setLoaded(unwrapDetail(detail));
+    if (seq !== loadSeq.current || !next) return;
+    setData(next);
   }, []);
 
   useEffect(() => {
     if (openTaskId) void load(openTaskId);
   }, [openTaskId, load]);
 
-  const loading = !task;
+  const retry = () => {
+    if (!openTaskId) return;
+    setData(null); // retour au squelette pendant le nouvel essai
+    void load(openTaskId);
+  };
 
   const sendPatch = useCallback(
     (target: TaskDetail, changes: TaskPatch, detached = false) => {
       // `detached` : le tiroir se ferme ou change de tâche, on n'y touche plus (ni mise à jour
       // optimiste ni rechargement) ; sinon une réponse tardive écraserait la tâche affichée.
-      if (!detached) setLoaded({ ...target, ...(changes as Partial<TaskDetail>) });
+      if (!detached) setData({ id: target.id, status: "ready", task: { ...target, ...(changes as Partial<TaskDetail>) } });
       startTransition(async () => {
         const result = await updateTask(target.id, changes);
         if (!result.ok) toast.error(result.error);
-        if (!detached) await load(target.id);
+        if (!detached) await load(target.id, true);
       });
     },
     [load],
@@ -133,7 +151,11 @@ export function TaskDrawer() {
         aria-label="Détail de la tâche"
         className="animate-slide-in fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col border-l border-line bg-surface shadow-pop"
       >
-        {!task || loading ? (
+        {status === "missing" ? (
+          <DrawerMessage title="Cette tâche a été supprimée." onClose={requestClose} />
+        ) : status === "error" ? (
+          <DrawerMessage title="Impossible de charger la tâche." onClose={requestClose} onRetry={retry} />
+        ) : !task ? (
           <DrawerSkeleton onClose={requestClose} />
         ) : (
           <>
@@ -299,7 +321,7 @@ export function TaskDrawer() {
                       toast.error(result.error);
                       return false;
                     }
-                    await load(task.id);
+                    await load(task.id, true);
                     return true;
                   }}
                 />
@@ -498,6 +520,35 @@ function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
     <button type="button" onClick={() => setArmed(true)} aria-label="Supprimer la tâche" className="rounded-md p-1.5 text-muted hover:bg-danger-soft hover:text-danger">
       <Trash2 className="size-4" />
     </button>
+  );
+}
+
+function DrawerMessage({ title, onClose, onRetry }: { title: string; onClose: () => void; onRetry?: () => void }) {
+  return (
+    <div className="flex h-full flex-col p-5">
+      <div className="flex justify-end">
+        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken">
+          <X className="size-4" />
+        </button>
+      </div>
+      <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-4 pb-16 text-center">
+        <p className="font-display text-[17px] font-semibold">{title}</p>
+        <div className="flex gap-2">
+          {onRetry && (
+            <button type="button" onClick={onRetry} className="rounded-lg bg-ink px-3.5 py-2 text-[13px] font-semibold text-bg hover:opacity-90">
+              Réessayer
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 hover:border-line-strong hover:text-ink"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
