@@ -1,13 +1,5 @@
-import {
-  addDays,
-  differenceInCalendarDays,
-  endOfDay,
-  format,
-  isSameDay,
-  startOfDay,
-  subDays,
-} from "date-fns";
-import { fr } from "date-fns/locale";
+import { tz } from "@date-fns/tz";
+import { addDays, differenceInCalendarDays, isSameDay, subDays } from "date-fns";
 import { AlarmClock, CalendarDays, Hourglass, Rocket, UserRoundPlus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -18,6 +10,7 @@ import { TaskRow } from "@/components/task-row";
 import { TASK_STATUSES } from "@/lib/constants";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { endOfDayParis, formatParis, nowParis, startOfDayParis, TZ } from "@/lib/time";
 import { taskCardSelect, type TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
@@ -32,10 +25,12 @@ const withProject = {
 
 export default async function TodayPage() {
   const user = await getCurrentUser();
-  const now = new Date();
-  const today = startOfDay(now);
-  const endToday = endOfDay(now);
-  const endWeek = endOfDay(addDays(now, 6));
+  // Les serveurs tournent en UTC : « aujourd'hui », « demain » et la semaine suivent le jour calendaire de Paris.
+  const inParis = { in: tz(TZ) };
+  const now = nowParis();
+  const today = startOfDayParis(now);
+  const endToday = endOfDayParis(now);
+  const endWeek = endOfDayParis(addDays(now, 6));
   const live = { archived: false };
 
   const [mine, waiting, review, deliveries, deliveredThisWeek, activeProjects, unassigned, unassignedCount, workload, team] = await Promise.all([
@@ -60,7 +55,7 @@ export default async function TodayPage() {
       take: 5,
       include: { project: { select: { name: true, color: true, key: true, slug: true } } },
     }),
-    db.delivery.count({ where: { deployedAt: { gte: subDays(today, 6) } } }),
+    db.delivery.count({ where: { deployedAt: { gte: new Date(subDays(today, 6, inParis).getTime()) } } }),
     db.project.findMany({
       where: { ...live, status: { not: "DONE" } },
       orderBy: { updatedAt: "desc" },
@@ -102,8 +97,8 @@ export default async function TodayPage() {
   }
 
   const week = Array.from({ length: 7 }, (_, index) => {
-    const day = addDays(today, index);
-    return { day, tasks: mine.filter((task) => task.dueDate && isSameDay(task.dueDate, day)) };
+    const day = new Date(addDays(today, index, inParis).getTime());
+    return { day, tasks: mine.filter((task) => task.dueDate && isSameDay(task.dueDate, day, inParis)) };
   });
 
   const loadByUser = new Map(workload.map((row) => [row.assigneeId, row._count._all]));
@@ -169,10 +164,10 @@ export default async function TodayPage() {
               className={cn("rounded-lg px-2.5 py-2", index === 0 ? "bg-ink text-bg" : "hover:bg-surface-2")}
             >
               <p className={cn("text-[11px] font-medium capitalize", index === 0 ? "text-bg/70" : "text-muted")}>
-                {index === 0 ? "Auj." : format(day, "EEE", { locale: fr })}
+                {index === 0 ? "Auj." : formatParis(day, "EEE")}
               </p>
               <div className="mt-0.5 flex items-baseline justify-between gap-2">
-                <span className="tabular font-display text-[18px] font-semibold">{format(day, "d")}</span>
+                <span className="tabular font-display text-[18px] font-semibold">{formatParis(day, "d")}</span>
                 {tasks.length > 0 && (
                   <span className={cn("tabular rounded-full px-1.5 text-[11px] font-semibold", index === 0 ? "bg-bg/15" : "bg-accent-soft text-accent")}>
                     {tasks.length}

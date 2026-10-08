@@ -1,15 +1,11 @@
 import { clsx, type ClassValue } from "clsx";
-import {
-  differenceInCalendarDays,
-  format,
-  formatDistanceToNowStrict,
-  isToday,
-  isTomorrow,
-  isYesterday,
-} from "date-fns";
+import { tz } from "@date-fns/tz";
+import { differenceInCalendarDays, formatDistanceToNowStrict } from "date-fns";
 import { fr } from "date-fns/locale";
 
-import { formatParis } from "@/lib/time";
+import { formatParis, TZ } from "@/lib/time";
+
+const inParis = { in: tz(TZ) };
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
@@ -48,18 +44,17 @@ export function projectKey(name: string) {
 /** « Aujourd'hui », « Demain », « Hier », « lun. 12 oct. » */
 export function formatDue(date: Date | string) {
   const value = typeof date === "string" ? new Date(date) : date;
-  if (isToday(value)) return "Aujourd'hui";
-  if (isTomorrow(value)) return "Demain";
-  if (isYesterday(value)) return "Hier";
-  return format(value, "EEE d MMM", { locale: fr });
+  // Jours calendaires à Paris (le serveur tourne en UTC).
+  const days = differenceInCalendarDays(value, new Date(), inParis);
+  if (days === 0) return "Aujourd'hui";
+  if (days === 1) return "Demain";
+  if (days === -1) return "Hier";
+  return formatParis(value, "EEE d MMM");
 }
 
 export function dueTone(date: Date | string | null, done = false) {
   if (!date || done) return "muted" as const;
-  const days = differenceInCalendarDays(
-    typeof date === "string" ? new Date(date) : date,
-    new Date(),
-  );
+  const days = differenceInCalendarDays(typeof date === "string" ? new Date(date) : date, new Date(), inParis);
   if (days < 0) return "overdue" as const;
   if (days <= 1) return "soon" as const;
   return "muted" as const;

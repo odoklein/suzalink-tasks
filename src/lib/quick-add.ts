@@ -1,5 +1,8 @@
 import type { Priority } from "@prisma/client";
-import { addDays, nextDay, startOfDay, type Day } from "date-fns";
+import { TZDate, tz } from "@date-fns/tz";
+import { addDays, nextDay, type Day } from "date-fns";
+
+import { formatParis, startOfDayParis, TZ } from "./time";
 
 export type QuickAddResult = {
   title: string;
@@ -88,24 +91,30 @@ const WEEKDAYS: Record<string, Day> = {
   samedi: 6,
 };
 
+const inParis = { in: tz(TZ) };
+const plain = (date: Date) => new Date(date.getTime());
+
+/** `today` est minuit à Paris ; toutes les dates produites sont des minuits parisiens (en instants UTC). */
 function parseDue(word: string, today: Date): Date | undefined {
   const w = normalize(word);
   if (w === "aujourd'hui" || w === "aujourdhui" || w === "auj") return today;
-  if (w === "demain") return addDays(today, 1);
-  if (w in WEEKDAYS) return nextDay(today, WEEKDAYS[w]);
+  if (w === "demain") return plain(addDays(today, 1, inParis));
+  if (w in WEEKDAYS) return plain(nextDay(today, WEEKDAYS[w], inParis));
   const plus = /^\+(\d{1,3})j$/.exec(w);
-  if (plus) return addDays(today, Number(plus[1]));
+  if (plus) return plain(addDays(today, Number(plus[1]), inParis));
   const dm = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/.exec(w);
   if (dm) {
     const day = Number(dm[1]);
     const month = Number(dm[2]) - 1;
-    let year = dm[3] ? Number(dm[3]) : today.getFullYear();
+    let year = dm[3] ? Number(dm[3]) : new TZDate(today, TZ).getFullYear();
     if (year < 100) year += 2000;
-    const date = new Date(year, month, day);
-    if (Number.isNaN(date.getTime()) || date.getDate() !== day) return undefined;
+    const date = new TZDate(year, month, day, TZ);
+    if (Number.isNaN(date.getTime()) || date.getDate() !== day || date.getMonth() !== month) return undefined;
     // « 12/01 » saisi en décembre vise l'année suivante
-    if (!dm[3] && date < addDays(today, -30)) date.setFullYear(year + 1);
-    return date;
+    if (!dm[3] && date.getTime() < addDays(today, -30, inParis).getTime()) {
+      return plain(new TZDate(year + 1, month, day, TZ));
+    }
+    return plain(date);
   }
   return undefined;
 }
@@ -121,7 +130,9 @@ export function parseQuickAdd(
   team: Member[],
   now = new Date(),
 ): QuickAddResult {
-  const today = startOfDay(now);
+  // `now` est un instant (ou un TZDate de nowParis()) : « aujourd'hui » est le jour calendaire à Paris,
+  // quel que soit le fuseau de la machine (le serveur tourne en UTC).
+  const today = startOfDayParis(now);
   const result: QuickAddResult = { title: "", billable: false, tokens: [] };
   const kept: string[] = [];
 
@@ -171,7 +182,7 @@ export function parseQuickAdd(
       result.dueDate = due;
       result.tokens.push({
         kind: "due",
-        label: due.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }),
+        label: formatParis(due, "EEE d MMM"),
       });
       continue;
     }

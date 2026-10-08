@@ -8,6 +8,7 @@ import { PROJECT_COLORS } from "@/lib/constants";
 import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { fromParisDateInput } from "@/lib/time";
 import { projectKey, slugify } from "@/lib/utils";
 
 export type ProjectFormState = { error?: string } | undefined;
@@ -51,7 +52,7 @@ export async function createProject(_state: ProjectFormState, formData: FormData
         endClient: String(formData.get("endClient") ?? "").trim() || null,
         siteUrl: String(formData.get("siteUrl") ?? "").trim() || null,
         description: String(formData.get("description") ?? "").trim() || null,
-        dueDate: due ? new Date(due) : null,
+        dueDate: due ? fromParisDateInput(due) : null,
         leadId: userId,
       },
     });

@@ -9,6 +9,7 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { parseFeedbackTable } from "@/lib/feedback-import";
 import { parseQuickAdd } from "@/lib/quick-add";
+import { fromParisDateInput, nowParis } from "@/lib/time";
 
 const STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS", "WAITING_CLIENT", "REVIEW", "DONE"];
 const PRIORITIES: Priority[] = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"];
@@ -80,7 +81,7 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
     const { userId } = await verifySession();
     // Même ordre que l'aperçu côté client (getTeam) : le résultat ne dépend pas de l'ordre de la base.
     const team = await db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
-    const parsed = parseQuickAdd(input, team);
+    const parsed = parseQuickAdd(input, team, nowParis());
     // Le client envoie la personne qu'il a résolue pour l'aperçu ; on la garde si elle existe, sinon on se fie à l'analyse serveur.
     const assigneeId =
       resolvedAssigneeId && team.some((member) => member.id === resolvedAssigneeId)
@@ -140,7 +141,12 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
     if (patch.source !== undefined) data.source = patch.source?.trim() || null;
     if (patch.billable !== undefined) data.billable = patch.billable;
     if (patch.assigneeId !== undefined) data.assigneeId = patch.assigneeId || null;
-    if (patch.dueDate !== undefined) data.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
+    if (patch.dueDate !== undefined) {
+      // Un champ date (« yyyy-MM-dd ») vaut minuit à Paris, comme les échéances de la saisie rapide.
+      const due = patch.dueDate ? fromParisDateInput(patch.dueDate) : null;
+      if (due && Number.isNaN(due.getTime())) return { error: "Date d’échéance invalide." };
+      data.dueDate = due;
+    }
     if (patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status) {
       data.status = patch.status;
       data.statusChangedAt = new Date();

@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { format } from "date-fns";
 import { parseQuickAdd } from "@/lib/quick-add";
+import { fromParisDateTimeInput, toParisDateInput } from "@/lib/time";
 
 const TEAM = [
   { id: "u-odo", name: "Odo Klein" },
   { id: "u-biba", name: "Biba Martin" },
 ];
 
-const day = (date?: Date) => (date ? format(date, "yyyy-MM-dd") : undefined);
-// Dates locales : le parseur travaille en heure locale (voir P1-06).
-const at = (y: number, m: number, d: number, h = 10) => new Date(y, m - 1, d, h, 0);
+// Les dates sont des instants ; « le jour » se lit à Paris, quel que soit le fuseau de la machine.
+const day = (date?: Date) => (date ? toParisDateInput(date) : undefined);
+const at = (y: number, m: number, d: number, h = 10, min = 0) =>
+  fromParisDateTimeInput(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`);
 
 describe("parseQuickAdd", () => {
   it("lit tous les jetons d’une saisie complète", () => {
@@ -67,6 +68,44 @@ describe("parseQuickAdd", () => {
     const result = parseQuickAdd("Appeler @inconnu", TEAM);
     expect(result.assigneeId).toBeUndefined();
     expect(result.title).toBe("Appeler @inconnu");
+  });
+
+  // P1-06 : le serveur tourne en UTC, l'équipe vit à Paris.
+  describe("jour calendaire à Paris (P1-06)", () => {
+    // 2026-10-09 00:30 à Paris = 2026-10-08 22:30 UTC
+    const justAfterMidnight = new Date("2026-10-08T22:30:00Z");
+
+    it("« demain » à 00h30 Paris est le 10/10, pas le 09/10", () => {
+      const result = parseQuickAdd("Relire demain", TEAM, justAfterMidnight);
+      expect(day(result.dueDate)).toBe("2026-10-10");
+      expect(result.dueDate?.toISOString()).toBe("2026-10-09T22:00:00.000Z"); // minuit à Paris
+    });
+
+    it("« aujourd'hui » à 00h30 Paris est le 09/10", () => {
+      expect(day(parseQuickAdd("Relire aujourd'hui", TEAM, justAfterMidnight).dueDate)).toBe("2026-10-09");
+    });
+
+    it("« +3j » et « 12/10 » donnent aussi des minuits parisiens", () => {
+      expect(parseQuickAdd("A +3j", TEAM, justAfterMidnight).dueDate?.toISOString()).toBe("2026-10-11T22:00:00.000Z");
+      expect(parseQuickAdd("A 12/10", TEAM, justAfterMidnight).dueDate?.toISOString()).toBe("2026-10-11T22:00:00.000Z");
+    });
+
+    it("un jour de semaine garde son minuit parisien au passage à l'heure d'hiver", () => {
+      // vendredi 23/10/2026 → « lundi » = 26/10, après le passage à l'heure d'hiver (UTC+1)
+      const result = parseQuickAdd("Point lundi", TEAM, at(2026, 10, 23));
+      expect(result.dueDate?.toISOString()).toBe("2026-10-25T23:00:00.000Z");
+      expect(day(result.dueDate)).toBe("2026-10-26");
+    });
+
+    it("« 12/01 » saisi le 20/12 à 00h30 Paris vise 2027", () => {
+      expect(day(parseQuickAdd("Livrer 12/01", TEAM, at(2026, 12, 20, 0, 30)).dueDate)).toBe("2027-01-12");
+    });
+
+    it("un mois impossible (5/13) reste dans le titre", () => {
+      const result = parseQuickAdd("Livrer 5/13", TEAM, at(2026, 10, 8));
+      expect(result.dueDate).toBeUndefined();
+      expect(result.title).toBe("Livrer 5/13");
+    });
   });
 
   it("un jour de semaine vise le prochain", () => {

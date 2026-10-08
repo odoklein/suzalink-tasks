@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { cn, formatDateTime, formatShortDate, initials, projectKey, slugify } from "@/lib/utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cn, dueTone, formatDateTime, formatDue, formatShortDate, initials, projectKey, slugify } from "@/lib/utils";
 
 describe("slugify", () => {
   it("retire les accents et la ponctuation", () => {
@@ -47,6 +47,27 @@ describe("formatDateTime (heure de Paris)", () => {
 
   it("change de jour à minuit de Paris, pas de minuit UTC", () => {
     expect(formatShortDate(new Date("2026-10-08T22:30:00Z"))).toBe("09/10");
+  });
+});
+
+describe("formatDue / dueTone (jours calendaires à Paris)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("à 00h30 Paris (22h30 UTC), une échéance du lendemain parisien est « Demain »", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-08T22:30:00Z")); // 09/10 00:30 à Paris
+    const due = new Date("2026-10-09T22:00:00Z"); // minuit à Paris du 10/10
+    expect(formatDue(due)).toBe("Demain");
+    expect(formatDue(new Date("2026-10-08T22:00:00Z"))).toBe("Aujourd'hui");
+    expect(formatDue(new Date("2026-10-07T22:00:00Z"))).toBe("Hier");
+    expect(dueTone(new Date("2026-10-07T22:00:00Z"))).toBe("overdue");
+    expect(dueTone(due)).toBe("soon");
+  });
+
+  it("au-delà, affiche le jour abrégé en français", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-08T10:00:00Z"));
+    expect(formatDue(new Date("2026-10-11T22:00:00Z"))).toBe("lun. 12 oct.");
   });
 });
 

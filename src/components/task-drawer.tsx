@@ -24,6 +24,7 @@ import {
 } from "@/components/primitives";
 import { SelectMenu } from "@/components/select-menu";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
+import { toParisDateInput } from "@/lib/time";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 const inputClass =
@@ -238,7 +239,7 @@ export function TaskDrawer() {
                   <input
                     type="date"
                     aria-label="Échéance"
-                    defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ""}
+                    defaultValue={task.dueDate ? toParisDateInput(task.dueDate) : ""}
                     onChange={(event) => patch({ dueDate: event.target.value || null })}
                     className={cn(inputClass, "tabular w-auto")}
                   />
