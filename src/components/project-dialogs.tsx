@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { buildRecap, createDelivery } from "@/app/actions/deliveries";
+import { buildRecap } from "@/app/actions/deliveries";
 import { createProject } from "@/app/actions/projects";
 import { useApp } from "@/components/app-context";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
@@ -91,76 +91,6 @@ export function RecapDialog({
           </>
         )}
       </div>
-    </Dialog>
-  );
-}
-
-export function DeliveryDialog({
-  open,
-  onClose,
-  projectId,
-  siteUrl,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-  siteUrl: string | null;
-}) {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const [pending, startTransition] = useTransition();
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title="Enregistrer une mise en ligne"
-      description="Date et heure exactes : c'est la preuve de ce qui a été livré, et quand."
-    >
-      <form
-        className="space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          startTransition(async () => {
-            const result = await createDelivery(projectId, {
-              title: String(data.get("title") ?? ""),
-              notes: String(data.get("notes") ?? ""),
-              url: String(data.get("url") ?? ""),
-              deployedAt: String(data.get("deployedAt") ?? ""),
-            });
-            if ("error" in result && result.error) {
-              toast.error(result.error);
-              return;
-            }
-            toast.success("Mise en ligne enregistrée");
-            onClose();
-          });
-        }}
-      >
-        <div>
-          <label htmlFor="delivery-title" className={labelClass}>Ce qui a été mis en ligne</label>
-          <input id="delivery-title" name="title" required placeholder="Corrections du tableau de Luna" className={fieldClass} />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor="delivery-date" className={labelClass}>Date et heure</label>
-            <input id="delivery-date" name="deployedAt" type="datetime-local" defaultValue={local} className={fieldClass} />
-          </div>
-          <div>
-            <label htmlFor="delivery-url" className={labelClass}>Lien</label>
-            <input id="delivery-url" name="url" defaultValue={siteUrl ?? ""} placeholder="https://…" className={fieldClass} />
-          </div>
-        </div>
-        <div>
-          <label htmlFor="delivery-notes" className={labelClass}>Détail (facultatif)</label>
-          <textarea id="delivery-notes" name="notes" rows={3} placeholder="Commit, pages concernées, points à vérifier…" className={fieldClass} />
-        </div>
-        <div className="flex justify-end gap-2">
-          <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
-          <PrimaryButton type="submit" disabled={pending}>{pending ? "Enregistrement…" : "Enregistrer"}</PrimaryButton>
-        </div>
-      </form>
     </Dialog>
   );
 }

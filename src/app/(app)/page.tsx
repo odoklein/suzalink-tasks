@@ -60,11 +60,12 @@ export default async function TodayPage() {
       take: 8,
     }),
     db.delivery.findMany({
+      where: { deletedAt: null },
       orderBy: { deployedAt: "desc" },
       take: 5,
       include: { project: { select: { name: true, color: true, key: true, slug: true } } },
     }),
-    db.delivery.count({ where: { deployedAt: { gte: subDays(today, 6) } } }),
+    db.delivery.count({ where: { deletedAt: null, deployedAt: { gte: subDays(today, 6) } } }),
     db.project.findMany({
       where: { ...live, status: { not: "DONE" } },
       orderBy: { updatedAt: "desc" },

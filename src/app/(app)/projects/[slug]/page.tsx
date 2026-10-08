@@ -36,8 +36,12 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
       lead: { select: { name: true, color: true } },
       tasks: { select: taskCardSelect, orderBy: { position: "asc" } },
       deliveries: {
+        where: { deletedAt: null },
         orderBy: { deployedAt: "desc" },
-        include: { author: { select: { name: true, color: true } } },
+        include: {
+          author: { select: { name: true, color: true } },
+          tasks: { select: { task: { select: { id: true, number: true, title: true, zone: true } } } },
+        },
       },
       activities: {
         orderBy: { createdAt: "desc" },

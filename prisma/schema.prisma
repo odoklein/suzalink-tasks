@@ -254,6 +254,8 @@ model Task {
   lastChasedAt DateTime?
   messages     ClientMessage[] @relation("MessageTasks")
 
+  deliveries DeliveryTask[]
+
   roundId String? // lot de retours d'origine (P4-06)
   round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
 
@@ -289,6 +291,28 @@ model Delivery {
   author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   closedRounds FeedbackRound[]
+
+  // P4-07 : contenu et origine de la mise en ligne
+  tasks       DeliveryTask[]
+  source      Channel        @default(WEB)
+  externalId  String?        @unique // identifiant chez l'hébergeur (déploiement Netlify, Vercel…)
+  commitSha   String?
+  context     String? // production, preview…
+  confirmedAt DateTime?
+  deletedAt   DateTime? // suppression annulable
+
+  @@index([projectId, deployedAt])
+}
+
+/// Tâches livrées par une mise en ligne.
+model DeliveryTask {
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([deliveryId, taskId])
+  @@index([taskId])
 }
 
 model Activity {

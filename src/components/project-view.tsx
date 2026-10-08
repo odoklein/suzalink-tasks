@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { deleteDelivery, restoreDelivery } from "@/app/actions/deliveries";
 import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
 import { ChaseButton } from "@/components/chase-dialog";
@@ -15,13 +16,15 @@ import { GhostButton, PrimaryButton } from "@/components/dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
-import { DeliveryDialog, RecapDialog } from "@/components/project-dialogs";
+import { DeliveryDialog, type EditableDelivery } from "@/components/delivery-dialog";
+import { RecapDialog } from "@/components/project-dialogs";
 import { RoundsView, type RoundData } from "@/components/rounds-view";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import { chaseLabel, chaseState, waitingStart } from "@/lib/chasing";
 import { looksLikeTable } from "@/lib/feedback-import";
+import { plural } from "@/lib/plural";
 import type { TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
@@ -54,6 +57,7 @@ type ProjectData = {
     url: string | null;
     deployedAt: Date;
     author: { name: string; color: string } | null;
+    tasks: { task: { id: string; number: number; title: string; zone: string | null } }[];
   }[];
   activities: {
     id: string;
@@ -91,6 +95,7 @@ export function ProjectView({
   const pathname = usePathname();
   const [tab, setTab] = useState<ProjectTab>(initialTab);
   const [dialog, setDialog] = useState<"import" | "recap" | "delivery" | null>(null);
+  const [editingDelivery, setEditingDelivery] = useState<EditableDelivery | null>(null);
   const [importText, setImportText] = useState("");
   const [, startTransition] = useTransition();
 
@@ -289,7 +294,27 @@ export function ProjectView({
             }}
           />
         )}
-        {tab === "mises-en-ligne" && <Deliveries deliveries={project.deliveries} onAdd={() => setDialog("delivery")} />}
+        {tab === "mises-en-ligne" && (
+          <Deliveries
+            deliveries={project.deliveries}
+            projectKey={project.key}
+            onAdd={() => {
+              setEditingDelivery(null);
+              setDialog("delivery");
+            }}
+            onEdit={(delivery) => {
+              setEditingDelivery({
+                id: delivery.id,
+                title: delivery.title,
+                notes: delivery.notes,
+                url: delivery.url,
+                deployedAt: new Date(delivery.deployedAt),
+                taskIds: delivery.tasks.map(({ task }) => task.id),
+              });
+              setDialog("delivery");
+            }}
+          />
+        )}
         {tab === "activite" && <ActivityFeed activities={project.activities} messages={project.clientMessages} />}
       </div>
 
@@ -307,12 +332,53 @@ export function ProjectView({
         projectId={project.id}
         lastDeliveryAt={project.deliveries[0] ? new Date(project.deliveries[0].deployedAt).toISOString() : null}
       />
-      <DeliveryDialog open={dialog === "delivery"} onClose={() => setDialog(null)} projectId={project.id} siteUrl={project.siteUrl} />
+      {dialog === "delivery" && (
+        <DeliveryDialog
+          onClose={() => setDialog(null)}
+          onSaved={() =>
+            toast.success("Mise en ligne enregistrée", {
+              action: { label: "Préparer le récap client →", onClick: () => setDialog("recap") },
+              duration: 8000,
+            })
+          }
+          projectId={project.id}
+          projectKey={project.key}
+          siteUrl={project.siteUrl}
+          tasks={project.tasks}
+          rounds={project.rounds}
+          previousDeliveryAt={project.deliveries[0] ? new Date(project.deliveries[0].deployedAt) : null}
+          editing={editingDelivery ?? undefined}
+        />
+      )}
     </div>
   );
 }
 
-function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries"]; onAdd: () => void }) {
+function Deliveries({
+  deliveries,
+  projectKey,
+  onAdd,
+  onEdit,
+}: {
+  deliveries: ProjectData["deliveries"];
+  projectKey: string;
+  onAdd: () => void;
+  onEdit: (delivery: ProjectData["deliveries"][number]) => void;
+}) {
+  const remove = async (delivery: ProjectData["deliveries"][number]) => {
+    const result = await deleteDelivery(delivery.id);
+    if ("error" in result) return;
+    toast.success(`Mise en ligne « ${delivery.title} » supprimée`, {
+      duration: 8000,
+      action: {
+        label: "Annuler",
+        onClick: async () => {
+          await restoreDelivery(delivery.id);
+          toast.success("Mise en ligne restaurée");
+        },
+      },
+    });
+  };
   if (deliveries.length === 0) {
     return (
       <div className="mx-auto w-full max-w-3xl px-6">
@@ -353,7 +419,27 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
                   Voir <ExternalLink className="size-3" />
                 </a>
               )}
+              <button type="button" onClick={() => onEdit(delivery)} className="hover:text-ink hover:underline">
+                Modifier
+              </button>
+              <button type="button" onClick={() => remove(delivery)} className="hover:text-danger hover:underline">
+                Supprimer
+              </button>
             </p>
+            {delivery.tasks.length > 0 && (
+              <details className="mt-2 text-[12px]">
+                <summary className="cursor-pointer text-muted hover:text-ink">{plural(delivery.tasks.length, "tâche livrée", "tâches livrées")}</summary>
+                <ul className="mt-1 space-y-0.5">
+                  {delivery.tasks.map(({ task }) => (
+                    <li key={task.id} className="flex items-baseline gap-2 text-ink-2">
+                      <span className="font-mono text-[11px] text-muted">{projectKey}-{task.number}</span>
+                      {task.zone && <span className="text-muted">{task.zone} ·</span>}
+                      <span className="min-w-0 truncate">{task.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         </li>
       ))}

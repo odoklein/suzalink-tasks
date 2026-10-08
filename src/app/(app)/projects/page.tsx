@@ -22,7 +22,7 @@ function loadProjects() {
       client: { select: { name: true } },
       lead: { select: { name: true, color: true } },
       tasks: { select: { status: true, dueDate: true, statusChangedAt: true } },
-      deliveries: { orderBy: { deployedAt: "desc" }, take: 1, select: { deployedAt: true } },
+      deliveries: { where: { deletedAt: null }, orderBy: { deployedAt: "desc" }, take: 1, select: { deployedAt: true } },
     },
   });
 }

@@ -4,32 +4,148 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { revalidatePath } from "next/cache";
 
-import { logActivity } from "@/lib/activity";
+import { logActivities, logActivity } from "@/lib/activity";
 import { STATUS_BY_VALUE } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { fromParisDateTimeInput } from "@/lib/time";
 
-export async function createDelivery(
-  projectId: string,
-  input: { title: string; notes?: string; url?: string; deployedAt?: string },
-) {
+export type DeliveryInput = {
+  title: string;
+  notes?: string;
+  url?: string;
+  /** Valeur d'un `<input type="datetime-local">`, saisie à l'heure de Paris. */
+  deployedAt?: string;
+  /** Tâches livrées par cette mise en ligne. */
+  taskIds?: string[];
+  /** Tâches « À valider » à passer en Fait. */
+  promoteIds?: string[];
+  /** Lots de retours ouverts à clôturer avec cette mise en ligne. */
+  closeRoundIds?: string[];
+};
+
+function readInput(input: DeliveryInput) {
+  const title = input.title.trim().slice(0, 300);
+  if (!title) return { error: "Décrivez ce qui a été mis en ligne." } as const;
+  const url = input.url?.trim() || null;
+  if (url && !/^https?:\/\/\S+$/i.test(url)) return { error: "Le lien doit commencer par http:// ou https://." } as const;
+  // Le navigateur envoie l'heure murale de Paris sans fuseau : on la convertit ici (serveur en UTC).
+  const deployedAt = input.deployedAt ? fromParisDateTimeInput(input.deployedAt) : new Date();
+  if (Number.isNaN(deployedAt.getTime())) return { error: "Date de mise en ligne invalide." } as const;
+  return { data: { title, notes: input.notes?.trim().slice(0, 5000) || null, url, deployedAt } } as const;
+}
+
+/**
+ * Enregistre une mise en ligne avec son contenu, en une transaction : tâches
+ * livrées, « À valider » passées en Fait, lots de retours clôturés, historique.
+ */
+export async function createDelivery(projectId: string, input: DeliveryInput) {
   const { userId } = await verifySession();
-  const title = input.title.trim();
-  if (!title) return { error: "Décrivez ce qui a été mis en ligne." };
+  const parsed = readInput(input);
+  if ("error" in parsed) return parsed;
+  const now = new Date();
+
+  const deliveryId = await db.$transaction(async (tx) => {
+    const delivery = await tx.delivery.create({
+      data: { projectId, authorId: userId, ...parsed.data },
+      select: { id: true },
+    });
+    const included = await tx.task.findMany({
+      where: { projectId, id: { in: [...(input.taskIds ?? []), ...(input.promoteIds ?? [])] } },
+      select: { id: true, number: true, status: true, completedAt: true, project: { select: { key: true } } },
+    });
+    if (included.length) {
+      await tx.deliveryTask.createMany({
+        data: included.map((task) => ({ deliveryId: delivery.id, taskId: task.id })),
+        skipDuplicates: true,
+      });
+    }
+
+    const promote = included.filter((task) => task.status === "REVIEW" && input.promoteIds?.includes(task.id));
+    if (promote.length) {
+      const top = await tx.task.findFirst({
+        where: { projectId, status: "DONE" },
+        orderBy: { position: "desc" },
+        select: { position: true },
+      });
+      let position = top?.position ?? 0;
+      for (const task of promote) {
+        position += 1000;
+        await tx.task.update({
+          where: { id: task.id },
+          data: { status: "DONE", statusChangedAt: now, completedAt: now, position, waitingSince: null },
+        });
+      }
+      await logActivities(
+        tx,
+        promote.map((task) => ({
+          projectId,
+          taskId: task.id,
+          actorId: userId,
+          event: { type: "STATUS_CHANGED" as const, ref: `${task.project.key}-${task.number}`, from: task.status, to: "DONE" as const },
+        })),
+      );
+    }
+
+    if (input.closeRoundIds?.length) {
+      await tx.feedbackRound.updateMany({
+        where: { id: { in: input.closeRoundIds }, projectId, status: "OPEN" },
+        data: { status: "DELIVERED", closedById: delivery.id },
+      });
+    }
+
+    await logActivity(tx, { projectId, actorId: userId, event: { type: "DELIVERED", title: parsed.data.title } });
+    return delivery.id;
+  });
+  revalidatePath("/", "layout");
+  return { ok: true as const, id: deliveryId };
+}
+
+/** Modifie une mise en ligne : texte, date, lien et tâches livrées. */
+export async function updateDelivery(deliveryId: string, input: DeliveryInput) {
+  await verifySession();
+  const parsed = readInput(input);
+  if ("error" in parsed) return parsed;
+  const current = await db.delivery.findUnique({ where: { id: deliveryId }, select: { projectId: true } });
+  if (!current) return { error: "Mise en ligne introuvable." };
 
   await db.$transaction(async (tx) => {
-    await tx.delivery.create({
-      data: {
-        projectId,
-        authorId: userId,
-        title,
-        notes: input.notes?.trim() || null,
-        url: input.url?.trim() || null,
-        deployedAt: input.deployedAt ? new Date(input.deployedAt) : new Date(),
-      },
-    });
-    await logActivity(tx, { projectId, actorId: userId, event: { type: "DELIVERED", title } });
+    await tx.delivery.update({ where: { id: deliveryId }, data: parsed.data });
+    if (input.taskIds) {
+      const valid = await tx.task.findMany({
+        where: { projectId: current.projectId, id: { in: input.taskIds } },
+        select: { id: true },
+      });
+      await tx.deliveryTask.deleteMany({ where: { deliveryId } });
+      if (valid.length) {
+        await tx.deliveryTask.createMany({ data: valid.map((task) => ({ deliveryId, taskId: task.id })) });
+      }
+    }
   });
+  revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
+/** Suppression annulable : la mise en ligne disparaît des listes, « Annuler » la restaure. */
+export async function deleteDelivery(deliveryId: string) {
+  const { userId } = await verifySession();
+  const delivery = await db.delivery.update({
+    where: { id: deliveryId },
+    data: { deletedAt: new Date() },
+    select: { projectId: true, title: true },
+  });
+  await logActivity(db, {
+    projectId: delivery.projectId,
+    actorId: userId,
+    event: { type: "NOTE", message: `a supprimé la mise en ligne « ${delivery.title} »` },
+  });
+  revalidatePath("/", "layout");
+  return { ok: true as const };
+}
+
+export async function restoreDelivery(deliveryId: string) {
+  await verifySession();
+  await db.delivery.update({ where: { id: deliveryId }, data: { deletedAt: null } });
   revalidatePath("/", "layout");
   return { ok: true as const };
 }
@@ -44,7 +160,7 @@ export async function buildRecap(projectId: string, sinceIso?: string) {
     where: { id: projectId },
     include: {
       tasks: { orderBy: [{ zone: "asc" }, { number: "asc" }] },
-      deliveries: { orderBy: { deployedAt: "desc" }, take: 1 },
+      deliveries: { where: { deletedAt: null }, orderBy: { deployedAt: "desc" }, take: 1 },
     },
   });
   if (!project) return { error: "Projet introuvable." };
