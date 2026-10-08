@@ -3,21 +3,19 @@
 import type { Priority, TaskStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { STATUS_BY_VALUE } from "@/lib/constants";
+import { logActivities, logActivity } from "@/lib/activity";
+import type { Person } from "@/lib/activity-copy";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { parseFeedbackTable } from "@/lib/feedback-import";
 import { parseQuickAdd } from "@/lib/quick-add";
+import { diffTask } from "@/lib/task-changes";
 
 const STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS", "WAITING_CLIENT", "REVIEW", "DONE"];
 const PRIORITIES: Priority[] = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"];
 
 function refresh() {
   revalidatePath("/", "layout");
-}
-
-async function log(projectId: string, actorId: string, message: string, taskId?: string) {
-  await db.activity.create({ data: { projectId, actorId, message, taskId } });
 }
 
 async function nextPosition(projectId: string, status: TaskStatus) {
@@ -42,7 +40,7 @@ type NewTask = {
   dueDate?: Date | null;
 };
 
-async function insertTask(input: NewTask, creatorId: string) {
+async function insertTask(input: NewTask, creatorId: string, options: { logCreation?: boolean } = {}) {
   const status = input.status ?? "TODO";
   const position = await nextPosition(input.projectId, status);
   return db.$transaction(async (tx) => {
@@ -69,7 +67,16 @@ async function insertTask(input: NewTask, creatorId: string) {
         completedAt: status === "DONE" ? new Date() : null,
       },
     });
-    return { task, ref: `${project.key}-${task.number}` };
+    const ref = `${project.key}-${task.number}`;
+    if (options.logCreation !== false) {
+      await logActivity(tx, {
+        projectId: input.projectId,
+        taskId: task.id,
+        actorId: creatorId,
+        event: { type: "TASK_CREATED", ref, title: task.title },
+      });
+    }
+    return { task, ref };
   });
 }
 
@@ -93,7 +100,6 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
     },
     userId,
   );
-  await log(projectId, userId, `a créé ${ref} « ${parsed.title} »`);
   refresh();
   return { ok: true as const, ref };
 }
@@ -138,14 +144,25 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
     data.completedAt = patch.status === "DONE" ? new Date() : null;
   }
 
-  await db.task.update({ where: { id: taskId }, data });
-
   const ref = `${current.project.key}-${current.number}`;
-  if (data.status) {
-    await log(current.projectId, userId, `a passé ${ref} en « ${STATUS_BY_VALUE[data.status as TaskStatus].label} »`, taskId);
-  } else if (data.assigneeId !== undefined && data.assigneeId !== current.assigneeId) {
-    await log(current.projectId, userId, `a réassigné ${ref}`, taskId);
-  }
+  await db.$transaction(async (tx) => {
+    const updated = await tx.task.update({ where: { id: taskId }, data });
+
+    // Une ligne d'historique par champ réellement modifié, dans la même transaction.
+    const ids = [current.assigneeId, updated.assigneeId].filter((id): id is string => !!id);
+    const people = new Map<string, Person>(
+      ids.length ? (await tx.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((u) => [u.id, u]) : [],
+    );
+    await logActivities(
+      tx,
+      diffTask(ref, current, updated, people).map((event) => ({
+        projectId: current.projectId,
+        taskId,
+        actorId: userId,
+        event,
+      })),
+    );
+  });
   refresh();
   return { ok: true as const };
 }
@@ -160,23 +177,25 @@ export async function moveTask(taskId: string, status: TaskStatus, position: num
   });
   if (!current) return { error: "Tâche introuvable." };
 
-  await db.task.update({
-    where: { id: taskId },
-    data: {
-      status,
-      position,
-      completedAt: status === "DONE" ? (current.completedAt ?? new Date()) : null,
-      ...(status !== current.status ? { statusChangedAt: new Date() } : {}),
-    },
+  await db.$transaction(async (tx) => {
+    await tx.task.update({
+      where: { id: taskId },
+      data: {
+        status,
+        position,
+        completedAt: status === "DONE" ? (current.completedAt ?? new Date()) : null,
+        ...(status !== current.status ? { statusChangedAt: new Date() } : {}),
+      },
+    });
+    if (status !== current.status) {
+      await logActivity(tx, {
+        projectId: current.projectId,
+        taskId,
+        actorId: userId,
+        event: { type: "STATUS_CHANGED", ref: `${current.project.key}-${current.number}`, from: current.status, to: status },
+      });
+    }
   });
-  if (status !== current.status) {
-    await log(
-      current.projectId,
-      userId,
-      `a passé ${current.project.key}-${current.number} en « ${STATUS_BY_VALUE[status].label} »`,
-      taskId,
-    );
-  }
   refresh();
   return { ok: true as const };
 }
@@ -188,8 +207,15 @@ export async function deleteTask(taskId: string) {
     include: { project: { select: { key: true } } },
   });
   if (!task) return { error: "Tâche introuvable." };
-  await db.task.delete({ where: { id: taskId } });
-  await log(task.projectId, userId, `a supprimé ${task.project.key}-${task.number} « ${task.title} »`);
+  // Pas de taskId : la ligne d'activité doit survivre à la tâche (cascade sinon).
+  await db.$transaction(async (tx) => {
+    await tx.task.delete({ where: { id: taskId } });
+    await logActivity(tx, {
+      projectId: task.projectId,
+      actorId: userId,
+      event: { type: "TASK_DELETED", ref: `${task.project.key}-${task.number}`, title: task.title },
+    });
+  });
   refresh();
   return { ok: true as const };
 }
@@ -225,8 +251,15 @@ export async function addComment(taskId: string, body: string) {
     include: { project: { select: { key: true } } },
   });
   if (!task) return { error: "Tâche introuvable." };
-  await db.comment.create({ data: { taskId, authorId: userId, body: text } });
-  await log(task.projectId, userId, `a commenté ${task.project.key}-${task.number}`, taskId);
+  await db.$transaction(async (tx) => {
+    await tx.comment.create({ data: { taskId, authorId: userId, body: text } });
+    await logActivity(tx, {
+      projectId: task.projectId,
+      taskId,
+      actorId: userId,
+      event: { type: "COMMENTED", ref: `${task.project.key}-${task.number}` },
+    });
+  });
   refresh();
   return { ok: true as const };
 }
@@ -250,9 +283,14 @@ export async function importFeedback(projectId: string, text: string, sourceLabe
         source: sourceLabel.trim() || (row.date ? `Retours du ${row.date}` : "Retours client"),
       },
       userId,
+      { logCreation: false },
     );
   }
-  await log(projectId, userId, `a importé ${rows.length} retours (${sourceLabel.trim() || "retours client"})`);
+  await logActivity(db, {
+    projectId,
+    actorId: userId,
+    event: { type: "IMPORTED", created: rows.length, source: sourceLabel.trim() || "retours client" },
+  });
   refresh();
   return { ok: true as const, count: rows.length };
 }

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { revalidatePath } from "next/cache";
 
+import { logActivity } from "@/lib/activity";
 import { STATUS_BY_VALUE } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -16,18 +17,18 @@ export async function createDelivery(
   const title = input.title.trim();
   if (!title) return { error: "Décrivez ce qui a été mis en ligne." };
 
-  await db.delivery.create({
-    data: {
-      projectId,
-      authorId: userId,
-      title,
-      notes: input.notes?.trim() || null,
-      url: input.url?.trim() || null,
-      deployedAt: input.deployedAt ? new Date(input.deployedAt) : new Date(),
-    },
-  });
-  await db.activity.create({
-    data: { projectId, actorId: userId, message: `a enregistré une mise en ligne : ${title}` },
+  await db.$transaction(async (tx) => {
+    await tx.delivery.create({
+      data: {
+        projectId,
+        authorId: userId,
+        title,
+        notes: input.notes?.trim() || null,
+        url: input.url?.trim() || null,
+        deployedAt: input.deployedAt ? new Date(input.deployedAt) : new Date(),
+      },
+    });
+    await logActivity(tx, { projectId, actorId: userId, event: { type: "DELIVERED", title } });
   });
   revalidatePath("/", "layout");
   return { ok: true as const };

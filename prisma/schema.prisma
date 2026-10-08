@@ -37,6 +37,27 @@ enum TaskStatus {
   DONE
 }
 
+/// Type d'événement du journal d'activité : le texte français est généré à
+/// l'écriture (src/lib/activity-copy.ts), le type et les valeurs restent
+/// exploitables (rapports, délais « chez le client », litiges).
+enum ActivityType {
+  NOTE
+  TASK_CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  BILLABLE_CHANGED
+  DUE_CHANGED
+  PRIORITY_CHANGED
+  TITLE_CHANGED
+  COMMENTED
+  TASK_DELETED
+  TASK_RESTORED
+  IMPORTED
+  DELIVERED
+  CLIENT_MESSAGE
+  PROJECT_UPDATED
+}
+
 enum Priority {
   NONE
   LOW
@@ -168,6 +189,11 @@ model Activity {
   message   String
   createdAt DateTime @default(now())
 
+  type       ActivityType @default(NOTE)
+  fromStatus TaskStatus?
+  toStatus   TaskStatus?
+  data       Json? // { from, to } : attribution, échéance, hors périmètre, priorité, titre
+
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   taskId    String?
@@ -176,4 +202,6 @@ model Activity {
   actor     User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([projectId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([type, createdAt])
 }
