@@ -1,6 +1,7 @@
 import type { Priority, TaskStatus } from "@prisma/client";
 
 import { PRIORITY_BY_VALUE, STATUS_BY_VALUE } from "@/lib/constants";
+import { Chip } from "@/components/ui/chip";
 import { projectSwatchVars, softColor, strongColor } from "@/lib/color";
 import { cn, dueTone, formatDue, initials } from "@/lib/utils";
 
@@ -195,31 +196,25 @@ export function DueChip({
   if (!date) return null;
   const tone = dueTone(date, done);
   return (
-    <span
-      className={cn(
-        "tabular inline-flex min-w-[5.25rem] items-center gap-1 rounded-sm px-1.5 py-0.5 text-meta font-medium",
-        tone === "overdue" && "bg-danger-soft text-danger-text",
-        tone === "soon" && "bg-soon-soft text-soon-text",
-        tone === "muted" && "text-muted",
-        className,
-      )}
-    >
-      <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
+    <Chip
+      tone={tone === "overdue" ? "danger" : "soon"}
+      muted={tone === "muted"}
+      className={cn("tabular min-w-[5.25rem]", className)}
+      icon={
+        <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
         <rect x="2" y="3" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
         <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
+      }
+    >
       {formatDue(date)}
-    </span>
+    </Chip>
   );
 }
 
 export function ZoneChip({ zone }: { zone: string | null }) {
   if (!zone) return null;
-  return (
-    <span className="inline-flex max-w-[11rem] items-center truncate rounded-sm bg-sunken px-1.5 py-0.5 text-meta font-medium text-ink-2">
-      {zone}
-    </span>
-  );
+  return <Chip className="max-w-[11rem] truncate">{zone}</Chip>;
 }
 
 export function BillableBadge() {
@@ -232,14 +227,6 @@ export function BillableBadge() {
     >
       €
     </span>
-  );
-}
-
-export function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="inline-flex min-w-[1.25rem] items-center justify-center rounded-xs border border-line bg-surface-2 px-1 font-mono text-meta font-medium text-muted">
-      {children}
-    </kbd>
   );
 }
 
@@ -264,3 +251,5 @@ export function ProjectTile({ color, label, size = 20 }: { color: string; label:
     </span>
   );
 }
+
+export { Kbd } from "@/components/ui/kbd";

@@ -51,7 +51,7 @@ const WEEKDAYS: Record<string, Day> = {
   samedi: 6,
 };
 
-function parseDue(word: string, today: Date): Date | undefined {
+export function parseDue(word: string, today: Date): Date | undefined {
   const w = normalize(word);
   if (w === "aujourd'hui" || w === "aujourdhui" || w === "auj") return today;
   if (w === "demain") return addDays(today, 1);

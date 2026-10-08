@@ -125,7 +125,11 @@ function run(name, scope) {
   for (const fg of TEXT) for (const bg of GROUNDS) check(fg, bg, 4.5);
   for (const t of TONES) check(`${t}-text`, `${t}-soft`, 4.5);
   check("accent-ink", "accent", 4.5, "accent-ink sur accent (bouton accent)");
-  check("bg", "ink", 4.5, "bg sur ink (bouton principal, infobulle, pastille €)");
+  check("bg", "ink", 4.5, "bg sur ink (infobulle, pastille €)");
+  check("accent-ink", "danger", 4.5, "accent-ink sur danger (bouton danger)");
+  check("primary-ink", "primary", 4.5, "primary-ink sur primary (bouton principal)");
+  for (const t of TONES.filter((x) => x !== "todo" && x !== "progress"))
+    check("bg", `${t}-text`, 4.5, `bg sur ${t}-text (badge plein)`);
   check("ink", "accent-soft", 4.5);
   for (const bg of GROUNDS) check("faint", bg, 3, `faint sur ${bg} (icônes, 3:1 indicatif)`, true);
   for (const t of ["waiting", "done", "review", "danger", "soon", "progress"])

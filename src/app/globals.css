@@ -27,6 +27,9 @@
   --accent: #295ee3;
   --accent-soft: #e4efff;
   --accent-ink: #ffffff;
+  /* Bouton principal : encre en clair, accent en sombre (pas de dalle quasi blanche) */
+  --primary: var(--ink);
+  --primary-ink: var(--bg);
 
   /* Tons : solide (formes, icônes) / texte / fond doux */
   --todo: #8a8f98;
@@ -105,6 +108,8 @@
     --accent: #7b97ff;
     --accent-soft: color-mix(in oklch, var(--accent) 16%, var(--surface));
     --accent-ink: #0b0d10;
+  --primary: var(--accent);
+  --primary-ink: var(--accent-ink);
 
     --todo: #8b919b;
     --todo-text: var(--muted);
@@ -154,6 +159,8 @@
   --accent: #7b97ff;
   --accent-soft: color-mix(in oklch, var(--accent) 16%, var(--surface));
   --accent-ink: #0b0d10;
+  --primary: var(--accent);
+  --primary-ink: var(--accent-ink);
 
   --todo: #8b919b;
   --todo-text: var(--muted);
@@ -201,6 +208,8 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
 
   --color-todo: var(--todo);
   --color-todo-text: var(--todo-text);
@@ -324,6 +333,28 @@ h3 {
 :root[data-theme="dark"] .project-swatch {
   background-color: var(--pc-dark);
   color: #0b0d10;
+}
+
+/* Squelettes de chargement : reflet doux, immobile si l’utilisateur réduit les animations. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--sunken) 25%, var(--surface-2) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
 
 .tabular {
