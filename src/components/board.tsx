@@ -22,7 +22,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { TaskStatus } from "@prisma/client";
 import { Plus } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { moveTask } from "@/app/actions/tasks";
@@ -54,11 +54,17 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
   const [columns, setColumns] = useState<Columns>(() => toColumns(tasks));
   const [syncedTasks, setSyncedTasks] = useState(tasks);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Déplacements en cours d'enregistrement : tant qu'il y en a, on n'écrase pas l'état optimiste.
+  const [inflight, setInflight] = useState(0);
   const [, startTransition] = useTransition();
+  // État des colonnes au début du glisser : on y revient si le serveur refuse le déplacement.
+  const snapshot = useRef<Columns | null>(null);
 
   // Les données serveur font foi dès qu'elles changent (après chaque action) :
-  // on resynchronise pendant le rendu plutôt que dans un effet.
-  if (syncedTasks !== tasks) {
+  // on resynchronise pendant le rendu plutôt que dans un effet. Pendant un glisser, ou tant qu'un
+  // déplacement est en cours d'enregistrement, la resynchronisation attend (elle sera appliquée
+  // ensuite, avec les données les plus récentes) pour ne pas faire sauter la carte sous le curseur.
+  if (syncedTasks !== tasks && activeId === null && inflight === 0) {
     setSyncedTasks(tasks);
     setColumns(toColumns(tasks));
   }
@@ -73,7 +79,10 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     [activeId, columns],
   );
 
-  const onDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id));
+  const onDragStart = (event: DragStartEvent) => {
+    snapshot.current = columns;
+    setActiveId(String(event.active.id));
+  };
 
   // Déplacement entre colonnes pendant le glisser, pour un aperçu fidèle.
   const onDragOver = ({ active, over }: DragOverEvent) => {
@@ -97,7 +106,13 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveId(null);
-    if (!over) return;
+    const before = snapshot.current ?? toColumns(tasks);
+    snapshot.current = null;
+    if (!over) {
+      // Lâché hors d'une colonne : on annule les déplacements d'aperçu faits pendant le glisser.
+      setColumns(before);
+      return;
+    }
     const column = findColumn(columns, String(active.id));
     if (!column) return;
 
@@ -114,9 +129,17 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     list[index] = { ...list[index], position, status: column };
     setColumns((current) => ({ ...current, [column]: list }));
 
+    setInflight((count) => count + 1);
     startTransition(async () => {
-      const result = await moveTask(String(active.id), column, position);
-      if (!result.ok) toast.error(result.error);
+      try {
+        const result = await moveTask(String(active.id), column, position);
+        if (!result.ok) {
+          toast.error(result.error);
+          setColumns(before); // la carte revient là où elle était
+        }
+      } finally {
+        setInflight((count) => count - 1);
+      }
     });
   };
 
@@ -129,6 +152,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
       onDragEnd={onDragEnd}
       onDragCancel={() => {
         setActiveId(null);
+        snapshot.current = null;
         setColumns(toColumns(tasks));
       }}
     >

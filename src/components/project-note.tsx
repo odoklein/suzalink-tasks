@@ -33,13 +33,14 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
   const save = () =>
     startTransition(async () => {
       const text = draft.trim();
-      setSaved(text || null);
-      setEditing(false);
       const result = await updateProjectNote(projectId, text);
       if (!result.ok) {
+        // On reste en édition : le brouillon est intact et rien n'est affiché comme enregistré.
         toast.error(result.error);
         return;
       }
+      setSaved(text || null);
+      setEditing(false);
       toast.success(text ? "Point d'étape enregistré" : "Point d'étape retiré");
     });
 
@@ -57,7 +58,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
               event.preventDefault();
-              save();
+              if (!pending) save();
             }
             if (event.key === "Escape") {
               event.stopPropagation();
