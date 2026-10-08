@@ -31,9 +31,9 @@ export function TaskCard({
     <div
       role="button"
       tabIndex={0}
-      onClick={() => openTask(task.id)}
+      onClick={() => openTask(task.id, `${projectKey}-${task.number}`)}
       onKeyDown={(event) => {
-        if (event.key === "Enter") openTask(task.id);
+        if (event.key === "Enter") openTask(task.id, `${projectKey}-${task.number}`);
       }}
       className={cn(
         "group cursor-pointer rounded-md border border-line bg-surface p-3 shadow-card outline-hidden transition-[border-color,box-shadow,transform] duration-[var(--dur-1)]",

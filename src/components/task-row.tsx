@@ -61,7 +61,7 @@ export function TaskRow({
       />
       <button
         type="button"
-        onClick={() => openTask(task.id)}
+        onClick={() => openTask(task.id, `${projectKey}-${task.number}`)}
         className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left"
       >
         <span className="w-12 shrink-0 font-mono text-meta text-muted">

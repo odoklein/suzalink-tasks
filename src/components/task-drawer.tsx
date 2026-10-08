@@ -1,7 +1,7 @@
 "use client";
 
 import type { Priority, TaskStatus } from "@prisma/client";
-import { ArrowUpRight, Trash2, X } from "lucide-react";
+import { ArrowUpRight, Hash, Link2, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -32,11 +32,12 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Skeleton, SkeletonLine } from "@/components/ui/skeleton";
 import { Tooltip } from "@/components/ui/tooltip";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
+import { taskPath } from "@/lib/task-ref";
 import { toParisDateInput } from "@/lib/time";
 import { formatDateTime, timeAgo } from "@/lib/utils";
 
 export function TaskDrawer() {
-  const { openTaskId, closeTask, team } = useApp();
+  const { openTaskId, openTaskRef, closeTask, team } = useApp();
   const [loaded, setLoaded] = useState<TaskDetail | null>(null);
   const [, startTransition] = useTransition();
 
@@ -63,15 +64,16 @@ export function TaskDrawer() {
   const loading = !task;
 
   useEffect(() => {
-    if (!openTaskId) return;
+    if (!openTaskRef) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox]")) closeTask();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openTaskId, closeTask]);
+  }, [openTaskRef, closeTask]);
 
-  if (!openTaskId) return null;
+  // Le tiroir s’affiche dès que l’URL porte ?tache= ; le squelette couvre la résolution.
+  if (!openTaskRef) return null;
 
   const patch = (changes: TaskPatch) => {
     if (!task) return;
@@ -99,9 +101,9 @@ export function TaskDrawer() {
           <>
             <header className="flex items-center gap-2.5 border-b border-line px-5 py-3">
               <ProjectTile color={task.project.color} label={task.project.key} size={20} />
+              {/* Sans ?tache=, la page du projet ferme d’elle-même le tiroir. */}
               <Link
                 href={`/projects/${task.project.slug}`}
-                onClick={closeTask}
                 className="flex items-center gap-1 text-ui text-muted hover:text-ink"
               >
                 {task.project.name}
@@ -112,6 +114,12 @@ export function TaskDrawer() {
               </span>
               {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}
               <div className="ml-auto flex items-center gap-1">
+                <IconButton label="Copier le lien" onClick={() => copy(`${window.location.origin}${taskPath(`${task.project.key}-${task.number}`)}`, "Lien copié")}>
+                  <Link2 className="size-4" />
+                </IconButton>
+                <IconButton label="Copier la référence" onClick={() => copy(`${task.project.key}-${task.number}`, "Référence copiée")}>
+                  <Hash className="size-4" />
+                </IconButton>
                 <DeleteButton
                   onConfirm={() =>
                     startTransition(async () => {
@@ -271,6 +279,15 @@ export function TaskDrawer() {
       </aside>
     </>
   );
+}
+
+async function copy(text: string, done: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(done);
+  } catch {
+    toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
+  }
 }
 
 function Prop({ label, children }: { label: string; children: React.ReactNode }) {
