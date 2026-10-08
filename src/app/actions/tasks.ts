@@ -1,13 +1,13 @@
 "use server";
 
-import type { Priority, TaskStatus } from "@prisma/client";
+import { Prisma, type Priority, type TaskStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { STATUS_BY_VALUE } from "@/lib/constants";
 import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { parseFeedbackTable } from "@/lib/feedback-import";
+import { parseFeedbackTable, planImport } from "@/lib/feedback-import";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { fromParisDateInput, nowParis } from "@/lib/time";
 
@@ -22,8 +22,12 @@ async function log(projectId: string, actorId: string, message: string, taskId?:
   await db.activity.create({ data: { projectId, actorId, message, taskId } });
 }
 
-async function nextPosition(projectId: string, status: TaskStatus) {
-  const last = await db.task.findFirst({
+/**
+ * Position en bas de colonne. Pour une création, à appeler dans la transaction après l'incrément du
+ * compteur du projet : ce verrou de ligne sérialise les créations concurrentes.
+ */
+async function nextPosition(tx: Pick<Prisma.TransactionClient, "task">, projectId: string, status: TaskStatus) {
+  const last = await tx.task.findFirst({
     where: { projectId, status },
     orderBy: { position: "desc" },
     select: { position: true },
@@ -46,13 +50,13 @@ type NewTask = {
 
 async function insertTask(input: NewTask, creatorId: string) {
   const status = input.status ?? "TODO";
-  const position = await nextPosition(input.projectId, status);
   return db.$transaction(async (tx) => {
     const project = await tx.project.update({
       where: { id: input.projectId },
       data: { taskCounter: { increment: 1 } },
       select: { taskCounter: true, key: true },
     });
+    const position = await nextPosition(tx, input.projectId, status);
     const task = await tx.task.create({
       data: {
         projectId: input.projectId,
@@ -150,7 +154,7 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
     if (patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status) {
       data.status = patch.status;
       data.statusChangedAt = new Date();
-      data.position = await nextPosition(current.projectId, patch.status);
+      data.position = await nextPosition(db, current.projectId, patch.status);
       data.completedAt = patch.status === "DONE" ? new Date() : null;
     }
 
@@ -270,20 +274,47 @@ export async function importFeedback(projectId: string, text: string, sourceLabe
       return { error: "Aucune ligne reconnue. Copiez les cellules du tableau, en-têtes compris." };
     }
 
-    for (const row of rows) {
-      await insertTask(
-        {
-          projectId,
-          title: row.title,
-          description: row.description,
-          zone: row.zone,
-          status: row.status,
-          source: sourceLabel.trim() || (row.date ? `Retours du ${row.date}` : "Retours client"),
+    // Une seule transaction : un incrément du compteur, une lecture des positions, un createMany.
+    try {
+      await db.$transaction(
+        async (tx) => {
+          const count = rows.length;
+          const project = await tx.project.update({
+            where: { id: projectId },
+            data: { taskCounter: { increment: count } },
+            select: { taskCounter: true },
+          });
+          const maxima = await tx.task.groupBy({ by: ["status"], where: { projectId }, _max: { position: true } });
+          const planned = planImport(rows, {
+            firstNumber: project.taskCounter - count + 1,
+            basePositions: Object.fromEntries(maxima.map((m) => [m.status, m._max.position ?? 0])),
+            sourceLabel,
+          });
+          const now = new Date();
+          await tx.task.createMany({
+            data: planned.map((task) => ({
+              ...task,
+              projectId,
+              creatorId: userId,
+              completedAt: task.status === "DONE" ? now : null,
+            })),
+          });
+          await tx.activity.create({
+            data: {
+              projectId,
+              actorId: userId,
+              message: `a importé ${count} ${count > 1 ? "retours" : "retour"} (${sourceLabel.trim() || "retours client"})`,
+            },
+          });
         },
-        userId,
+        { timeout: 15_000 },
       );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        return { error: "Projet introuvable." };
+      }
+      throw error;
     }
-    await log(projectId, userId, `a importé ${rows.length} retours (${sourceLabel.trim() || "retours client"})`);
     refresh();
     return { ok: true as const, count: rows.length };
   });

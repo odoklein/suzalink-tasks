@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFeedbackTable, parseTsv, statusFromLabel } from "@/lib/feedback-import";
+import { parseFeedbackTable, parseTsv, planImport, statusFromLabel, type ImportedRow } from "@/lib/feedback-import";
 
 const HEADER = "Date\tPage\tRetour\tCommentaire\tÉtat";
 
@@ -87,5 +87,42 @@ describe("parseFeedbackTable", () => {
 
   it("renvoie une liste vide pour un texte vide", () => {
     expect(parseFeedbackTable("")).toEqual([]);
+  });
+});
+
+describe("planImport (P1-10)", () => {
+  const rows: ImportedRow[] = Array.from({ length: 60 }, (_, i) => ({
+    title: `Retour ${i + 1}`,
+    status: i % 3 === 0 ? "DONE" : i % 3 === 1 ? "TODO" : "WAITING_CLIENT",
+    date: "06/10",
+  }));
+
+  it("numérote de façon contiguë à partir du premier numéro réservé", () => {
+    const planned = planImport(rows, { firstNumber: 15, basePositions: {}, sourceLabel: "" });
+    expect(planned.map((t) => t.number)).toEqual(Array.from({ length: 60 }, (_, i) => 15 + i));
+  });
+
+  it("place chaque statut à la suite de sa colonne, sans doublon", () => {
+    const planned = planImport(rows, { firstNumber: 1, basePositions: { TODO: 5000, DONE: 200 }, sourceLabel: "" });
+    const positions = (status: string) => planned.filter((t) => t.status === status).map((t) => t.position);
+
+    expect(positions("TODO").slice(0, 3)).toEqual([6000, 7000, 8000]); // 5000 + 1000 × rang
+    expect(positions("DONE").slice(0, 2)).toEqual([1200, 2200]);
+    expect(positions("WAITING_CLIENT").slice(0, 2)).toEqual([1000, 2000]); // colonne vide : base 0
+    for (const status of ["TODO", "DONE", "WAITING_CLIENT"]) {
+      const list = positions(status);
+      expect(new Set(list).size).toBe(list.length);
+      expect([...list].sort((a, b) => a - b)).toEqual(list);
+    }
+  });
+
+  it("garde l'ordre des lignes pour les titres et prend la source saisie, sinon la date de la ligne", () => {
+    const [first] = planImport(rows, { firstNumber: 1, basePositions: {}, sourceLabel: "  Retours Luna  " });
+    expect(first.title).toBe("Retour 1");
+    expect(first.source).toBe("Retours Luna");
+    expect(planImport(rows, { firstNumber: 1, basePositions: {}, sourceLabel: "" })[0].source).toBe("Retours du 06/10");
+    expect(planImport([{ title: "x", status: "TODO" }], { firstNumber: 1, basePositions: {}, sourceLabel: "" })[0].source).toBe(
+      "Retours client",
+    );
   });
 });
