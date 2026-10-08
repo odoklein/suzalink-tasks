@@ -6,8 +6,10 @@ import { STATUS_BY_VALUE } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { parseFeedbackTable } from "@/lib/feedback-import";
 import { parseQuickAdd } from "@/lib/quick-add";
+import { changedFields } from "@/lib/events";
 import { logActivity } from "@/lib/services/activity";
 import { parseInput, parseTaskRef, ServiceError, taskRef, type Actor, type Tx } from "@/lib/services/core";
+import { emitEvent, emitEvents } from "@/lib/services/outbox";
 import {
   moveTaskSchema,
   newTaskSchema,
@@ -67,6 +69,12 @@ export async function createTask(actor: Actor, raw: NewTaskInput) {
     });
     const ref = taskRef(project.key, task.number);
     await logActivity(tx, { projectId: input.projectId, actorId: actor.userId, message: `a créé ${ref} « ${task.title} »` });
+    await emitEvent(tx, actor, {
+      type: "task.created",
+      projectId: task.projectId,
+      taskId: task.id,
+      payload: { ref, title: task.title, status: task.status, assigneeId: task.assigneeId },
+    });
     return { task, ref };
   });
 }
@@ -127,7 +135,18 @@ export async function createTasks(
       actorId: actor.userId,
       message: options.activityMessage ?? `a créé ${tasks.length} tâche${tasks.length > 1 ? "s" : ""}`,
     });
-    return { tasks, refs: tasks.map((task) => taskRef(project.key, task.number)) };
+    const refs = tasks.map((task) => taskRef(project.key, task.number));
+    await emitEvents(
+      tx,
+      actor,
+      tasks.map((task, index) => ({
+        type: "task.created" as const,
+        projectId,
+        taskId: task.id,
+        payload: { ref: refs[index], title: task.title, status: task.status, assigneeId: task.assigneeId },
+      })),
+    );
+    return { tasks, refs };
   });
 }
 
@@ -184,6 +203,26 @@ export async function updateTask(actor: Actor, taskId: string, rawPatch: TaskPat
     } else if (data.assigneeId !== undefined && data.assigneeId !== current.assigneeId) {
       await logActivity(tx, { projectId: current.projectId, actorId: actor.userId, taskId, message: `a réassigné ${ref}` });
     }
+
+    const base = { projectId: current.projectId, taskId };
+    if (statusChanged && patch.status) {
+      await emitEvent(tx, actor, {
+        ...base,
+        type: "task.status_changed",
+        payload: { ref, title: task.title, from: current.status, to: patch.status },
+      });
+    }
+    if (data.assigneeId !== undefined && data.assigneeId !== current.assigneeId) {
+      await emitEvent(tx, actor, {
+        ...base,
+        type: "task.assigned",
+        payload: { ref, title: task.title, from: current.assigneeId, to: (data.assigneeId as string | null) ?? null },
+      });
+    }
+    const fields = changedFields(current, data);
+    if (fields.length > 0) {
+      await emitEvent(tx, actor, { ...base, type: "task.updated", payload: { ref, title: task.title, fields } });
+    }
     return { task, ref, previous: current };
   });
 }
@@ -210,6 +249,12 @@ export async function moveTask(actor: Actor, raw: { taskId: string; status: Task
         taskId,
         message: `a passé ${ref} en « ${STATUS_BY_VALUE[status].label} »`,
       });
+      await emitEvent(tx, actor, {
+        type: "task.status_changed",
+        projectId: current.projectId,
+        taskId,
+        payload: { ref, title: task.title, from: current.status, to: status },
+      });
     }
     return { task, ref, previous: current };
   });
@@ -221,6 +266,7 @@ export async function deleteTask(actor: Actor, taskId: string) {
     await tx.task.delete({ where: { id: taskId } });
     const ref = taskRef(task.project.key, task.number);
     await logActivity(tx, { projectId: task.projectId, actorId: actor.userId, message: `a supprimé ${ref} « ${task.title} »` });
+    await emitEvent(tx, actor, { type: "task.deleted", projectId: task.projectId, taskId, payload: { ref, title: task.title } });
     return { ref };
   });
 }

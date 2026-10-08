@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/services/activity";
+import { emitEvent } from "@/lib/services/outbox";
 import { parseInput, ServiceError, taskRef, type Actor } from "@/lib/services/core";
 import { commentSchema } from "@/lib/validation";
 
@@ -16,6 +17,12 @@ export async function addComment(actor: Actor, raw: { taskId: string; body: stri
     const comment = await tx.comment.create({ data: { taskId, authorId: actor.userId, body } });
     const ref = taskRef(task.project.key, task.number);
     await logActivity(tx, { projectId: task.projectId, actorId: actor.userId, taskId, message: `a commenté ${ref}` });
+    await emitEvent(tx, actor, {
+      type: "comment.created",
+      projectId: task.projectId,
+      taskId,
+      payload: { ref, commentId: comment.id, excerpt: body.slice(0, 280) },
+    });
     return { comment, ref, task };
   });
 }

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Transaction Prisma simulée : on vérifie les numéros, positions et l'activité.
 const tx = {
   project: { update: vi.fn() },
-  task: { groupBy: vi.fn(), createManyAndReturn: vi.fn(), findFirst: vi.fn() },
+  task: { groupBy: vi.fn(), createManyAndReturn: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   activity: { create: vi.fn() },
   event: { create: vi.fn(), createMany: vi.fn() },
 };
@@ -12,7 +12,7 @@ vi.mock("@/lib/db", () => ({
   db: { $transaction: (fn: (client: typeof tx) => unknown) => fn(tx) },
 }));
 
-const { createTasks, importFeedback } = await import("@/lib/services/tasks");
+const { createTasks, importFeedback, updateTask } = await import("@/lib/services/tasks");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -39,6 +39,9 @@ describe("createTasks", () => {
     expect(rows.map((row: { position: number }) => row.position)).toEqual([6000, 1000, 7000]);
     expect(rows[1].completedAt).toBeInstanceOf(Date);
     expect(tx.activity.create).toHaveBeenCalledTimes(1);
+    const events = tx.event.createMany.mock.calls[0][0].data;
+    expect(events.map((event: { type: string }) => event.type)).toEqual(["task.created", "task.created", "task.created"]);
+    expect(events[0]).toMatchObject({ via: "WEB", actorId: "u1", projectId: "p1", payload: { ref: "BG-12", title: "Un" } });
   });
 
   it("ne fait rien sans tâche", async () => {
@@ -59,5 +62,31 @@ describe("importFeedback", () => {
     const { count } = await importFeedback({ userId: "u1", via: "WEB" }, "p1", text, "Retours Luna");
     expect(count).toBe(2);
     expect(tx.activity.create.mock.calls[0][0].data.message).toBe("a importé 2 retours (Retours Luna)");
+  });
+});
+
+describe("updateTask", () => {
+  it("écrit les événements de statut, d'attribution et de champs dans la transaction", async () => {
+    tx.task.findUnique.mockResolvedValue({
+      id: "t1",
+      number: 7,
+      projectId: "p1",
+      status: "TODO",
+      assigneeId: null,
+      title: "Avant",
+      zone: null,
+      dueDate: null,
+      project: { key: "BG" },
+    });
+    tx.task.findFirst.mockResolvedValue({ position: 2000 });
+    tx.task.update.mockResolvedValue({ id: "t1", title: "Après" });
+    await updateTask({ userId: "u1", via: "API" }, "t1", { status: "WAITING_CLIENT", assigneeId: "u2", title: "Après" });
+    const types = tx.event.create.mock.calls.map((call) => call[0].data.type);
+    expect(types).toEqual(["task.status_changed", "task.assigned", "task.updated"]);
+    expect(tx.event.create.mock.calls[0][0].data).toMatchObject({
+      via: "API",
+      payload: { ref: "BG-7", from: "TODO", to: "WAITING_CLIENT" },
+    });
+    expect(tx.event.create.mock.calls[2][0].data.payload.fields).toEqual(["title"]);
   });
 });

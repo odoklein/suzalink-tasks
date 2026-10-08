@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { RecapFacts } from "@/lib/recap";
 import { logActivity } from "@/lib/services/activity";
+import { emitEvent } from "@/lib/services/outbox";
 import { parseInput, ServiceError, taskRef, type Actor } from "@/lib/services/core";
 import { deliverySchema } from "@/lib/validation";
 
@@ -26,6 +27,11 @@ export async function recordDelivery(actor: Actor, projectId: string, raw: Deliv
       },
     });
     await logActivity(tx, { projectId, actorId: actor.userId, message: `a enregistré une mise en ligne : ${input.title}` });
+    await emitEvent(tx, actor, {
+      type: "delivery.created",
+      projectId,
+      payload: { deliveryId: delivery.id, title: delivery.title, deployedAt: delivery.deployedAt.toISOString(), url: delivery.url },
+    });
     return delivery;
   });
 }

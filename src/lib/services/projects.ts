@@ -5,6 +5,7 @@ import type { ProjectStatus } from "@prisma/client";
 import { PROJECT_COLORS } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/services/activity";
+import { emitEvent } from "@/lib/services/outbox";
 import { parseInput, ServiceError, type Actor, type Tx } from "@/lib/services/core";
 import { projectKey, slugify } from "@/lib/utils";
 import { newProjectSchema, projectNoteSchema, projectStatusSchema, type NewProjectInput } from "@/lib/validation";
@@ -46,6 +47,7 @@ export async function createProject(actor: Actor, raw: NewProjectInput) {
       },
     });
     await logActivity(tx, { projectId: project.id, actorId: actor.userId, message: "a créé le projet" });
+    await emitEvent(tx, actor, { type: "project.created", projectId: project.id, payload: { key: project.key, name: project.name } });
     return project;
   });
 }
@@ -68,6 +70,7 @@ export async function updateProjectNote(actor: Actor, raw: { projectId: string; 
       data: { statusNote: note || null, statusNoteAt: note ? new Date() : null },
     });
     if (note) await logActivity(tx, { projectId, actorId: actor.userId, message: "a mis à jour le point d'étape" });
+    await emitEvent(tx, actor, { type: "project.note_updated", projectId, payload: { note: note || null } });
     return project;
   });
 }

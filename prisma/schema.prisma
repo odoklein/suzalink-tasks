@@ -180,6 +180,24 @@ model Delivery {
   author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
 }
 
+/// Outbox d'événements : écrite dans la même transaction que le changement,
+/// lue par le job `dispatch_events` (notifications, webhooks, temps réel, sync).
+/// L'Activity reste le fil lisible de l'interface.
+model Event {
+  id           String    @id @default(cuid())
+  type         String // task.created, task.status_changed, comment.created…
+  payload      Json
+  via          Channel   @default(WEB)
+  projectId    String?
+  taskId       String?
+  actorId      String?
+  createdAt    DateTime  @default(now())
+  dispatchedAt DateTime?
+
+  @@index([dispatchedAt, createdAt])
+  @@index([projectId, createdAt])
+}
+
 model Activity {
   id        String   @id @default(cuid())
   message   String
