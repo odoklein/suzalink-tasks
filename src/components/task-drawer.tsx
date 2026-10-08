@@ -32,6 +32,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Skeleton, SkeletonLine } from "@/components/ui/skeleton";
 import { Tooltip } from "@/components/ui/tooltip";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
+import { rememberTask } from "@/lib/recent-tasks";
 import { taskPath } from "@/lib/task-ref";
 import { toParisDateInput } from "@/lib/time";
 import { formatDateTime, timeAgo } from "@/lib/utils";
@@ -54,7 +55,9 @@ export function TaskDrawer() {
     if (!openTaskId) return;
     let cancelled = false;
     getTaskDetail(openTaskId).then((detail) => {
-      if (!cancelled) setLoaded(detail);
+      if (cancelled) return;
+      setLoaded(detail);
+      if (detail) rememberTask({ id: detail.id, ref: `${detail.project.key}-${detail.number}`, title: detail.title });
     });
     return () => {
       cancelled = true;

@@ -3,7 +3,7 @@
 import type { ClientKind, ProjectStatus } from "@prisma/client";
 import { ChevronDown, ExternalLink, FileSpreadsheet, MessageSquareText, MoreHorizontal, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateProjectStatus } from "@/app/actions/projects";
@@ -23,6 +23,7 @@ import { TabPanel, Tabs, useTabIds } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/tooltip";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
+import { PROJECT_ACTION_EVENT, type ProjectAction } from "@/lib/project-actions";
 import { oldestWaitingDays as oldestWaitingOf } from "@/lib/waiting";
 import { formatParis } from "@/lib/time";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
@@ -81,6 +82,16 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
   const [dialog, setDialog] = useState<"import" | "recap" | "delivery" | null>(null);
   const [, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Actions demandées par la palette ou les raccourcis clavier.
+  useEffect(() => {
+    const onAction = (event: Event) => {
+      const action = (event as CustomEvent<ProjectAction>).detail;
+      if (action === "import" || action === "recap" || action === "delivery") setDialog(action);
+    };
+    window.addEventListener(PROJECT_ACTION_EVENT, onAction);
+    return () => window.removeEventListener(PROJECT_ACTION_EVENT, onAction);
+  }, []);
   const tabIds = useTabIds();
 
   const open = project.tasks.filter((task) => task.status !== "DONE").length;
