@@ -1,99 +1,13 @@
 "use client";
 
-import { Check, ClipboardCopy } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useActionState, useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { useActionState, useEffect, useState } from "react";
 
-import { buildRecap } from "@/app/actions/deliveries";
 import { createProject } from "@/app/actions/projects";
 import { useApp } from "@/components/app-context";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { PROJECT_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-
-export function RecapDialog({
-  open,
-  onClose,
-  projectId,
-  lastDeliveryAt,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-  lastDeliveryAt: string | null;
-}) {
-  const [since, setSince] = useState("");
-  const [text, setText] = useState("");
-  const [counts, setCounts] = useState<{ done: number; waiting: number; remaining: number } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [pending, startTransition] = useTransition();
-
-  const generate = (sinceValue: string) =>
-    startTransition(async () => {
-      const result = await buildRecap(projectId, sinceValue || undefined);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      setText(result.text);
-      setCounts(result.counts);
-    });
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
-    }
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      wide
-      title="Récap client"
-      description="Un message prêt à envoyer : ce qui est fait, ce qui attend le client, ce qui reste chez nous. Relisez-le avant envoi."
-    >
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-end gap-2">
-          <div>
-            <label htmlFor="recap-since" className={labelClass}>Tâches faites depuis</label>
-            <input id="recap-since" type="date" value={since} onChange={(event) => setSince(event.target.value)} className={cn(fieldClass, "w-auto")} />
-          </div>
-          {lastDeliveryAt && (
-            <GhostButton type="button" onClick={() => setSince(lastDeliveryAt.slice(0, 10))}>
-              Depuis la dernière mise en ligne
-            </GhostButton>
-          )}
-          <PrimaryButton type="button" disabled={pending} onClick={() => generate(since)}>
-            {pending ? "Génération…" : "Générer"}
-          </PrimaryButton>
-        </div>
-
-        {text && (
-          <>
-            {counts && (
-              <p className="text-[12px] text-muted">
-                {counts.done} faites · {counts.waiting} en attente client · {counts.remaining} en cours
-              </p>
-            )}
-            <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-[13px] leading-relaxed")} />
-            <div className="flex justify-end">
-              <PrimaryButton type="button" onClick={copy}>
-                {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
-                {copied ? "Copié" : "Copier le texte"}
-              </PrimaryButton>
-            </div>
-          </>
-        )}
-      </div>
-    </Dialog>
-  );
-}
 
 export function NewProjectDialog() {
   const { newProjectOpen, setNewProjectOpen, clients } = useApp();

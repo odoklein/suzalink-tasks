@@ -1,6 +1,6 @@
 "use client";
 
-import type { ActivityType, ClientKind, ProjectStatus } from "@prisma/client";
+import type { ActivityType, ClientKind, MessageKind, ProjectStatus } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 import { ExternalLink, FileSpreadsheet, MessageSquareText, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,7 +17,7 @@ import { ImportDialog } from "@/components/import-dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
 import { DeliveryDialog, type EditableDelivery } from "@/components/delivery-dialog";
-import { RecapDialog } from "@/components/project-dialogs";
+import { RecapDialog } from "@/components/recap-dialog";
 import { RoundsView, type RoundData } from "@/components/rounds-view";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
@@ -69,7 +69,7 @@ type ProjectData = {
   }[];
   lastChasedAt: Date | null;
   /** Messages envoyés au client (relances, récaps), pour les déplier dans l'historique. */
-  clientMessages: { id: string; body: string }[];
+  clientMessages: { id: string; body: string; kind: MessageKind; sentAt: Date }[];
   rounds: RoundData[];
 };
 
@@ -136,6 +136,7 @@ export function ProjectView({
   const oldestWaitingDays = oldestWaiting ? Math.max(0, differenceInCalendarDays(new Date(), oldestWaiting)) : 0;
   const chase = chaseState(project.tasks, project.lastChasedAt, new Date());
   const chaseText = chaseLabel(chase, new Date());
+  const lastRecapAt = project.clientMessages.find((message) => message.kind === "RECAP")?.sentAt ?? null;
 
   const selectTab = (next: ProjectTab) => {
     setTab(next);
@@ -227,6 +228,11 @@ export function ProjectView({
                   <Avatar name={project.lead.name} color={project.lead.color} size={16} /> {project.lead.name}
                 </span>
               )}
+              {lastRecapAt && (
+                <span className="text-muted" suppressHydrationWarning>
+                  Dernier récap envoyé {timeAgo(lastRecapAt)}
+                </span>
+              )}
             </p>
             <ProjectNote projectId={project.id} note={project.statusNote} noteAt={project.statusNoteAt} />
           </div>
@@ -246,7 +252,13 @@ export function ProjectView({
               <MessageSquareText className="size-4" />
               Récap client
             </GhostButton>
-            <PrimaryButton type="button" onClick={() => setDialog("delivery")}>
+            <PrimaryButton
+              type="button"
+              onClick={() => {
+                setEditingDelivery(null);
+                setDialog("delivery");
+              }}
+            >
               <Rocket className="size-4" />
               Mise en ligne
             </PrimaryButton>
@@ -326,12 +338,7 @@ export function ProjectView({
           contacts={project.client?.contactRecords ?? []}
         />
       )}
-      <RecapDialog
-        open={dialog === "recap"}
-        onClose={() => setDialog(null)}
-        projectId={project.id}
-        lastDeliveryAt={project.deliveries[0] ? new Date(project.deliveries[0].deployedAt).toISOString() : null}
-      />
+      {dialog === "recap" && <RecapDialog onClose={() => setDialog(null)} projectId={project.id} />}
       {dialog === "delivery" && (
         <DeliveryDialog
           onClose={() => setDialog(null)}
