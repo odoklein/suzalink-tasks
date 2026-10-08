@@ -8,7 +8,7 @@ import {
   subDays,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import { AlarmClock, CalendarDays, Hourglass, Rocket, UserRoundPlus, Users } from "lucide-react";
+import { AlarmClock, CalendarDays, Rocket, UserRoundPlus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -151,7 +151,7 @@ export default async function TodayPage() {
           />
           <Stat icon={<CalendarDays className="size-4" />} tone="var(--progress)" label="Aujourd'hui" value={dueToday.length} hint={`${thisWeek.length} d'ici 7 jours`} />
           <Stat
-            icon={<Hourglass className="size-4" />}
+            icon={<StatusIcon status="WAITING_CLIENT" size={16} />}
             tone="var(--waiting)"
             label="Chez le client"
             value={waiting.length}
@@ -214,7 +214,7 @@ export default async function TodayPage() {
           </div>
 
           <aside className="space-y-5">
-            <Panel icon={<Hourglass className="size-4 text-waiting-text" />} title="Bloqué côté client" count={waiting.length} empty="Rien n'attend le client.">
+            <Panel icon={<StatusIcon status="WAITING_CLIENT" size={16} />} title="Bloqué côté client" count={waiting.length} empty="Rien n'attend le client.">
               {[...waitingByProject.values()].map((tasks) => (
                 <div key={tasks[0].project.slug} className="py-2.5 first:pt-0 last:pb-0">
                   <Link href={`/projects/${tasks[0].project.slug}`} className="flex items-center gap-2 text-ui font-medium hover:underline">

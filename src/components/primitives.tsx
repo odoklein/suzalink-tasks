@@ -136,16 +136,30 @@ export function PriorityIcon({ priority, size = 14 }: { priority: Priority; size
   );
 }
 
-export function DueChip({ date, done = false }: { date: Date | string | null; done?: boolean }) {
+/**
+ * Échéance : en retard = danger, aujourd’hui ou demain = « soon » (orange, distinct de
+ * l’ambre « chez le client »), plus tard = discret. La largeur minimale aligne la colonne
+ * des échéances dans les listes ; les cartes du tableau passent min-w-0.
+ */
+export function DueChip({
+  date,
+  done = false,
+  className,
+}: {
+  date: Date | string | null;
+  done?: boolean;
+  className?: string;
+}) {
   if (!date) return null;
   const tone = dueTone(date, done);
   return (
     <span
       className={cn(
-        "tabular inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-meta font-medium",
+        "tabular inline-flex min-w-[5.25rem] items-center gap-1 rounded-sm px-1.5 py-0.5 text-meta font-medium",
         tone === "overdue" && "bg-danger-soft text-danger-text",
-        tone === "soon" && "bg-waiting-soft text-waiting-text",
+        tone === "soon" && "bg-soon-soft text-soon-text",
         tone === "muted" && "text-muted",
+        className,
       )}
     >
       <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
@@ -169,8 +183,10 @@ export function ZoneChip({ zone }: { zone: string | null }) {
 export function BillableBadge() {
   return (
     <span
-      title="Hors périmètre : à facturer"
-      className="inline-flex items-center rounded-sm border border-waiting/40 px-1 text-meta font-semibold text-waiting-text"
+      role="img"
+      aria-label="Hors périmètre, à facturer"
+      title="Hors périmètre (€)"
+      className="inline-flex items-center rounded-xs bg-ink px-1 text-meta font-bold text-bg"
     >
       €
     </span>

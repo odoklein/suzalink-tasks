@@ -54,7 +54,7 @@ export function TaskCard({
       </p>
       <div className="mt-2.5 flex items-center gap-1.5">
         <ZoneChip zone={task.zone} />
-        <DueChip date={task.dueDate} done={done} />
+        <DueChip date={task.dueDate} done={done} className="min-w-0" />
         <span className="ml-auto flex items-center gap-2">
           {task._count.comments > 0 && (
             <span className="tabular flex items-center gap-0.5 text-meta text-muted">

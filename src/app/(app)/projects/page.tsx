@@ -1,10 +1,10 @@
 import { differenceInCalendarDays } from "date-fns";
-import { ChevronRight, Hourglass, Rocket } from "lucide-react";
+import { ChevronRight, Rocket } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NewProjectButton } from "@/components/new-project-button";
-import { Avatar, DueChip, ProjectTile } from "@/components/primitives";
+import { Avatar, DueChip, ProjectTile, StatusIcon } from "@/components/primitives";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -180,7 +180,7 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-4 text-xs text-muted">
         {waitingTasks.length > 0 && (
           <span className={cn("flex items-center gap-1 font-medium text-waiting-text", oldestWaiting >= 5 && "rounded-sm bg-waiting-soft px-1.5 py-0.5")}>
-            <Hourglass className="size-3.5" />
+            <StatusIcon status="WAITING_CLIENT" size={14} />
             {waitingTasks.length} chez le client{oldestWaiting >= 1 && ` · ${oldestWaiting} j`}
           </span>
         )}
