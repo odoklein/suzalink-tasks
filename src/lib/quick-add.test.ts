@@ -74,13 +74,45 @@ describe("parseQuickAdd", () => {
     expect(day(parseQuickAdd("Point lundi", TEAM, at(2026, 10, 8)).dueDate)).toBe("2026-10-12");
   });
 
-  // P1-03 : l'ordre de l'équipe ne doit pas décider de la personne attribuée.
-  it.fails("« @an » prend le premier prénom par ordre alphabétique (P1-03)", () => {
-    const team = [
-      { id: "u-antoine", name: "Antoine Dupont" },
-      { id: "u-anais", name: "Anaïs Roux" },
-      { id: "u-amine", name: "Amine Ben" },
+  // P1-03 : l'ordre de l'équipe ne doit jamais décider de la personne attribuée.
+  describe("@prénom ambigu (P1-03)", () => {
+    const antoine = { id: "u-antoine", name: "Antoine Dupont" };
+    const anais = { id: "u-anais", name: "Anaïs Roux" };
+    const amine = { id: "u-amine", name: "Amine Ben" };
+    const permutations = [
+      [antoine, anais, amine],
+      [amine, anais, antoine],
+      [anais, antoine, amine],
+      [antoine, amine, anais],
     ];
-    expect(parseQuickAdd("Tâche @an", team).assigneeId).toBe("u-anais");
+
+    it("« @an » désigne Anaïs et Antoine : personne n'est attribué, le mot reste dans le titre", () => {
+      for (const team of permutations) {
+        const result = parseQuickAdd("Tâche @an", team);
+        expect(result.assigneeId).toBeUndefined();
+        expect(result.title).toBe("Tâche @an");
+        expect(result.tokens).toHaveLength(1);
+        expect(result.tokens[0].kind).toBe("ambiguous");
+        // candidats triés par ordre alphabétique, quel que soit l'ordre de l'équipe
+        expect(result.tokens[0].candidates?.map((c) => c.id)).toEqual(["u-anais", "u-antoine"]);
+        expect(result.tokens[0].label).toBe("@an : Anaïs ou Antoine ?");
+      }
+    });
+
+    it("un préfixe unique suffit (« @ami » → Amine), quel que soit l'ordre", () => {
+      for (const team of permutations) {
+        expect(parseQuickAdd("Tâche @ami", team).assigneeId).toBe("u-amine");
+      }
+    });
+
+    it("un prénom exact l'emporte sur un préfixe (« @ana » → Ana, pas Anaïs)", () => {
+      const ana = { id: "u-ana", name: "Ana Petit" };
+      expect(parseQuickAdd("Tâche @ana", [anais, ana, antoine]).assigneeId).toBe("u-ana");
+      expect(parseQuickAdd("Tâche @ana", [ana, anais, antoine]).assigneeId).toBe("u-ana");
+    });
+
+    it("la casse et les accents sont ignorés (« @ANAIS »)", () => {
+      expect(parseQuickAdd("Tâche @ANAIS", permutations[0]).assigneeId).toBe("u-anais");
+    });
   });
 });

@@ -75,11 +75,17 @@ async function insertTask(input: NewTask, creatorId: string) {
 }
 
 /** Saisie rapide depuis un projet ou depuis « Aujourd'hui ». */
-export async function quickAddTask(projectId: string, input: string, status?: TaskStatus) {
+export async function quickAddTask(projectId: string, input: string, status?: TaskStatus, resolvedAssigneeId?: string) {
   return safe(async () => {
     const { userId } = await verifySession();
-    const team = await db.user.findMany({ select: { id: true, name: true } });
+    // Même ordre que l'aperçu côté client (getTeam) : le résultat ne dépend pas de l'ordre de la base.
+    const team = await db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
     const parsed = parseQuickAdd(input, team);
+    // Le client envoie la personne qu'il a résolue pour l'aperçu ; on la garde si elle existe, sinon on se fie à l'analyse serveur.
+    const assigneeId =
+      resolvedAssigneeId && team.some((member) => member.id === resolvedAssigneeId)
+        ? resolvedAssigneeId
+        : parsed.assigneeId;
     if (!parsed.title) return { error: "Donnez un titre à la tâche." };
 
     const { ref } = await insertTask(
@@ -90,7 +96,7 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
         priority: parsed.priority,
         zone: parsed.zone,
         billable: parsed.billable,
-        assigneeId: parsed.assigneeId ?? null,
+        assigneeId: assigneeId ?? null,
         dueDate: parsed.dueDate ?? null,
       },
       userId,

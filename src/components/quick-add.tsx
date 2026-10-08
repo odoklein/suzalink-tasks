@@ -16,6 +16,7 @@ const TOKEN_TONE: Record<string, string> = {
   zone: "bg-sunken text-ink-2",
   due: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
   billable: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
+  ambiguous: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
 };
 
 /** Saisie rapide avec aperçu en direct des éléments reconnus. */
@@ -43,7 +44,7 @@ export function QuickAdd({
   const submit = () => {
     if (!parsed.title.trim()) return;
     startTransition(async () => {
-      const result = await quickAddTask(projectId, value, status);
+      const result = await quickAddTask(projectId, value, status, parsed.assigneeId);
       if (!result.ok) {
         toast.error(result.error);
         return;

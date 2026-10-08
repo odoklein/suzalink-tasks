@@ -8,16 +8,53 @@ export type QuickAddResult = {
   zone?: string;
   dueDate?: Date;
   billable: boolean;
-  tokens: { kind: "assignee" | "priority" | "zone" | "due" | "billable"; label: string }[];
+  tokens: QuickAddToken[];
 };
 
 type Member = { id: string; name: string };
+
+/**
+ * `ambiguous` : un @prénom qui correspond à plusieurs membres. Le mot reste dans le titre,
+ * personne n'est attribué, et `candidates` (ordre alphabétique) alimente l'aide à la saisie.
+ */
+export type QuickAddToken = {
+  kind: "assignee" | "priority" | "zone" | "due" | "billable" | "ambiguous";
+  label: string;
+  candidates?: Member[];
+};
+
+const NNBSP = "\u202f";
 
 const normalize = (value: string) =>
   value
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
+
+type MemberMatch =
+  | { kind: "none" }
+  | { kind: "one"; member: Member }
+  | { kind: "many"; candidates: Member[] };
+
+/**
+ * Prénom exact d'abord, puis préfixe unique. Un préfixe qui désigne plusieurs
+ * personnes est ambigu : le résultat ne dépend jamais de l'ordre de `team`.
+ */
+function matchMember(team: Member[], wanted: string): MemberMatch {
+  const first = (member: Member) => normalize(member.name).split(/\s+/)[0];
+  const exact = team.filter((member) => first(member) === wanted);
+  const found = exact.length > 0 ? exact : team.filter((member) => first(member).startsWith(wanted));
+  if (found.length === 0) return { kind: "none" };
+  if (found.length === 1) return { kind: "one", member: found[0] };
+  return { kind: "many", candidates: [...found].sort((a, b) => a.name.localeCompare(b.name, "fr")) };
+}
+
+/** « @an : Anaïs ou Antoine ? » (espaces fines insécables avant « : » et « ? »). */
+function ambiguousLabel(word: string, candidates: Member[]) {
+  const firstNames = candidates.map((member) => member.name.split(" ")[0]);
+  const list = firstNames.length > 1 ? `${firstNames.slice(0, -1).join(", ")} ou ${firstNames.at(-1)}` : firstNames[0];
+  return `${word}${NNBSP}: ${list}${NNBSP}?`;
+}
 
 const PRIORITY_WORDS: Record<string, Priority> = {
   urgent: "URGENT",
@@ -75,7 +112,7 @@ function parseDue(word: string, today: Date): Date | undefined {
 
 /**
  * Saisie rapide : « Retirer l'ombre @odo !haute #homepage demain $ »
- * @prénom → assigné · !urgent/!haute/!moyenne/!basse → priorité
+ * @prénom → attribuée à (prénom exact, sinon préfixe unique ; ambigu : on n'attribue pas) · !urgent/!haute/!moyenne/!basse → priorité
  * #zone → page ou section · aujourd'hui, demain, lundi, 12/10, +3j → échéance
  * $ → hors périmètre (à facturer)
  */
@@ -93,10 +130,15 @@ export function parseQuickAdd(
 
     if (word.startsWith("@") && word.length > 1) {
       const wanted = normalize(word.slice(1));
-      const member = team.find((m) => normalize(m.name).split(/\s+/)[0].startsWith(wanted));
-      if (member) {
-        result.assigneeId = member.id;
-        result.tokens.push({ kind: "assignee", label: member.name.split(" ")[0] });
+      const match = matchMember(team, wanted);
+      if (match.kind === "one") {
+        result.assigneeId = match.member.id;
+        result.tokens.push({ kind: "assignee", label: match.member.name.split(" ")[0] });
+        continue;
+      }
+      if (match.kind === "many") {
+        result.tokens.push({ kind: "ambiguous", label: ambiguousLabel(word, match.candidates), candidates: match.candidates });
+        kept.push(word);
         continue;
       }
     }
