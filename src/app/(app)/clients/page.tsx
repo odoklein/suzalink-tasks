@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ClientContacts } from "@/components/client-contacts";
 import { ProjectTile } from "@/components/primitives";
 import { PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
@@ -13,6 +14,10 @@ export default async function ClientsPage() {
   const clients = await db.client.findMany({
     orderBy: { name: "asc" },
     include: {
+      contactRecords: {
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        select: { id: true, name: true, role: true, email: true, phone: true, isPrimary: true },
+      },
       projects: {
         where: { archived: false },
         select: {
@@ -44,7 +49,7 @@ export default async function ClientsPage() {
                   {client.kind === "AGENCY" ? "Agence partenaire" : "Client direct"}
                 </span>
               </div>
-              {client.contacts && <p className="mt-1 text-[13px] text-muted">{client.contacts}</p>}
+              <ClientContacts clientId={client.id} contacts={client.contactRecords} legacy={client.contacts} />
               {client.notes && <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{client.notes}</p>}
 
               {client.projects.length > 0 && (

@@ -22,7 +22,18 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
   const project = await db.project.findUnique({
     where: { slug },
     include: {
-      client: { select: { name: true, kind: true, contacts: true } },
+      client: {
+        select: {
+          name: true,
+          kind: true,
+          contacts: true,
+          contactRecords: {
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+            take: 1,
+            select: { name: true, role: true, email: true },
+          },
+        },
+      },
       lead: { select: { name: true, color: true } },
       tasks: { select: taskCardSelect, orderBy: { position: "asc" } },
       deliveries: {

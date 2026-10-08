@@ -278,8 +278,8 @@ export function ImportDialog({
                         <span
                           className={cn(
                             "rounded px-1.5 py-0.5 text-[11px] font-medium",
-                            classification.kind === "new" && "bg-done-soft text-done-text",
-                            classification.kind === "existing" && classification.statusChanged && "bg-waiting-soft text-waiting-text",
+                            classification.kind === "new" && "bg-[color-mix(in_srgb,var(--st-done)_14%,transparent)] text-st-done",
+                            classification.kind === "existing" && classification.statusChanged && "bg-[color-mix(in_srgb,var(--st-waiting)_16%,transparent)] text-st-waiting",
                             (classification.kind === "paste-duplicate" || (classification.kind === "existing" && !classification.statusChanged)) && "bg-sunken text-muted",
                           )}
                         >

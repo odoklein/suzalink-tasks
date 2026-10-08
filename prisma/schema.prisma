@@ -91,11 +91,26 @@ model Client {
   id        String     @id @default(cuid())
   name      String
   kind      ClientKind @default(DIRECT)
-  contacts  String? // « Luna Cervi (cheffe de projet), Clémentine Burdet-Micolle »
+  contacts  String? // ancien champ libre, conservé : « Luna Cervi (cheffe de projet), Clémentine Burdet-Micolle »
   notes     String?
   createdAt DateTime   @default(now())
 
-  projects Project[]
+  projects       Project[]
+  contactRecords Contact[]
+}
+
+/// Interlocuteur d'un client ou d'une agence (remplace le champ libre Client.contacts).
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  role      String? // « cheffe de projet »
+  email     String?  @unique
+  phone     String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Project {

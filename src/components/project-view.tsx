@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
+import { CopyEmailButton } from "@/components/copy-email-button";
 import { GhostButton, PrimaryButton } from "@/components/dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
@@ -34,7 +35,13 @@ type ProjectData = {
   description: string | null;
   statusNote: string | null;
   statusNoteAt: Date | null;
-  client: { name: string; kind: ClientKind; contacts: string | null } | null;
+  client: {
+    name: string;
+    kind: ClientKind;
+    contacts: string | null;
+    /** Contact principal (le premier, déjà trié côté serveur). */
+    contactRecords: { name: string; role: string | null; email: string | null }[];
+  } | null;
   lead: { name: string; color: string } | null;
   tasks: TaskCard[];
   deliveries: {
@@ -104,6 +111,7 @@ export function ProjectView({
   const waiting = project.tasks.filter((task) => task.status === "WAITING_CLIENT").length;
   const billable = project.tasks.filter((task) => task.billable).length;
   const status = PROJECT_STATUS_BY_VALUE[project.status];
+  const primary = project.client?.contactRecords[0] ?? null;
   const oldestWaiting = project.tasks
     .filter((task) => task.status === "WAITING_CLIENT")
     .reduce<Date | null>((oldest, task) => {
@@ -151,10 +159,19 @@ export function ProjectView({
             </div>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] text-muted">
               {project.client && (
-                <span title={project.client.contacts ?? undefined}>
+                <span>
                   {project.client.name}
                   {project.client.kind === "AGENCY" && <span className="text-faint"> (agence)</span>}
                 </span>
+              )}
+              {primary ? (
+                <span className="inline-flex items-center gap-1">
+                  · {primary.name}
+                  {primary.role && <span className="text-faint"> ({primary.role})</span>}
+                  {primary.email && <CopyEmailButton email={primary.email} />}
+                </span>
+              ) : (
+                project.client?.contacts && <span>· {project.client.contacts}</span>
               )}
               {project.endClient && <span>· {project.endClient}</span>}
               {project.siteUrl && (
