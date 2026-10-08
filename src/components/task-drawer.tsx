@@ -42,69 +42,105 @@ export function TaskDrawer() {
   const { openTaskId, closeTask, team } = useApp();
   const [loaded, setLoaded] = useState<TaskDetail | null>(null);
   const [, startTransition] = useTransition();
+  // Brouillons du titre et de la description : ils survivent au démontage des champs
+  // (Échap, clic sur le fond…) et sont envoyés par `flushDrafts` avant la fermeture.
+  const drafts = useRef<{ title?: string; description?: string }>({});
+  const latestTask = useRef<TaskDetail | null>(null);
+  const loadSeq = useRef(0);
 
   // Le détail affiché est celui de la tâche ouverte ; sinon on montre le squelette.
   const task = loaded && loaded.id === openTaskId ? loaded : null;
-  const setTask = setLoaded;
+
+  useEffect(() => {
+    latestTask.current = task;
+  });
 
   const load = useCallback(async (id: string) => {
+    const seq = ++loadSeq.current;
     const detail = await getTaskDetail(id);
+    // Une réponse plus ancienne que la dernière demande ne doit jamais écraser les données.
+    if (seq !== loadSeq.current) return;
     setLoaded(unwrapDetail(detail));
   }, []);
 
   useEffect(() => {
-    if (!openTaskId) return;
-    let cancelled = false;
-    getTaskDetail(openTaskId).then((detail) => {
-      if (!cancelled) setLoaded(unwrapDetail(detail));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [openTaskId]);
+    if (openTaskId) void load(openTaskId);
+  }, [openTaskId, load]);
 
   const loading = !task;
+
+  const sendPatch = useCallback(
+    (target: TaskDetail, changes: TaskPatch, detached = false) => {
+      // `detached` : le tiroir se ferme ou change de tâche, on n'y touche plus (ni mise à jour
+      // optimiste ni rechargement) ; sinon une réponse tardive écraserait la tâche affichée.
+      if (!detached) setLoaded({ ...target, ...(changes as Partial<TaskDetail>) });
+      startTransition(async () => {
+        const result = await updateTask(target.id, changes);
+        if (!result.ok) toast.error(result.error);
+        if (!detached) await load(target.id);
+      });
+    },
+    [load],
+  );
+
+  /** Envoie le titre et la description tapés mais pas encore enregistrés (le blur n'a pas eu lieu). */
+  const flushDrafts = useCallback(() => {
+    const current = latestTask.current;
+    const pending = drafts.current;
+    drafts.current = {};
+    if (!current) return;
+    const changes: TaskPatch = {};
+    const title = pending.title?.trim();
+    if (title && title !== current.title) changes.title = title;
+    if (pending.description !== undefined && pending.description.trim() !== (current.description ?? "").trim()) {
+      changes.description = pending.description;
+    }
+    if (Object.keys(changes).length > 0) sendPatch(current, changes, true);
+  }, [sendPatch]);
+
+  const requestClose = useCallback(() => {
+    flushDrafts();
+    closeTask();
+  }, [flushDrafts, closeTask]);
+
+  // Filet de sécurité : si le tiroir change de tâche ou se ferme autrement (palette, lien…),
+  // les brouillons de la tâche précédente partent quand même.
+  useEffect(() => flushDrafts, [openTaskId, flushDrafts]);
 
   useEffect(() => {
     if (!openTaskId) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox]")) closeTask();
+      if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox]")) requestClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openTaskId, closeTask]);
+  }, [openTaskId, requestClose]);
 
   if (!openTaskId) return null;
 
   const patch = (changes: TaskPatch) => {
-    if (!task) return;
-    setTask({ ...task, ...(changes as Partial<TaskDetail>) });
-    startTransition(async () => {
-      const result = await updateTask(task.id, changes);
-      if (!result.ok) toast.error(result.error);
-      await load(task.id);
-    });
+    if (task) sendPatch(task, changes);
   };
 
   const assignee = team.find((member) => member.id === task?.assigneeId) ?? null;
 
   return (
     <>
-      <div className="animate-fade-in fixed inset-0 z-40 bg-[rgb(10_12_16/0.18)]" onMouseDown={closeTask} />
+      <div className="animate-fade-in fixed inset-0 z-40 bg-[rgb(10_12_16/0.18)]" onMouseDown={requestClose} />
       <aside
         role="dialog"
         aria-label="Détail de la tâche"
         className="animate-slide-in fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col border-l border-line bg-surface shadow-pop"
       >
         {!task || loading ? (
-          <DrawerSkeleton onClose={closeTask} />
+          <DrawerSkeleton onClose={requestClose} />
         ) : (
           <>
             <header className="flex items-center gap-2.5 border-b border-line px-5 py-3">
               <ProjectTile color={task.project.color} label={task.project.key} size={20} />
               <Link
                 href={`/projects/${task.project.slug}`}
-                onClick={closeTask}
+                onClick={requestClose}
                 className="flex items-center gap-1 text-[13px] text-muted hover:text-ink"
               >
                 {task.project.name}
@@ -123,11 +159,12 @@ export function TaskDrawer() {
                         return;
                       }
                       toast.success(`${task.project.key}-${task.number} supprimée`);
+                      drafts.current = {};
                       closeTask();
                     })
                   }
                 />
-                <button type="button" onClick={closeTask} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-ink">
+                <button type="button" onClick={requestClose} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-ink">
                   <X className="size-4" />
                 </button>
               </div>
@@ -135,7 +172,12 @@ export function TaskDrawer() {
 
             <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
               <div className="px-5 pt-5">
-                <TitleField key={task.id} value={task.title} onSave={(title) => title !== task.title && patch({ title })} />
+                <TitleField
+                  key={task.id}
+                  value={task.title}
+                  onDraft={(title) => (drafts.current.title = title)}
+                  onSave={(title) => title !== task.title && patch({ title })}
+                />
               </div>
 
               <dl className="mt-4 grid grid-cols-[112px_1fr] items-center gap-x-3 gap-y-1 px-5">
@@ -225,6 +267,7 @@ export function TaskDrawer() {
                 <DescriptionField
                   key={task.id}
                   value={task.description ?? ""}
+                  onDraft={(description) => (drafts.current.description = description)}
                   onSave={(description) => description !== (task.description ?? "") && patch({ description })}
                 />
               </section>
@@ -247,6 +290,8 @@ export function TaskDrawer() {
                   ))}
                 </ol>
                 <CommentComposer
+                  key={task.id}
+                  taskId={task.id}
                   onSubmit={async (body) => {
                     const result = await addComment(task.id, body);
                     if (!result.ok) {
@@ -294,7 +339,15 @@ function Prop({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function TitleField({ value, onSave }: { value: string; onSave: (value: string) => void }) {
+function TitleField({
+  value,
+  onSave,
+  onDraft,
+}: {
+  value: string;
+  onSave: (value: string) => void;
+  onDraft: (value: string) => void;
+}) {
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -310,7 +363,10 @@ function TitleField({ value, onSave }: { value: string; onSave: (value: string) 
       value={draft}
       rows={1}
       aria-label="Titre de la tâche"
-      onChange={(event) => setDraft(event.target.value)}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onDraft(event.target.value);
+      }}
       onBlur={() => onSave(draft.trim() || value)}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
@@ -338,7 +394,15 @@ function InlineInput({ value, placeholder, onSave }: { value: string; placeholde
   );
 }
 
-function DescriptionField({ value, onSave }: { value: string; onSave: (value: string) => void }) {
+function DescriptionField({
+  value,
+  onSave,
+  onDraft,
+}: {
+  value: string;
+  onSave: (value: string) => void;
+  onDraft: (value: string) => void;
+}) {
   const [draft, setDraft] = useState(value);
   return (
     <textarea
@@ -346,26 +410,53 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (value: st
       rows={Math.max(3, draft.split("\n").length)}
       placeholder="Ajouter le détail, le lien vers la maquette, le texte exact demandé par le client…"
       aria-label="Description"
-      onChange={(event) => setDraft(event.target.value)}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onDraft(event.target.value);
+      }}
       onBlur={() => onSave(draft)}
       className="w-full resize-none rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] leading-relaxed text-ink-2 outline-none placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface"
     />
   );
 }
 
-function CommentComposer({ onSubmit }: { onSubmit: (body: string) => Promise<boolean> }) {
-  const [body, setBody] = useState("");
+/** Commentaire en cours de frappe, conservé par tâche le temps de la session (fermeture accidentelle du tiroir). */
+const commentDraftKey = (taskId: string) => `draft-comment:${taskId}`;
+
+function readCommentDraft(taskId: string) {
+  try {
+    return sessionStorage.getItem(commentDraftKey(taskId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeCommentDraft(taskId: string, body: string) {
+  try {
+    if (body) sessionStorage.setItem(commentDraftKey(taskId), body);
+    else sessionStorage.removeItem(commentDraftKey(taskId));
+  } catch {
+    // stockage indisponible (navigation privée) : le brouillon ne survivra pas, sans gravité
+  }
+}
+
+function CommentComposer({ taskId, onSubmit }: { taskId: string; onSubmit: (body: string) => Promise<boolean> }) {
+  const [body, setBody] = useState(() => readCommentDraft(taskId));
   const [pending, startTransition] = useTransition();
+  const update = (next: string) => {
+    setBody(next);
+    writeCommentDraft(taskId, next);
+  };
   const send = () =>
     startTransition(async () => {
-      if (await onSubmit(body)) setBody("");
+      if (await onSubmit(body)) update("");
     });
   return (
     <div className="mt-4 rounded-lg border border-line bg-surface-2 focus-within:border-accent">
       <textarea
         value={body}
         rows={2}
-        onChange={(event) => setBody(event.target.value)}
+        onChange={(event) => update(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
