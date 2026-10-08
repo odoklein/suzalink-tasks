@@ -2,11 +2,27 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { readSession } from "@/lib/dal";
+import { db } from "@/lib/db";
+import { joinOr, NNBSP } from "@/lib/fr";
 import { safeNextPath } from "@/lib/next-path";
 
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
+
+/** Prénoms des administrateurs actifs (lecture publique, noms seulement) pour « Code oublié ? ». */
+async function adminFirstNames() {
+  try {
+    const admins = await db.user.findMany({
+      where: { role: "ADMIN", active: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    });
+    return admins.map((admin) => admin.name.split(" ")[0]);
+  } catch {
+    return []; // base indisponible : la page de connexion s'affiche quand même
+  }
+}
 
 export default async function LoginPage(props: PageProps<"/login">) {
   const { next: rawNext } = await props.searchParams;
@@ -15,6 +31,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   // (Un cookie invalide ou révoqué reste ici, sans boucle de redirection.)
   const session = await readSession();
   if (session) redirect(next);
+  const admins = await adminFirstNames();
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">
@@ -32,7 +49,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         </div>
 
         <p className="mt-6 text-center text-[13px] text-muted">
-          Code oublié ? Demandez à Odo ou Hichem.
+          {admins.length ? `Code oublié${NNBSP}? Demandez à ${joinOr(admins)}.` : `Code oublié${NNBSP}? Demandez à un administrateur.`}
         </p>
       </div>
     </main>

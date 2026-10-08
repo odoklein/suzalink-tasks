@@ -5,11 +5,19 @@ export const TASK_STATUSES: {
   label: string;
   short: string;
   tone: string;
+  /** Infobulle qui précise le sens du statut. */
+  hint?: string;
 }[] = [
   { value: "TODO", label: "À faire", short: "À faire", tone: "var(--st-todo)" },
   { value: "IN_PROGRESS", label: "En cours", short: "En cours", tone: "var(--st-progress)" },
-  { value: "WAITING_CLIENT", label: "En attente client", short: "Attente client", tone: "var(--st-waiting)" },
-  { value: "REVIEW", label: "À valider", short: "À valider", tone: "var(--st-review)" },
+  { value: "WAITING_CLIENT", label: "En attente client", short: "Chez le client", tone: "var(--st-waiting)" },
+  {
+    value: "REVIEW",
+    label: "À valider",
+    short: "À valider",
+    tone: "var(--st-review)",
+    hint: "Vérification interne avant d’annoncer au client",
+  },
   { value: "DONE", label: "Fait", short: "Fait", tone: "var(--st-done)" },
 ];
 

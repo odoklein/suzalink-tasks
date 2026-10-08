@@ -68,7 +68,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
           <h2 className="font-display text-[17px] font-semibold">Code PIN</h2>
           <p className="mt-1 text-[13px] text-muted">
-            6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes.
+            6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes, puis plus longtemps si les erreurs continuent.
           </p>
           <PasswordForm firstLogin={firstLogin} />
         </section>
@@ -93,7 +93,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
           <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
             <h2 className="font-display text-[17px] font-semibold">Équipe</h2>
             <p className="mt-1 text-[13px] text-muted">
-              Ajoutez un membre ou redonnez un code à quelqu&apos;un qui l&apos;a oublié ou dont le compte est bloqué.
+              Ajoutez un membre ou redonnez un code à quelqu’un qui l’a oublié ou dont le compte est bloqué.
             </p>
             <TeamSection members={members} currentUserId={user.id} />
           </section>

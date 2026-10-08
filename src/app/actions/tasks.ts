@@ -8,6 +8,8 @@ import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { parseFeedbackTable, planImport } from "@/lib/feedback-import";
+import { quote } from "@/lib/fr";
+import { plural } from "@/lib/plural";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { fromParisDateInput, nowParis } from "@/lib/time";
 
@@ -106,7 +108,7 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
       },
       userId,
     );
-    await log(projectId, userId, `a créé ${ref} « ${parsed.title} »`);
+    await log(projectId, userId, `a créé ${ref} ${quote(parsed.title)}`);
     refresh();
     return { ok: true as const, ref, id: task.id };
   });
@@ -162,9 +164,9 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
 
     const ref = `${current.project.key}-${current.number}`;
     if (data.status) {
-      await log(current.projectId, userId, `a passé ${ref} en « ${STATUS_BY_VALUE[data.status as TaskStatus].label} »`, taskId);
+      await log(current.projectId, userId, `a passé ${ref} en ${quote(STATUS_BY_VALUE[data.status as TaskStatus].label)}`, taskId);
     } else if (data.assigneeId !== undefined && data.assigneeId !== current.assigneeId) {
-      await log(current.projectId, userId, `a réassigné ${ref}`, taskId);
+      await log(current.projectId, userId, `a réattribué ${ref}`, taskId);
     }
     refresh();
     return { ok: true as const };
@@ -195,7 +197,7 @@ export async function moveTask(taskId: string, status: TaskStatus, position: num
       await log(
         current.projectId,
         userId,
-        `a passé ${current.project.key}-${current.number} en « ${STATUS_BY_VALUE[status].label} »`,
+        `a passé ${current.project.key}-${current.number} en ${quote(STATUS_BY_VALUE[status].label)}`,
         taskId,
       );
     }
@@ -213,7 +215,7 @@ export async function deleteTask(taskId: string) {
     });
     if (!task) return { error: "Tâche introuvable." };
     await db.task.delete({ where: { id: taskId } });
-    await log(task.projectId, userId, `a supprimé ${task.project.key}-${task.number} « ${task.title} »`);
+    await log(task.projectId, userId, `a supprimé ${task.project.key}-${task.number} ${quote(task.title)}`);
     refresh();
     return { ok: true as const };
   });
@@ -303,7 +305,7 @@ export async function importFeedback(projectId: string, text: string, sourceLabe
             data: {
               projectId,
               actorId: userId,
-              message: `a importé ${count} ${count > 1 ? "retours" : "retour"} (${sourceLabel.trim() || "retours client"})`,
+              message: `a importé ${plural(count, "retour")} (${sourceLabel.trim() || "retours client"})`,
             },
           });
         },

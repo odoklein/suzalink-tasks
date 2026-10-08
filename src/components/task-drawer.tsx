@@ -232,9 +232,9 @@ export function TaskDrawer() {
                     }
                   />
                 </Prop>
-                <Prop label="Assignée à">
+                <Prop label="Attribuée à">
                   <SelectMenu<string>
-                    label="Assigner"
+                    label="Attribuer"
                     searchable
                     value={task.assigneeId ?? "none"}
                     onChange={(id) => patch({ assigneeId: id === "none" ? null : id })}
@@ -272,7 +272,7 @@ export function TaskDrawer() {
                 <Prop label="Source">
                   <InlineInput value={task.source ?? ""} placeholder="Retours du 06/10…" onSave={(source) => patch({ source })} />
                 </Prop>
-                <Prop label="Hors périmètre">
+                <Prop label="Hors périmètre (€)">
                   <label className="flex cursor-pointer items-center gap-2 px-1.5 py-1 text-[13px] text-ink-2">
                     <input
                       type="checkbox"
@@ -332,7 +332,7 @@ export function TaskDrawer() {
                     <ol className="space-y-1.5 border-l border-line pl-3">
                       {task.activities.map((activity) => (
                         <li key={activity.id} className="text-[12px] text-muted">
-                          <span className="text-ink-2">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message} ·{" "}
+                          <span className="text-ink-2">{activity.actor?.name ?? "Quelqu’un"}</span> {activity.message} ·{" "}
                           <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)}>
                             {timeAgo(activity.createdAt)}
                           </time>

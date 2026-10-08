@@ -102,7 +102,7 @@ export async function buildRecap(projectId: string, sinceIso?: string) {
         remaining.map((t) => `  - ${t.title} (${STATUS_BY_VALUE[t.status].label.toLowerCase()})`).join("\n"),
       );
     }
-    lines.push(``, `Belle journée,`);
+    lines.push(``, `Bonne journée,`);
 
     return {
       ok: true as const,

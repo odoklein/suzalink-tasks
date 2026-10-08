@@ -81,7 +81,7 @@ export async function updateProjectNote(projectId: string, note: string) {
       where: { id: projectId },
       data: { statusNote: text || null, statusNoteAt: text ? new Date() : null },
     });
-    if (text) await db.activity.create({ data: { projectId, actorId: userId, message: "a mis à jour le point d'étape" } });
+    if (text) await db.activity.create({ data: { projectId, actorId: userId, message: "a mis à jour le point d’étape" } });
     revalidatePath("/", "layout");
     return { ok: true as const };
   });

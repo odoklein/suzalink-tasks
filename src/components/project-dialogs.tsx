@@ -13,6 +13,7 @@ import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/co
 import { StatusIcon } from "@/components/primitives";
 import { PROJECT_COLORS, STATUS_BY_VALUE } from "@/lib/constants";
 import { parseFeedbackTable } from "@/lib/feedback-import";
+import { plural } from "@/lib/plural";
 import { formatParis, toParisDateInput, toParisDateTimeInput } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
         toast.error(result.error);
         return;
       }
-      toast.success(`${result.count} retours importés`);
+      toast.success(plural(result.count, "retour importé", "retours importés"));
       setText("");
       onClose();
     });
@@ -62,7 +63,7 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
         {rows.length > 0 && (
           <div className="overflow-hidden rounded-lg border border-line">
             <p className="border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2">
-              {rows.length} tâche{rows.length > 1 ? "s" : ""} à créer
+              {plural(rows.length, "tâche")} à créer
             </p>
             <ul className="max-h-56 overflow-y-auto scroll-thin">
               {rows.map((row, index) => (
@@ -80,7 +81,7 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
         <div className="flex justify-end gap-2 pt-1">
           <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
           <PrimaryButton type="button" disabled={pending || rows.length === 0} onClick={submit}>
-            {pending ? "Import…" : `Créer ${rows.length || ""} tâches`}
+            {pending ? "Import…" : rows.length ? `Créer ${plural(rows.length, "tâche")}` : "Créer les tâches"}
           </PrimaryButton>
         </div>
       </div>
@@ -154,7 +155,7 @@ export function RecapDialog({
           <>
             {counts && (
               <p className="text-[12px] text-muted">
-                {counts.done} faites · {counts.waiting} en attente client · {counts.remaining} en cours
+                {plural(counts.done, "faite")} · {counts.waiting} chez le client · {counts.remaining} en cours
               </p>
             )}
             <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-[13px] leading-relaxed")} />

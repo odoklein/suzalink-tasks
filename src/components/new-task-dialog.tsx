@@ -9,6 +9,7 @@ import { Dialog } from "@/components/dialog";
 import { Kbd, ProjectTile } from "@/components/primitives";
 import { QuickAdd } from "@/components/quick-add";
 import { SelectMenu } from "@/components/select-menu";
+import { NNBSP } from "@/lib/fr";
 import { creationTargets, readLastProject } from "@/lib/last-project";
 
 /**
@@ -63,7 +64,7 @@ export function NewTaskDialog() {
         setChosen(null);
       }}
       title="Nouvelle tâche"
-      description="Entrée pour créer ; vous pouvez en enchaîner plusieurs."
+      description={`Entrée pour créer${NNBSP}; vous pouvez en enchaîner plusieurs.`}
     >
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-[13px] text-muted">
@@ -88,7 +89,7 @@ export function NewTaskDialog() {
         </div>
         <QuickAdd key={project.id} projectId={project.id} projectSlug={project.slug} autoFocus placeholder="Titre de la tâche…" />
         <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-surface-2 px-3 py-2.5 text-[12px] text-muted">
-          <li><Kbd>@odo</Kbd> assigner</li>
+          <li><Kbd>@odo</Kbd> attribuer</li>
           <li><Kbd>!haute</Kbd> priorité</li>
           <li><Kbd>#homepage</Kbd> page</li>
           <li><Kbd>demain</Kbd> <Kbd>12/10</Kbd> échéance</li>

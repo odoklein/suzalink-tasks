@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { addMember, resetMemberPin, setMemberActive, type MemberState } from "@/app/actions/team";
 import { fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { Avatar } from "@/components/primitives";
+import { plural } from "@/lib/plural";
 
 export type Member = {
   id: string;
@@ -73,7 +74,7 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
             {!member.active && <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-muted">Désactivé</span>}
             {member.locked && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger">Bloqué</span>}
             <span className="hidden text-[12px] text-muted sm:inline">
-              {member.openTasks} tâche{member.openTasks > 1 ? "s" : ""}
+              {plural(member.openTasks, "tâche")}
             </span>
             <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-ink-2">
               {member.role === "ADMIN" ? "Admin" : "Membre"}

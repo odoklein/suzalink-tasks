@@ -17,8 +17,8 @@ afterEach(() => {
 async function typeNote(text: string) {
   const user = userEvent.setup();
   render(<ProjectNote projectId="p1" note={null} noteAt={null} />);
-  await user.click(screen.getByRole("button", { name: /Ajouter un point d/ }));
-  await user.type(screen.getByLabelText("Point d'étape"), text);
+  await user.click(screen.getByRole("button", { name: /Ajouter un point d’étape/ }));
+  await user.type(screen.getByLabelText("Point d’étape"), text);
   await user.click(screen.getByRole("button", { name: "Enregistrer" }));
 }
 
@@ -29,7 +29,7 @@ describe("ProjectNote : succès avant confirmation (P1-08)", () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Une erreur est survenue. Réessayez."));
     expect(toast.success).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Point d'étape")).toHaveProperty("value", "Attente du devis");
+    expect(screen.getByLabelText("Point d’étape")).toHaveProperty("value", "Attente du devis");
   });
 
   it("succès : affiche la note enregistrée et annonce le succès", async () => {
@@ -37,7 +37,7 @@ describe("ProjectNote : succès avant confirmation (P1-08)", () => {
     await typeNote("Attente du devis");
 
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
-    expect(screen.queryByLabelText("Point d'étape")).toBeNull();
+    expect(screen.queryByLabelText("Point d’étape")).toBeNull();
     expect(screen.getByText("Attente du devis")).toBeTruthy();
   });
 });

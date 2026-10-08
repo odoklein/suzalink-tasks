@@ -31,7 +31,7 @@ export function Avatar({
 export function EmptyAvatar({ size = 22 }: { size?: number }) {
   return (
     <span
-      title="Non assignée"
+      title="Non attribuée"
       style={{ width: size, height: size }}
       className="inline-flex shrink-0 rounded-full border border-dashed border-line-strong"
     />
@@ -89,6 +89,7 @@ export function StatusPill({ status }: { status: TaskStatus }) {
   const meta = STATUS_BY_VALUE[status];
   return (
     <span
+      title={meta.hint}
       className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
       style={{ borderColor: `color-mix(in srgb, ${meta.tone} 35%, transparent)`, color: meta.tone }}
     >
@@ -169,7 +170,7 @@ export function ZoneChip({ zone }: { zone: string | null }) {
 export function BillableBadge() {
   return (
     <span
-      title="Hors périmètre : à facturer"
+      title="Hors périmètre (€)"
       className="inline-flex items-center rounded-md border border-st-waiting/40 px-1 text-[11px] font-semibold text-st-waiting"
     >
       €
