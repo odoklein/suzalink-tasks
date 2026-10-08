@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { isWeakPin } from "@/lib/pin";
 
 export type MemberState = { error?: string; pin?: string; name?: string } | undefined;
 
@@ -21,7 +22,7 @@ async function requireAdmin() {
 function randomPin() {
   for (;;) {
     const pin = String(randomInt(0, 1_000_000)).padStart(6, "0");
-    if (/^(\d)\1{5}$/.test(pin) || "0123456789".includes(pin) || "9876543210".includes(pin)) continue;
+    if (isWeakPin(pin)) continue;
     return pin;
   }
 }

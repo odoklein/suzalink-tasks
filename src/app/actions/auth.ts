@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { isWeakPin } from "@/lib/pin";
 import { createSession, deleteSession } from "@/lib/session";
 
 export type FormState = { error?: string; success?: string } | undefined;
@@ -67,7 +68,7 @@ export async function changePin(_state: FormState, formData: FormData): Promise<
 
   if (!PIN.test(next)) return { error: "Le nouveau code doit faire exactement 6 chiffres." };
   if (next !== confirm) return { error: "Les deux nouveaux codes ne correspondent pas." };
-  if (/^(\d)\1{5}$/.test(next) || "0123456789".includes(next) || "9876543210".includes(next)) {
+  if (isWeakPin(next)) {
     return { error: "Code trop facile à deviner (suite ou chiffre répété)." };
   }
 

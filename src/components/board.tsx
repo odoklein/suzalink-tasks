@@ -30,6 +30,7 @@ import { StatusIcon } from "@/components/primitives";
 import { QuickAdd } from "@/components/quick-add";
 import { TaskCard } from "@/components/task-card";
 import { TASK_STATUSES } from "@/lib/constants";
+import { computePosition } from "@/lib/position";
 import type { TaskCard as TaskCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -108,16 +109,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
       list.splice(overIndex, 0, moved);
     }
     const index = list.findIndex((task) => task.id === active.id);
-    const before = list[index - 1]?.position;
-    const after = list[index + 1]?.position;
-    const position =
-      before !== undefined && after !== undefined
-        ? (before + after) / 2
-        : before !== undefined
-          ? before + 1000
-          : after !== undefined
-            ? after - 1000
-            : 1000;
+    const position = computePosition(list[index - 1]?.position, list[index + 1]?.position);
 
     list[index] = { ...list[index], position, status: column };
     setColumns((current) => ({ ...current, [column]: list }));
