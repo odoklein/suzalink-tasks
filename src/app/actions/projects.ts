@@ -11,6 +11,8 @@ import { PROJECT_COLORS } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { plural } from "@/lib/plural";
+import { webActor } from "@/lib/services/core";
+import { emitEvent } from "@/lib/services/outbox";
 import { PROJECT_TYPES } from "@/lib/templates";
 import { fromParisDateInput, fromParisDateTimeInput, startOfDayParis } from "@/lib/time";
 import { projectKey, slugify } from "@/lib/utils";
@@ -79,6 +81,11 @@ export async function createProject(_state: ProjectFormState, formData: FormData
         },
       });
       await logActivity(tx, { projectId: created.id, actorId: userId, event: { type: "PROJECT_UPDATED", change: "created" } });
+      await emitEvent(tx, webActor(userId), {
+        type: "project.created",
+        projectId: created.id,
+        payload: { key: created.key, name: created.name },
+      });
       if (templateId) {
         const applied = await applyTemplate(tx, { projectId: created.id, templateId, start, creatorId: userId });
         if (applied) {
@@ -124,7 +131,14 @@ export async function updateProjectNote(projectId: string, note: string) {
         where: { id: projectId },
         data: { statusNote: text || null, statusNoteAt: text ? new Date() : null },
       });
-      if (text) await logActivity(tx, { projectId, actorId: userId, event: { type: "PROJECT_UPDATED", change: "note" } });
+      if (text) {
+        await logActivity(tx, { projectId, actorId: userId, event: { type: "PROJECT_UPDATED", change: "note" } });
+      }
+      await emitEvent(tx, webActor(userId), {
+        type: "project.note_updated",
+        projectId,
+        payload: { note: text || null },
+      });
     });
     revalidatePath("/", "layout");
     return { ok: true as const };

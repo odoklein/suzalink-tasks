@@ -8,10 +8,13 @@ import { logActivities, logActivity } from "@/lib/activity";
 import type { Person } from "@/lib/activity-copy";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { changedFields } from "@/lib/events";
 import type { ColumnMapping } from "@/lib/feedback-import";
 import { ImportError, matchImportRows, runImport, type ImportInput } from "@/lib/import-feedback";
 import { waitingSinceFor } from "@/lib/metrics";
 import { parseQuickAdd } from "@/lib/quick-add";
+import { webActor } from "@/lib/services/core";
+import { emitEvent } from "@/lib/services/outbox";
 import { diffTask } from "@/lib/task-changes";
 import { fromParisDateInput, nowParis } from "@/lib/time";
 import { DESCRIPTION_MAX, TITLE_MAX } from "@/lib/validate";
@@ -89,6 +92,12 @@ async function insertTask(input: NewTask, creatorId: string) {
       taskId: task.id,
       actorId: creatorId,
       event: { type: "TASK_CREATED", ref, title: task.title },
+    });
+    await emitEvent(tx, webActor(creatorId), {
+      type: "task.created",
+      projectId: input.projectId,
+      taskId: task.id,
+      payload: { ref, title: task.title, status: task.status, assigneeId: task.assigneeId },
     });
     return { task, ref };
   });
@@ -211,7 +220,8 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
       if (due && Number.isNaN(due.getTime())) return { error: "Date d’échéance invalide." };
       data.dueDate = due;
     }
-    if (patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status) {
+    const statusChanged = patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status;
+    if (statusChanged && patch.status) {
       data.status = patch.status;
       data.statusChangedAt = new Date();
       data.waitingSince = waitingSinceFor(current.status, patch.status, new Date(), current.waitingSince);
@@ -239,6 +249,26 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
           event,
         })),
       );
+
+      const base = { projectId: current.projectId, taskId };
+      if (statusChanged && patch.status) {
+        await emitEvent(tx, webActor(userId), {
+          ...base,
+          type: "task.status_changed",
+          payload: { ref, title: updated.title, from: current.status, to: patch.status },
+        });
+      }
+      if (data.assigneeId !== undefined && data.assigneeId !== current.assigneeId) {
+        await emitEvent(tx, webActor(userId), {
+          ...base,
+          type: "task.assigned",
+          payload: { ref, title: updated.title, from: current.assigneeId, to: (data.assigneeId as string | null) ?? null },
+        });
+      }
+      const fields = changedFields(current, data);
+      if (fields.length > 0) {
+        await emitEvent(tx, webActor(userId), { ...base, type: "task.updated", payload: { ref, title: updated.title, fields } });
+      }
     });
     refresh();
     return { ok: true as const };
@@ -272,12 +302,19 @@ export async function moveTask(taskId: string, status: TaskStatus, position: num
             : {}),
         },
       });
+      const ref = `${current.project.key}-${current.number}`;
       if (status !== current.status) {
         await logActivity(tx, {
           projectId: current.projectId,
           taskId,
           actorId: userId,
-          event: { type: "STATUS_CHANGED", ref: `${current.project.key}-${current.number}`, from: current.status, to: status },
+          event: { type: "STATUS_CHANGED", ref, from: current.status, to: status },
+        });
+        await emitEvent(tx, webActor(userId), {
+          type: "task.status_changed",
+          projectId: current.projectId,
+          taskId,
+          payload: { ref, title: current.title, from: current.status, to: status },
         });
       }
     });
@@ -294,13 +331,20 @@ export async function deleteTask(taskId: string) {
       include: { project: { select: { key: true } } },
     });
     if (!task) return { error: "Tâche introuvable." };
+    const ref = `${task.project.key}-${task.number}`;
     // Pas de taskId : la ligne d'activité doit survivre à la tâche (cascade sinon).
     await db.$transaction(async (tx) => {
       await tx.task.delete({ where: { id: taskId } });
       await logActivity(tx, {
         projectId: task.projectId,
         actorId: userId,
-        event: { type: "TASK_DELETED", ref: `${task.project.key}-${task.number}`, title: task.title },
+        event: { type: "TASK_DELETED", ref, title: task.title },
+      });
+      await emitEvent(tx, webActor(userId), {
+        type: "task.deleted",
+        projectId: task.projectId,
+        taskId,
+        payload: { ref, title: task.title },
       });
     });
     refresh();
@@ -346,13 +390,20 @@ export async function addComment(taskId: string, body: string) {
       include: { project: { select: { key: true } } },
     });
     if (!task) return { error: "Tâche introuvable." };
+    const ref = `${task.project.key}-${task.number}`;
     await db.$transaction(async (tx) => {
-      await tx.comment.create({ data: { taskId, authorId: userId, body: text } });
+      const comment = await tx.comment.create({ data: { taskId, authorId: userId, body: text } });
       await logActivity(tx, {
         projectId: task.projectId,
         taskId,
         actorId: userId,
-        event: { type: "COMMENTED", ref: `${task.project.key}-${task.number}` },
+        event: { type: "COMMENTED", ref },
+      });
+      await emitEvent(tx, webActor(userId), {
+        type: "comment.created",
+        projectId: task.projectId,
+        taskId,
+        payload: { ref, commentId: comment.id, excerpt: text.slice(0, 100) },
       });
     });
     refresh();

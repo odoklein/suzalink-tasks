@@ -53,13 +53,63 @@ alter table "Task" enable row level security;
 alter table "Comment" enable row level security;
 alter table "Delivery" enable row level security;
 alter table "Activity" enable row level security;
+alter table "Event" enable row level security;
+alter table "Job" enable row level security;
+alter table "IntegrationStatus" enable row level security;
+alter table "LoginEvent" enable row level security;
+alter table "RateLimit" enable row level security;
 ```
+
+Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.
 
 ## Mise en ligne sur tasks.suzaliconseil.com
 
 1. **Base** : créer un projet Supabase, récupérer les deux chaînes de connexion, lancer `npm run db:push` puis `npm run db:seed` en local avec ces valeurs.
 2. **Hébergement** (Netlify, comme les autres sites, ou Vercel) : importer le dépôt, commande de build `npm run build`, et renseigner `DATABASE_URL`, `DIRECT_URL`, `SESSION_SECRET` dans les variables d'environnement.
 3. **Domaine** : ajouter `tasks.suzaliconseil.com` comme domaine personnalisé, puis créer chez le registrar de suzaliconseil.com un enregistrement **CNAME** `tasks` → l'adresse fournie par l'hébergeur (ex. `suzali-tasks.netlify.app`). Le HTTPS est activé automatiquement.
+
+## Tâches de fond (cron)
+
+Les travaux de fond (distribution des événements, relances, e-mails, synchronisations) passent par la table `Job`, consommée par `POST /api/cron/tick` (Bearer `CRON_SECRET`). Le déclencheur est **Supabase pg_cron + pg_net** (identique sur Netlify et Vercel). À exécuter une fois dans l'éditeur SQL de Supabase, en remplaçant le secret :
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+-- Le secret reste dans Supabase Vault, jamais en clair dans la tâche.
+select vault.create_secret('<valeur de CRON_SECRET>', 'cron_secret');
+
+select cron.schedule(
+  'suzali-tick',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := 'https://tasks.suzaliconseil.com/api/cron/tick',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+    ),
+    timeout_milliseconds := 60000
+  );
+  $$
+);
+```
+
+Suivi : **Paramètres › Intégrations** (administrateurs) montre le dernier passage du cron, les derniers webhooks reçus et les travaux en échec (bouton « Relancer »). Pour arrêter : `select cron.unschedule('suzali-tick');`.
+
+## Configuration, erreurs, sauvegardes
+
+**Variables d'environnement.** `src/lib/env.ts` les valide au démarrage (`src/instrumentation.ts`) : une variable obligatoire absente ou une intégration à moitié configurée fait échouer le démarrage avec la liste des problèmes. Une intégration dont aucune variable n'est renseignée est simplement désactivée. Liste complète dans `.env.example`.
+
+**Erreurs.** Avec `SENTRY_DSN`, les erreurs serveur partent dans Sentry (étiquettes `via` et `projectKey`, sans cookie ni corps de requête). `HEARTBEAT_URL` (healthchecks.io, Sentry Crons…) reçoit un ping à chaque passage du cron, et `<url>/fail` en cas d'échec.
+
+**Sauvegardes (décision D10 : Supabase Pro).**
+
+1. Passer le projet Supabase en **Pro** : sauvegardes quotidiennes, et plus de mise en pause après inactivité.
+2. Sauvegarde externe chiffrée : `.github/workflows/backup.yml` lance chaque nuit `pg_dump -Fc`, chiffre avec [age](https://age-encryption.org) et envoie le fichier dans un bucket S3 compatible **situé dans l'UE** (Scaleway, OVH, AWS eu-west-3…). Secrets GitHub à créer : `BACKUP_DATABASE_URL` (connexion directe, port 5432, rôle en lecture seule de préférence), `BACKUP_AGE_RECIPIENT` (clé publique `age1…` ; la clé privée reste hors ligne, chez deux personnes), `BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT` (sauf AWS), `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY`. Configurer une règle d'expiration sur le bucket (ex. 35 jours).
+3. **Exercice de restauration chaque trimestre** : `age -d -i cle.txt fichier.dump.age > base.dump`, puis `pg_restore --no-owner --dbname "$URL_DE_TEST" base.dump` dans un projet Supabase de test, et vérifier que l'outil démarre dessus.
+
+**Journal des connexions** : Paramètres › Journal (administrateurs).
 
 ## Structure
 
@@ -68,7 +118,9 @@ prisma/schema.prisma     modèle de données (projets, tâches, mises en ligne, 
 prisma/seed.ts           équipe et projets de départ
 src/proxy.ts             redirection vers /login sans session (vérification optimiste)
 src/lib/dal.ts           couche d'accès aux données : chaque lecture vérifie la session
-src/app/actions/         Server Actions (chaque écriture vérifie aussi la session)
+src/app/actions/         Server Actions minces : session → validation → service → revalidation
+src/lib/services/        logique métier (Actor { userId, via }), partagée par les actions, l'API, MCP et les webhooks
+src/lib/jobs/            file de travaux (Job), cron, distribution de l'outbox (Event)
 src/lib/quick-add.ts     analyse de la saisie rapide
 src/lib/feedback-import.ts  import des tableaux de retours client
 src/app/(app)/           Aujourd'hui, Projets, Projet (tableau, liste, mises en ligne, activité), Clients, Paramètres (code PIN, équipe)

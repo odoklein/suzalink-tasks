@@ -1,5 +1,6 @@
 import type { ClientKind, TaskStatus } from "@prisma/client";
 
+import { STATUS_BY_VALUE } from "@/lib/constants";
 import { formatParis } from "@/lib/time";
 
 /**
@@ -160,4 +161,56 @@ export function defaultRecapSince(lastRecapAt: Date | null, deliveryDates: Date[
   if (lastRecapAt) return lastRecapAt;
   const sorted = [...deliveryDates].sort((a, b) => b.getTime() - a.getTime());
   return sorted[1] ?? null;
+}
+
+/**
+ * Faits déterministes d'un récap client pour les services / API (P6 / P7-03).
+ */
+export type ServiceRecapTask = { ref: string; title: string; zone: string | null; status: TaskStatus; statusChangedAt: Date };
+
+export type ServiceRecapFacts = {
+  project: { id: string; name: string; key: string; siteUrl: string | null };
+  since: Date | null;
+  lastDelivery: { title: string; deployedAt: Date; url: string | null } | null;
+  done: ServiceRecapTask[];
+  waiting: ServiceRecapTask[];
+  remaining: ServiceRecapTask[];
+};
+
+function byZoneService(tasks: ServiceRecapTask[]) {
+  const groups = new Map<string, ServiceRecapTask[]>();
+  for (const task of tasks) {
+    const zone = task.zone || "Général";
+    groups.set(zone, [...(groups.get(zone) ?? []), task]);
+  }
+  return [...groups.entries()].map(([zone, items]) => `${zone}\n${items.map((t) => `  - ${t.title}`).join("\n")}`).join("\n\n");
+}
+
+/** Texte du récap généré par gabarit (comportement historique / services). */
+export function renderRecapText(facts: ServiceRecapFacts): string {
+  const { project, lastDelivery } = facts;
+  const lines = [
+    `Bonjour,`,
+    ``,
+    lastDelivery
+      ? `Voici le point sur ${project.name}. Dernière mise en ligne le ${formatParis(lastDelivery.deployedAt, "d MMMM 'à' HH'h'mm")}${project.siteUrl ? ` : ${project.siteUrl}` : ""}.`
+      : `Voici le point sur ${project.name}.`,
+    `Pensez à faire un rafraîchissement forcé (Ctrl+F5) pour voir la dernière version.`,
+  ];
+  if (facts.done.length) lines.push(``, `CE QUI EST FAIT`, ``, byZoneService(facts.done));
+  if (facts.waiting.length) lines.push(``, `EN ATTENTE DE VOTRE CÔTÉ`, ``, byZoneService(facts.waiting));
+  if (facts.remaining.length) {
+    lines.push(
+      ``,
+      `EN COURS CHEZ NOUS`,
+      ``,
+      facts.remaining.map((t) => `  - ${t.title} (${STATUS_BY_VALUE[t.status].label.toLowerCase()})`).join("\n"),
+    );
+  }
+  lines.push(``, `Belle journée,`);
+  return lines.join("\n");
+}
+
+export function recapCounts(facts: ServiceRecapFacts) {
+  return { done: facts.done.length, waiting: facts.waiting.length, remaining: facts.remaining.length };
 }

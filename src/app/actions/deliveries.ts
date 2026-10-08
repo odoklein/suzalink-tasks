@@ -8,6 +8,8 @@ import { firstName } from "@/lib/contacts";
 import { getCurrentUser, verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { buildRecapText, defaultRecapSince, type RecapFacts } from "@/lib/recap";
+import { webActor } from "@/lib/services/core";
+import { emitEvent } from "@/lib/services/outbox";
 import { fromParisDateTimeInput } from "@/lib/time";
 
 export type DeliveryInput = {
@@ -96,6 +98,16 @@ export async function createDelivery(projectId: string, input: DeliveryInput) {
       }
 
       await logActivity(tx, { projectId, actorId: userId, event: { type: "DELIVERED", title: parsed.data.title } });
+      await emitEvent(tx, webActor(userId), {
+        type: "delivery.created",
+        projectId,
+        payload: {
+          deliveryId: delivery.id,
+          title: parsed.data.title,
+          deployedAt: parsed.data.deployedAt.toISOString(),
+          url: parsed.data.url,
+        },
+      });
       return delivery.id;
     });
     revalidatePath("/", "layout");
@@ -256,6 +268,11 @@ export async function logRecapSent(
         projectId,
         actorId: userId,
         event: { type: "CLIENT_MESSAGE", kind: "RECAP", messageId: message.id },
+      });
+      await emitEvent(tx, webActor(userId), {
+        type: "client_message.sent",
+        projectId,
+        payload: { messageId: message.id, kind: "RECAP", channel: input.via === "WEB" ? "WEB" : "EMAIL" },
       });
     });
     revalidatePath("/", "layout");

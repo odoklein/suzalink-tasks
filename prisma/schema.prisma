@@ -66,6 +66,7 @@ enum Priority {
   URGENT
 }
 
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -92,6 +93,9 @@ model User {
   deliveries     Delivery[]
   activities     Activity[]
   clientMessages ClientMessage[]
+
+  // Intégrations (Phases 6-8) : relations regroupées ici pour faciliter la fusion.
+  loginEvents    LoginEvent[]
 }
 
 model Client {
@@ -431,6 +435,77 @@ model DeliveryTask {
 
   @@id([deliveryId, taskId])
   @@index([taskId])
+}
+
+/// Outbox d'événements : écrite dans la même transaction que le changement,
+/// lue par le job `dispatch_events` (notifications, webhooks, temps réel, sync).
+/// L'Activity reste le fil lisible de l'interface.
+model Event {
+  id           String    @id @default(cuid())
+  type         String // task.created, task.status_changed, comment.created…
+  payload      Json
+  via          Channel   @default(WEB)
+  projectId    String?
+  taskId       String?
+  actorId      String?
+  createdAt    DateTime  @default(now())
+  dispatchedAt DateTime?
+
+  @@index([dispatchedAt, createdAt])
+  @@index([projectId, createdAt])
+}
+
+/// File de travaux, consommée par /api/cron/tick (appelé chaque minute).
+model Job {
+  id        String    @id @default(cuid())
+  kind      String // dispatch_events, daily, digest, intake…
+  payload   Json      @default("{}")
+  runAt     DateTime  @default(now())
+  attempts  Int       @default(0)
+  lockedAt  DateTime?
+  doneAt    DateTime?
+  lastError String?
+  dedupeKey String?   @unique
+  createdAt DateTime  @default(now())
+
+  @@index([doneAt, runAt])
+}
+
+/// Dernier signal reçu par fournisseur (webhooks, cron) : panneau Intégrations.
+model IntegrationStatus {
+  provider       String    @id // cron, netlify, github, vercel, postmark, telegram…
+  lastReceivedAt DateTime?
+  lastOkAt       DateTime?
+  lastError      String?
+  lastErrorAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+}
+
+/// Journal des connexions (réussies ou non) : Paramètres › Journal.
+model LoginEvent {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  method    String   @default("PIN") // PIN, GOOGLE
+  ip        String?
+  ua        String?
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Limitation de débit à fenêtre fixe (clé = politique + IP ou clé d'API).
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
 }
 
 model Activity {

@@ -8,9 +8,11 @@ import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { attemptLogin, invalidMessage, lockedMessage } from "@/lib/login-attempts";
+import { recordLoginEvent } from "@/lib/login-events";
 import { prismaAttemptStore } from "@/lib/login-store";
 import { safeNextPath } from "@/lib/next-path";
 import { isWeakPin } from "@/lib/pin";
+import { rateLimitCurrentIp } from "@/lib/rate-limit";
 import { createSession, deleteSession } from "@/lib/session";
 
 export type FormState = { error?: string; success?: string } | undefined;
@@ -33,20 +35,33 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     if (!email) return { error: "Renseignez votre email." };
     if (!PIN.test(pin)) return { error: "Entrez les 6 chiffres de votre code." };
 
+    // Limite par adresse IP, en plus du blocage par compte.
+    const limited = await rateLimitCurrentIp("login");
+    if (!limited.allowed) {
+      const minutes = Math.ceil(limited.retryAfterSec / 60);
+      return { error: `Trop de tentatives depuis cette connexion. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.` };
+    }
+
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !user.active) {
       // Même durée et même message que pour un compte existant.
       await bcrypt.compare(pin, DUMMY_HASH);
+      await recordLoginEvent({ email, success: false });
       return { error: invalidMessage(null) };
     }
 
     // L'essai est réservé atomiquement AVANT bcrypt : des requêtes parallèles ne dépassent plus la limite.
     const outcome = await attemptLogin(prismaAttemptStore, user.id, () => bcrypt.compare(pin, user.passwordHash));
     if (outcome.kind === "locked") {
+      await recordLoginEvent({ email, success: false, userId: user.id });
       return { error: lockedMessage(outcome.until), lockedUntil: outcome.until.toISOString() };
     }
-    if (outcome.kind === "invalid") return { error: invalidMessage(outcome.remaining) };
+    if (outcome.kind === "invalid") {
+      await recordLoginEvent({ email, success: false, userId: user.id });
+      return { error: invalidMessage(outcome.remaining) };
+    }
 
+    await recordLoginEvent({ email, success: true, userId: user.id });
     await createSession(user.id, user.sessionVersion);
     // Pas de redirect() ici : le client doit d'abord savoir que la connexion a réussi pour retenir l'email.
     return { next: safeNextPath(formData.get("next")) };

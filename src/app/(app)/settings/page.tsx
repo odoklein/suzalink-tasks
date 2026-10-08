@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 
 import { PasswordForm } from "./password-form";
+import { SettingsLinks } from "./settings-links";
 import { TeamSection } from "./team-section";
 import { ThemePreference } from "./theme-preference";
 
@@ -123,6 +124,8 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
             <TeamSection members={members} currentUserId={user.id} />
           </section>
         )}
+
+        <SettingsLinks isAdmin={user.role === "ADMIN"} />
       </div>
     </div>
   );
