@@ -45,6 +45,23 @@ enum Priority {
   URGENT
 }
 
+/// Canal par lequel une action est arrivée (Actor.via, Event.via).
+/// Même définition que P4-05 : à dédupliquer à la fusion.
+enum Channel {
+  WEB
+  EMAIL
+  WHATSAPP
+  CALL
+  PORTAL
+  API
+  MCP
+  DEPLOY
+  SHEETS
+  WIDGET
+  CHAT
+  SYSTEM
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String

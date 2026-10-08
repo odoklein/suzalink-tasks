@@ -1,7 +1,12 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-const alias = { "@": fileURLToPath(new URL("./src", import.meta.url)) };
+const alias = {
+  "@": fileURLToPath(new URL("./src", import.meta.url)),
+  // Les tests tournent hors de React Server Components : le marqueur
+  // `server-only` y est neutralisé pour pouvoir tester les services.
+  "server-only": fileURLToPath(new URL("./node_modules/server-only/empty.js", import.meta.url)),
+};
 
 export default defineConfig({
   test: {
