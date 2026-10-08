@@ -43,7 +43,7 @@ export function CommandPalette() {
   const createIn = (projectId: string, projectName: string) => {
     startTransition(async () => {
       const result = await quickAddTask(projectId, query);
-      if ("error" in result && result.error) {
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }

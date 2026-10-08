@@ -35,7 +35,11 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
       const text = draft.trim();
       setSaved(text || null);
       setEditing(false);
-      await updateProjectNote(projectId, text);
+      const result = await updateProjectNote(projectId, text);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(text ? "Point d'étape enregistré" : "Point d'étape retiré");
     });
 

@@ -116,7 +116,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
 
     startTransition(async () => {
       const result = await moveTask(String(active.id), column, position);
-      if ("error" in result && result.error) toast.error(result.error);
+      if (!result.ok) toast.error(result.error);
     });
   };
 

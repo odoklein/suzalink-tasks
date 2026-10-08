@@ -24,7 +24,7 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
   const submit = () =>
     startTransition(async () => {
       const result = await importFeedback(projectId, text, source);
-      if ("error" in result && result.error) {
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }
@@ -204,7 +204,7 @@ export function DeliveryDialog({
               url: String(data.get("url") ?? ""),
               deployedAt: String(data.get("deployedAt") ?? ""),
             });
-            if ("error" in result && result.error) {
+            if (!result.ok) {
               toast.error(result.error);
               return;
             }

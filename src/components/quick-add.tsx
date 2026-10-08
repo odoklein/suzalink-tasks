@@ -44,7 +44,7 @@ export function QuickAdd({
     if (!parsed.title.trim()) return;
     startTransition(async () => {
       const result = await quickAddTask(projectId, value, status);
-      if ("error" in result && result.error) {
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }

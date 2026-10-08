@@ -41,7 +41,7 @@ export function TaskRow({
   const setStatus = (status: TaskStatus) =>
     startTransition(async () => {
       const result = await updateTask(task.id, { status });
-      if ("error" in result && result.error) toast.error(result.error);
+      if (!result.ok) toast.error(result.error);
     });
 
   return (

@@ -95,7 +95,11 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
                 value={project.status}
                 onChange={(value) =>
                   startTransition(async () => {
-                    await updateProjectStatus(project.id, value);
+                    const result = await updateProjectStatus(project.id, value);
+                    if (!result.ok) {
+                      toast.error(result.error);
+                      return;
+                    }
                     toast.success(`Projet « ${PROJECT_STATUS_BY_VALUE[value].label} »`);
                   })
                 }

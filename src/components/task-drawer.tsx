@@ -29,6 +29,15 @@ import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 const inputClass =
   "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
 
+/** Détail d’une tâche, ou `null` si elle n’existe plus ou si le chargement a échoué. */
+function unwrapDetail(detail: Awaited<ReturnType<typeof getTaskDetail>>): TaskDetail | null {
+  if (detail && "error" in detail) {
+    toast.error(detail.error);
+    return null;
+  }
+  return detail;
+}
+
 export function TaskDrawer() {
   const { openTaskId, closeTask, team } = useApp();
   const [loaded, setLoaded] = useState<TaskDetail | null>(null);
@@ -40,14 +49,14 @@ export function TaskDrawer() {
 
   const load = useCallback(async (id: string) => {
     const detail = await getTaskDetail(id);
-    setLoaded(detail);
+    setLoaded(unwrapDetail(detail));
   }, []);
 
   useEffect(() => {
     if (!openTaskId) return;
     let cancelled = false;
     getTaskDetail(openTaskId).then((detail) => {
-      if (!cancelled) setLoaded(detail);
+      if (!cancelled) setLoaded(unwrapDetail(detail));
     });
     return () => {
       cancelled = true;
@@ -72,7 +81,7 @@ export function TaskDrawer() {
     setTask({ ...task, ...(changes as Partial<TaskDetail>) });
     startTransition(async () => {
       const result = await updateTask(task.id, changes);
-      if ("error" in result && result.error) toast.error(result.error);
+      if (!result.ok) toast.error(result.error);
       await load(task.id);
     });
   };
@@ -108,7 +117,11 @@ export function TaskDrawer() {
                 <DeleteButton
                   onConfirm={() =>
                     startTransition(async () => {
-                      await deleteTask(task.id);
+                      const result = await deleteTask(task.id);
+                      if (!result.ok) {
+                        toast.error(result.error);
+                        return;
+                      }
                       toast.success(`${task.project.key}-${task.number} supprimée`);
                       closeTask();
                     })
@@ -236,7 +249,7 @@ export function TaskDrawer() {
                 <CommentComposer
                   onSubmit={async (body) => {
                     const result = await addComment(task.id, body);
-                    if ("error" in result && result.error) {
+                    if (!result.ok) {
                       toast.error(result.error);
                       return false;
                     }
