@@ -9,7 +9,7 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { isWeakPin } from "@/lib/pin";
 
-export type MemberState = { error?: string; pin?: string; name?: string } | undefined;
+export type MemberState = { error?: string; pin?: string; name?: string; email?: string } | undefined;
 
 const MEMBER_COLORS = ["#2B59F2", "#1D9A62", "#C98206", "#B04FA8", "#E5533D", "#1F8A9E", "#6A5AE0", "#55606E"];
 
@@ -45,10 +45,17 @@ export async function addMember(_state: MemberState, formData: FormData): Promis
     const pin = randomPin();
     const count = await db.user.count();
     await db.user.create({
-      data: { name, email, role, color: MEMBER_COLORS[count % MEMBER_COLORS.length], passwordHash: await bcrypt.hash(pin, 12) },
+      data: {
+        name,
+        email,
+        role,
+        color: MEMBER_COLORS[count % MEMBER_COLORS.length],
+        passwordHash: await bcrypt.hash(pin, 12),
+        mustChangePin: true,
+      },
     });
     revalidatePath("/", "layout");
-    return { pin, name };
+    return { pin, name, email };
   });
 }
 
@@ -56,15 +63,15 @@ export async function addMember(_state: MemberState, formData: FormData): Promis
 export async function resetMemberPin(userId: string): Promise<MemberState> {
   return safe(async () => {
     if (!(await requireAdmin())) return { error: "Réservé aux administrateurs." };
-    const member = await db.user.findUnique({ where: { id: userId }, select: { name: true } });
+    const member = await db.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
     if (!member) return { error: "Membre introuvable." };
 
     const pin = randomPin();
     await db.user.update({
       where: { id: userId },
-      data: { passwordHash: await bcrypt.hash(pin, 12), failedLogins: 0, lockedUntil: null, lockLevel: 0, sessionVersion: { increment: 1 } },
+      data: { passwordHash: await bcrypt.hash(pin, 12), failedLogins: 0, lockedUntil: null, lockLevel: 0, sessionVersion: { increment: 1 }, mustChangePin: true },
     });
-    return { pin, name: member.name };
+    return { pin, name: member.name, email: member.email };
   });
 }
 

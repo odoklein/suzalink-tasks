@@ -45,7 +45,7 @@ export const getCurrentUser = cache(async () => {
   const { userId } = await verifySession();
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, color: true, role: true },
+    select: { id: true, name: true, email: true, color: true, role: true, mustChangePin: true },
   });
   if (!user) redirect("/login");
   return user;

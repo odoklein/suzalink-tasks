@@ -57,7 +57,7 @@ function Opener() {
 function renderDrawer() {
   return render(
     <AppProvider
-      user={{ id: "u1", name: "Odo Klein", email: "odo@example.com", color: "#2B59F2", role: "ADMIN" }}
+      user={{ id: "u1", name: "Odo Klein", email: "odo@example.com", color: "#2B59F2", role: "ADMIN", mustChangePin: false }}
       team={[]}
       projects={[]}
       clients={[]}

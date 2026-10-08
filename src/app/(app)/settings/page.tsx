@@ -12,8 +12,9 @@ import { TeamSection } from "./team-section";
 
 export const metadata: Metadata = { title: "Paramètres" };
 
-export default async function SettingsPage() {
+export default async function SettingsPage(props: PageProps<"/settings">) {
   const user = await getCurrentUser();
+  const firstLogin = user.mustChangePin || (await props.searchParams)["premiere-connexion"] === "1";
 
   const members =
     user.role === "ADMIN"
@@ -58,12 +59,18 @@ export default async function SettingsPage() {
           </div>
         </section>
 
+        {user.mustChangePin && (
+          <p role="status" className="mt-6 rounded-xl border border-accent/40 bg-accent-soft px-5 py-4 text-[14px] text-ink">
+            Bienvenue ! Le code que vous avez reçu est provisoire : choisissez votre propre code pour continuer.
+          </p>
+        )}
+
         <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
           <h2 className="font-display text-[17px] font-semibold">Code PIN</h2>
           <p className="mt-1 text-[13px] text-muted">
             6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes.
           </p>
-          <PasswordForm />
+          <PasswordForm firstLogin={firstLogin} />
         </section>
 
         <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">

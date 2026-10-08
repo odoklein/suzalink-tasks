@@ -62,6 +62,7 @@ model User {
   // Révocation des sessions : le JWT porte la version ; l'incrémenter déconnecte tous les appareils.
   sessionVersion Int     @default(0)
   active         Boolean @default(true) // compte désactivé : plus de connexion, sessions refusées
+  mustChangePin  Boolean @default(false) // code donné par un admin : à remplacer à la première connexion
 
   assignedTasks Task[]     @relation("TaskAssignee")
   createdTasks  Task[]     @relation("TaskCreator")

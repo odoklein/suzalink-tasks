@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { safe } from "@/lib/action";
@@ -86,10 +87,11 @@ export async function changePin(_state: FormState, formData: FormData): Promise<
     // Nouveau code : les autres appareils sont déconnectés ; celui-ci reçoit un jeton à la nouvelle version.
     const updated = await db.user.update({
       where: { id: userId },
-      data: { passwordHash: await bcrypt.hash(next, 12), sessionVersion: { increment: 1 } },
+      data: { passwordHash: await bcrypt.hash(next, 12), sessionVersion: { increment: 1 }, mustChangePin: false },
       select: { sessionVersion: true },
     });
     await createSession(userId, updated.sessionVersion);
+    revalidatePath("/", "layout"); // lève le passage obligé par Paramètres (P1-14)
     return { success: "Code PIN mis à jour. Vos autres appareils ont été déconnectés." };
   });
 }
