@@ -27,7 +27,7 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
     if (!PIN.test(pin)) return { error: "Entrez les 6 chiffres de votre code." };
 
     const user = await db.user.findUnique({ where: { email } });
-    if (!user) {
+    if (!user || !user.active) {
       // Même durée et même message que pour un compte existant.
       await bcrypt.compare(pin, DUMMY_HASH);
       return { error: invalidMessage(null) };
@@ -40,12 +40,20 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
     }
     if (outcome.kind === "invalid") return { error: invalidMessage(outcome.remaining) };
 
-    await createSession(user.id);
+    await createSession(user.id, user.sessionVersion);
     redirect("/");
   });
 }
 
 export async function logout() {
+  await deleteSession();
+  redirect("/login");
+}
+
+/** « Se déconnecter de tous les appareils » : la version de session change, tous les jetons existants sont refusés. */
+export async function logoutEverywhere() {
+  const { userId } = await verifySession();
+  await db.user.update({ where: { id: userId }, data: { sessionVersion: { increment: 1 } } });
   await deleteSession();
   redirect("/login");
 }
@@ -68,10 +76,13 @@ export async function changePin(_state: FormState, formData: FormData): Promise<
       return { error: "Le code actuel est incorrect." };
     }
 
-    await db.user.update({
+    // Nouveau code : les autres appareils sont déconnectés ; celui-ci reçoit un jeton à la nouvelle version.
+    const updated = await db.user.update({
       where: { id: userId },
-      data: { passwordHash: await bcrypt.hash(next, 12) },
+      data: { passwordHash: await bcrypt.hash(next, 12), sessionVersion: { increment: 1 } },
+      select: { sessionVersion: true },
     });
-    return { success: "Code PIN mis à jour." };
+    await createSession(userId, updated.sessionVersion);
+    return { success: "Code PIN mis à jour. Vos autres appareils ont été déconnectés." };
   });
 }

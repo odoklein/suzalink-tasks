@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { decrypt, SESSION_COOKIE } from "@/lib/session";
+import { readSession } from "@/lib/dal";
 
 import { LoginForm } from "./login-form";
 
@@ -10,9 +9,9 @@ export const metadata: Metadata = { title: "Connexion" };
 
 export default async function LoginPage() {
   // Déjà connecté avec une session valide : direction l'accueil.
-  // (Un cookie invalide reste ici, sans boucle de redirection.)
-  const session = await decrypt((await cookies()).get(SESSION_COOKIE)?.value);
-  if (session?.userId) redirect("/");
+  // (Un cookie invalide ou révoqué reste ici, sans boucle de redirection.)
+  const session = await readSession();
+  if (session) redirect("/");
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">

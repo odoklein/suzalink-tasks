@@ -59,6 +59,10 @@ model User {
   lockedUntil  DateTime?
   lockLevel    Int       @default(0) // nombre de blocages consécutifs (remis à 0 à la connexion réussie)
 
+  // Révocation des sessions : le JWT porte la version ; l'incrémenter déconnecte tous les appareils.
+  sessionVersion Int     @default(0)
+  active         Boolean @default(true) // compte désactivé : plus de connexion, sessions refusées
+
   assignedTasks Task[]     @relation("TaskAssignee")
   createdTasks  Task[]     @relation("TaskCreator")
   ledProjects   Project[]  @relation("ProjectLead")

@@ -12,6 +12,8 @@ const SESSION_DAYS = 30;
 export type SessionPayload = {
   userId: string;
   expiresAt: string;
+  /** `User.sessionVersion` à la connexion. Absent dans les jetons émis avant P1-12 : vaut 0. */
+  v?: number;
 };
 
 function key() {
@@ -44,9 +46,9 @@ export async function decrypt(token: string | undefined) {
   }
 }
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, version: number) {
   const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  const token = await encrypt({ userId, expiresAt: expires.toISOString() });
+  const token = await encrypt({ userId, expiresAt: expires.toISOString(), v: version });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,

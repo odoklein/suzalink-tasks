@@ -1,4 +1,7 @@
+import { LogOut } from "lucide-react";
 import type { Metadata } from "next";
+
+import { logoutEverywhere } from "@/app/actions/auth";
 
 import { Avatar } from "@/components/primitives";
 import { getCurrentUser } from "@/lib/dal";
@@ -23,6 +26,7 @@ export default async function SettingsPage() {
               email: true,
               color: true,
               role: true,
+              active: true,
               lockedUntil: true,
               _count: { select: { assignedTasks: { where: { status: { not: "DONE" } } } } },
             },
@@ -33,6 +37,7 @@ export default async function SettingsPage() {
           email: member.email,
           color: member.color,
           role: member.role,
+          active: member.active,
           openTasks: member._count.assignedTasks,
           locked: !!member.lockedUntil && member.lockedUntil > new Date(),
         }))
@@ -59,6 +64,22 @@ export default async function SettingsPage() {
             6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes.
           </p>
           <PasswordForm />
+        </section>
+
+        <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="font-display text-[17px] font-semibold">Sessions</h2>
+          <p className="mt-1 text-[13px] text-muted">
+            Un téléphone perdu, un ordinateur partagé ? Déconnectez tous les appareils, y compris celui-ci.
+          </p>
+          <form action={logoutEverywhere} className="mt-4">
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+            >
+              <LogOut className="size-4" />
+              Se déconnecter de tous les appareils
+            </button>
+          </form>
         </section>
 
         {user.role === "ADMIN" && (

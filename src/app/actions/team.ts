@@ -62,8 +62,23 @@ export async function resetMemberPin(userId: string): Promise<MemberState> {
     const pin = randomPin();
     await db.user.update({
       where: { id: userId },
-      data: { passwordHash: await bcrypt.hash(pin, 12), failedLogins: 0, lockedUntil: null, lockLevel: 0 },
+      data: { passwordHash: await bcrypt.hash(pin, 12), failedLogins: 0, lockedUntil: null, lockLevel: 0, sessionVersion: { increment: 1 } },
     });
     return { pin, name: member.name };
+  });
+}
+
+/** Désactive (ou réactive) un compte : un compte désactivé ne peut plus se connecter et ses sessions tombent. */
+export async function setMemberActive(userId: string, active: boolean): Promise<MemberState> {
+  return safe(async () => {
+    const { userId: adminId } = await verifySession();
+    if (!(await requireAdmin())) return { error: "Réservé aux administrateurs." };
+    if (userId === adminId) return { error: "Vous ne pouvez pas désactiver votre propre compte." };
+    await db.user.update({
+      where: { id: userId },
+      data: active ? { active: true } : { active: false, sessionVersion: { increment: 1 } },
+    });
+    revalidatePath("/", "layout");
+    return {};
   });
 }

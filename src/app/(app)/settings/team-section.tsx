@@ -1,10 +1,10 @@
 "use client";
 
 import { Check, Copy, KeyRound, UserPlus } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { addMember, resetMemberPin, type MemberState } from "@/app/actions/team";
+import { addMember, resetMemberPin, setMemberActive, type MemberState } from "@/app/actions/team";
 import { fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { Avatar } from "@/components/primitives";
 
@@ -14,6 +14,7 @@ export type Member = {
   email: string;
   color: string;
   role: "ADMIN" | "MEMBER";
+  active: boolean;
   openTasks: number;
   locked: boolean;
 };
@@ -41,6 +42,13 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
       else if (result?.pin) setIssued({ name: member.name, pin: result.pin });
     });
 
+  const toggleActive = (member: Member) =>
+    startTransition(async () => {
+      const result = await setMemberActive(member.id, !member.active);
+      if (result?.error) toast.error(result.error);
+      else toast.success(member.active ? `Compte de ${member.name} désactivé, sessions fermées` : `Compte de ${member.name} réactivé`);
+    });
+
   return (
     <div className="mt-4">
       {issued && <IssuedPin issued={issued} onClose={() => setIssued(null)} />}
@@ -56,6 +64,7 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
               </p>
               <p className="truncate text-[12px] text-muted">{member.email}</p>
             </div>
+            {!member.active && <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-muted">Désactivé</span>}
             {member.locked && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger">Bloqué</span>}
             <span className="hidden text-[12px] text-muted sm:inline">
               {member.openTasks} tâche{member.openTasks > 1 ? "s" : ""}
@@ -74,6 +83,9 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
                 <KeyRound className="size-3.5" />
                 <span className="hidden sm:inline">Nouveau code</span>
               </button>
+            )}
+            {member.id !== currentUserId && (
+              <ActiveToggle member={member} disabled={pendingReset} onConfirm={() => toggleActive(member)} />
             )}
           </li>
         ))}
@@ -107,6 +119,42 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
         <p className="mt-2 text-[12px] text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle le changera dans Paramètres.</p>
       </form>
     </div>
+  );
+}
+
+/** Désactiver demande une confirmation (deuxième clic) ; réactiver est immédiat. */
+function ActiveToggle({ member, disabled, onConfirm }: { member: Member; disabled: boolean; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const timer = setTimeout(() => setArmed(false), 3500);
+    return () => clearTimeout(timer);
+  }, [armed]);
+  const confirm = () => {
+    setArmed(false);
+    onConfirm();
+  };
+  if (!member.active) {
+    return (
+      <button type="button" disabled={disabled} onClick={onConfirm} className="rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50">
+        Réactiver
+      </button>
+    );
+  }
+  return armed ? (
+    <button type="button" disabled={disabled} onClick={confirm} className="rounded-md bg-danger px-2 py-1 text-[12px] font-semibold text-white disabled:opacity-50">
+      Confirmer
+    </button>
+  ) : (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => setArmed(true)}
+      title="Le compte ne pourra plus se connecter ; ses sessions sont fermées."
+      className="rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+    >
+      Désactiver
+    </button>
   );
 }
 
