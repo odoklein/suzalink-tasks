@@ -244,6 +244,16 @@ model LoginEvent {
   @@index([userId, createdAt])
 }
 
+/// Limitation de débit à fenêtre fixe (clé = politique + IP ou clé d'API).
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
+
 model Activity {
   id        String   @id @default(cuid())
   message   String

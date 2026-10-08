@@ -57,6 +57,7 @@ alter table "Event" enable row level security;
 alter table "Job" enable row level security;
 alter table "IntegrationStatus" enable row level security;
 alter table "LoginEvent" enable row level security;
+alter table "RateLimit" enable row level security;
 ```
 
 Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.

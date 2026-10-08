@@ -7,6 +7,7 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { recordLoginEvent } from "@/lib/login-events";
 import { isWeakPin } from "@/lib/pin";
+import { rateLimitCurrentIp } from "@/lib/rate-limit";
 import { createSession, deleteSession } from "@/lib/session";
 
 export type FormState = { error?: string; success?: string } | undefined;
@@ -23,6 +24,13 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   const pin = String(formData.get("pin") ?? "");
   if (!email) return { error: "Renseignez votre email." };
   if (!PIN.test(pin)) return { error: "Entrez les 6 chiffres de votre code." };
+
+  // Limite par adresse IP, en plus du blocage par compte.
+  const limited = await rateLimitCurrentIp("login");
+  if (!limited.allowed) {
+    const minutes = Math.ceil(limited.retryAfterSec / 60);
+    return { error: `Trop de tentatives depuis cette connexion. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.` };
+  }
 
   const user = await db.user.findUnique({ where: { email } });
 
