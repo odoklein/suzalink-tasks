@@ -217,7 +217,7 @@ export function DeliveryDialog({
       >
         <div>
           <label htmlFor="delivery-title" className={labelClass}>Ce qui a été mis en ligne</label>
-          <input id="delivery-title" name="title" required placeholder="Corrections du tableau de Luna" className={fieldClass} />
+          <input id="delivery-title" name="title" required maxLength={180} placeholder="Corrections du tableau de Luna" className={fieldClass} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -226,7 +226,7 @@ export function DeliveryDialog({
           </div>
           <div>
             <label htmlFor="delivery-url" className={labelClass}>Lien</label>
-            <input id="delivery-url" name="url" defaultValue={siteUrl ?? ""} placeholder="https://…" className={fieldClass} />
+            <input id="delivery-url" name="url" type="url" defaultValue={siteUrl ?? ""} placeholder="https://…" className={fieldClass} />
           </div>
         </div>
         <div>
@@ -262,7 +262,15 @@ export function NewProjectDialog() {
           </div>
           <div>
             <label htmlFor="project-key" className={labelClass}>Préfixe</label>
-            <input id="project-key" name="key" maxLength={4} placeholder="BG" className={cn(fieldClass, "font-mono uppercase")} />
+            <input
+              id="project-key"
+              name="key"
+              maxLength={4}
+              pattern="[A-Za-z0-9]{1,4}"
+              title="1 à 4 lettres ou chiffres"
+              placeholder="BG"
+              className={cn(fieldClass, "font-mono uppercase")}
+            />
           </div>
         </div>
 
@@ -311,7 +319,7 @@ export function NewProjectDialog() {
         </div>
         <div>
           <label htmlFor="project-url" className={labelClass}>Lien du site ou de la maquette</label>
-          <input id="project-url" name="siteUrl" placeholder="https://bieres.netlify.app" className={fieldClass} />
+          <input id="project-url" name="siteUrl" type="url" placeholder="https://bieres.netlify.app" className={fieldClass} />
         </div>
 
         <div>

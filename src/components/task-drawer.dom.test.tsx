@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -129,6 +129,26 @@ describe("TaskDrawer : états de chargement (P1-09)", () => {
     await Promise.resolve();
     expect(screen.queryByDisplayValue("Première")).toBeNull();
     expect(screen.getByDisplayValue("Deuxième")).toBeTruthy();
+  });
+});
+
+describe("TaskDrawer : échéance (P1-18)", () => {
+  it("n'enregistre qu'au blur, et ignore une année avant 2000", async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    await user.click(screen.getByText("ouvrir"));
+    const due = (await screen.findByLabelText("Échéance")) as HTMLInputElement;
+
+    fireEvent.change(due, { target: { value: "0202-10-12" } });
+    fireEvent.blur(due);
+    expect(updateTask).not.toHaveBeenCalled();
+    expect(due.value).toBe("");
+
+    fireEvent.change(due, { target: { value: "2026-10-12" } });
+    expect(updateTask).not.toHaveBeenCalled();
+    fireEvent.blur(due);
+    await waitFor(() => expect(updateTask).toHaveBeenCalledWith("t1", { dueDate: "2026-10-12" }));
+    expect(updateTask).toHaveBeenCalledTimes(1);
   });
 });
 

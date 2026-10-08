@@ -177,7 +177,8 @@ model Activity {
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   taskId    String?
-  task      Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  // SetNull : l'historique du projet garde la trace d'une tâche supprimée.
+  task      Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
   actorId   String?
   actor     User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
 

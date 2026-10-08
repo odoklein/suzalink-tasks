@@ -25,6 +25,7 @@ import {
 import { SelectMenu } from "@/components/select-menu";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { toParisDateInput } from "@/lib/time";
+import { DESCRIPTION_MAX, isPlausibleDateInput, TITLE_MAX } from "@/lib/validate";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 const inputClass =
@@ -258,12 +259,10 @@ export function TaskDrawer() {
                   />
                 </Prop>
                 <Prop label="Échéance">
-                  <input
-                    type="date"
-                    aria-label="Échéance"
-                    defaultValue={task.dueDate ? toParisDateInput(task.dueDate) : ""}
-                    onChange={(event) => patch({ dueDate: event.target.value || null })}
-                    className={cn(inputClass, "tabular w-auto")}
+                  <DueDateField
+                    key={task.id}
+                    value={task.dueDate ? toParisDateInput(task.dueDate) : ""}
+                    onSave={(dueDate) => patch({ dueDate })}
                   />
                 </Prop>
                 <Prop label="Page / zone">
@@ -386,6 +385,7 @@ function TitleField({
       value={draft}
       rows={1}
       aria-label="Titre de la tâche"
+      maxLength={TITLE_MAX}
       onChange={(event) => {
         setDraft(event.target.value);
         onDraft(event.target.value);
@@ -398,6 +398,34 @@ function TitleField({
         }
       }}
       className="w-full resize-none bg-transparent font-display text-[21px] font-semibold leading-snug tracking-tight outline-none"
+    />
+  );
+}
+
+/**
+ * Échéance : enregistrée au blur ou sur Entrée seulement (pas à chaque frappe, sinon chaque chiffre de
+ * l'année part au serveur), et une année avant 2000 (saisie en cours) est ignorée.
+ */
+function DueDateField({ value, onSave }: { value: string; onSave: (value: string | null) => void }) {
+  const commit = (input: HTMLInputElement) => {
+    const next = input.value;
+    if (next === value) return;
+    if (next && !isPlausibleDateInput(next)) {
+      input.value = value;
+      return;
+    }
+    onSave(next || null);
+  };
+  return (
+    <input
+      type="date"
+      aria-label="Échéance"
+      defaultValue={value}
+      onBlur={(event) => commit(event.currentTarget)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") commit(event.currentTarget);
+      }}
+      className={cn(inputClass, "tabular w-auto")}
     />
   );
 }
@@ -433,6 +461,7 @@ function DescriptionField({
       rows={Math.max(3, draft.split("\n").length)}
       placeholder="Ajouter le détail, le lien vers la maquette, le texte exact demandé par le client…"
       aria-label="Description"
+      maxLength={DESCRIPTION_MAX}
       onChange={(event) => {
         setDraft(event.target.value);
         onDraft(event.target.value);

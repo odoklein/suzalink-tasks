@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { ProjectView, type ProjectTab } from "@/components/project-view";
 import { verifySession } from "@/lib/dal";
@@ -8,18 +9,10 @@ import { taskCardSelect } from "@/lib/types";
 
 const TABS: ProjectTab[] = ["tableau", "liste", "mises-en-ligne", "activite"];
 
-export async function generateMetadata(props: PageProps<"/projects/[slug]">): Promise<Metadata> {
-  const { slug } = await props.params;
-  const project = await db.project.findUnique({ where: { slug }, select: { name: true } });
-  return { title: project?.name ?? "Projet" };
-}
-
-export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
+/** Un seul chargement par requête, partagé par generateMetadata et la page (cache React). */
+const loadProject = cache(async (slug: string) => {
   await verifySession();
-  const { slug } = await props.params;
-  const { vue } = await props.searchParams;
-
-  const project = await db.project.findUnique({
+  return db.project.findUnique({
     where: { slug },
     include: {
       client: { select: { name: true, kind: true, contacts: true } },
@@ -36,6 +29,21 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
       },
     },
   });
+});
+
+export async function generateMetadata(props: PageProps<"/projects/[slug]">): Promise<Metadata> {
+  await verifySession();
+  const { slug } = await props.params;
+  const project = await loadProject(slug);
+  return { title: project && !project.archived ? project.name : "Projet" };
+}
+
+export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
+  await verifySession();
+  const { slug } = await props.params;
+  const { vue } = await props.searchParams;
+
+  const project = await loadProject(slug);
   if (!project || project.archived) notFound();
 
   const tab = TABS.includes(vue as ProjectTab) ? (vue as ProjectTab) : "tableau";

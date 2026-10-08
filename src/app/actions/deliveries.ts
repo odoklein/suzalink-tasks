@@ -7,6 +7,7 @@ import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { fromParisDateTimeInput, formatParis } from "@/lib/time";
+import { parseHttpUrl, TITLE_MAX } from "@/lib/validate";
 
 /**
  * `input.deployedAt` est la valeur brute d'un `<input type="datetime-local">` (« 2026-10-08T14:30 »),
@@ -21,6 +22,9 @@ export async function createDelivery(
     const { userId } = await verifySession();
     const title = input.title.trim();
     if (!title) return { error: "Décrivez ce qui a été mis en ligne." };
+    if (title.length > TITLE_MAX) return { error: `Description trop longue (${TITLE_MAX} caractères au plus).` };
+    const url = parseHttpUrl(input.url);
+    if (url === undefined) return { error: "Le lien doit commencer par http:// ou https://." };
     const deployedAt = input.deployedAt ? fromParisDateTimeInput(input.deployedAt) : new Date();
     if (Number.isNaN(deployedAt.getTime())) return { error: "Date de mise en ligne invalide." };
 
@@ -30,7 +34,7 @@ export async function createDelivery(
         authorId: userId,
         title,
         notes: input.notes?.trim() || null,
-        url: input.url?.trim() || null,
+        url,
         deployedAt,
       },
     });

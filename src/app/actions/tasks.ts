@@ -12,6 +12,10 @@ import { quote } from "@/lib/fr";
 import { plural } from "@/lib/plural";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { fromParisDateInput, nowParis } from "@/lib/time";
+import { DESCRIPTION_MAX, TITLE_MAX } from "@/lib/validate";
+
+const TITLE_TOO_LONG = `Titre trop long (${TITLE_MAX} caractères au plus).`;
+const DESCRIPTION_TOO_LONG = `Description trop longue (${DESCRIPTION_MAX} caractères au plus).`;
 
 const STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS", "WAITING_CLIENT", "REVIEW", "DONE"];
 const PRIORITIES: Priority[] = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"];
@@ -94,6 +98,7 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
         ? resolvedAssigneeId
         : parsed.assigneeId;
     if (!parsed.title) return { error: "Donnez un titre à la tâche." };
+    if (parsed.title.length > TITLE_MAX) return { error: TITLE_TOO_LONG };
 
     const { task, ref } = await insertTask(
       {
@@ -139,9 +144,14 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
     if (patch.title !== undefined) {
       const title = patch.title.trim();
       if (!title) return { error: "Le titre ne peut pas être vide." };
+      if (title.length > TITLE_MAX) return { error: TITLE_TOO_LONG };
       data.title = title;
     }
-    if (patch.description !== undefined) data.description = patch.description?.trim() || null;
+    if (patch.description !== undefined) {
+      const description = patch.description?.trim() || null;
+      if (description && description.length > DESCRIPTION_MAX) return { error: DESCRIPTION_TOO_LONG };
+      data.description = description;
+    }
     if (patch.priority !== undefined && PRIORITIES.includes(patch.priority)) data.priority = patch.priority;
     if (patch.zone !== undefined) data.zone = patch.zone?.trim() || null;
     if (patch.source !== undefined) data.source = patch.source?.trim() || null;
@@ -296,6 +306,8 @@ export async function importFeedback(projectId: string, text: string, sourceLabe
           await tx.task.createMany({
             data: planned.map((task) => ({
               ...task,
+              // Une cellule de tableur peut être très longue : on tronque plutôt que de refuser l'import.
+              description: task.description?.slice(0, DESCRIPTION_MAX),
               projectId,
               creatorId: userId,
               completedAt: task.status === "DONE" ? now : null,
