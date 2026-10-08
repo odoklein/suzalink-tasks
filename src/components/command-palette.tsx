@@ -11,7 +11,7 @@ import { useApp } from "@/components/app-context";
 import { Kbd, ProjectTile } from "@/components/primitives";
 
 const itemClass =
-  "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] text-ink-2 data-[selected=true]:bg-sunken data-[selected=true]:text-ink";
+  "flex cursor-pointer items-center gap-2.5 rounded-sm px-2.5 py-2 text-ui text-ink-2 data-[selected=true]:bg-sunken data-[selected=true]:text-ink";
 
 export function CommandPalette() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="animate-fade-in fixed inset-0 z-[70] flex items-start justify-center bg-[rgb(10_12_16/0.42)] px-4 pt-[14vh] backdrop-blur-[2px]"
+      className="animate-fade-in fixed inset-0 z-palette flex items-start justify-center bg-[rgb(10_12_16/0.42)] px-4 pt-[14vh] backdrop-blur-[2px]"
       onMouseDown={close}
     >
       <Command
@@ -62,22 +62,22 @@ export function CommandPalette() {
         loop
         onMouseDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.key === "Escape" && close()}
-        className="animate-pop-in w-full max-w-xl overflow-hidden rounded-xl border border-line bg-surface shadow-pop"
+        className="animate-pop-in w-full max-w-xl overflow-hidden rounded-lg border border-line bg-surface shadow-pop"
       >
         <Command.Input
           autoFocus
           value={query}
           onValueChange={setQuery}
           placeholder="Aller à un projet, ou taper une tâche à créer…"
-          className="w-full border-b border-line bg-transparent px-4 py-3.5 text-[15px] outline-none placeholder:text-faint"
+          className="w-full border-b border-line bg-transparent px-4 py-3.5 text-body outline-none placeholder:text-faint"
         />
         <Command.List className="max-h-[360px] overflow-y-auto p-1.5 scroll-thin">
-          <Command.Empty className="px-3 py-6 text-center text-[13px] text-muted">Rien ne correspond.</Command.Empty>
+          <Command.Empty className="px-3 py-6 text-center text-ui text-muted">Rien ne correspond.</Command.Empty>
 
           {query.trim().length > 2 && (
             <Command.Group
               heading="Créer une tâche"
-              className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-faint"
+              className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-meta [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-muted"
             >
               {projects.slice(0, 6).map((project) => (
                 <Command.Item
@@ -99,7 +99,7 @@ export function CommandPalette() {
 
           <Command.Group
             heading="Aller à"
-            className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-faint"
+            className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-meta [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-muted"
           >
             <Command.Item value="aujourd'hui accueil" onSelect={() => go("/")} className={itemClass}>
               <CalendarCheck2 className="size-4 text-muted" /> Aujourd&apos;hui
@@ -127,7 +127,7 @@ export function CommandPalette() {
 
           <Command.Group
             heading="Projets"
-            className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-faint"
+            className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-meta [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-muted"
           >
             {projects.map((project) => (
               <Command.Item
@@ -138,12 +138,12 @@ export function CommandPalette() {
               >
                 <ProjectTile color={project.color} label={project.key} size={18} />
                 <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                <span className="tabular text-[11px] text-faint">{project._count.tasks} ouvertes</span>
+                <span className="tabular text-meta text-muted">{project._count.tasks} ouvertes</span>
               </Command.Item>
             ))}
           </Command.Group>
         </Command.List>
-        <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[11px] text-muted">
+        <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-meta text-muted">
           <span className="flex items-center gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd> naviguer</span>
           <span className="flex items-center gap-1"><Kbd>Entrée</Kbd> valider</span>
           <span className="ml-auto">@odo !haute #homepage demain</span>

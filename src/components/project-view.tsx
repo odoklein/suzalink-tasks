@@ -84,12 +84,12 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-line bg-surface px-4 pt-5 sm:px-6">
+      <header className="border-b border-line bg-surface px-4 pt-5 sm:px-8">
         <div className="flex flex-wrap items-start gap-4">
           <ProjectTile color={project.color} label={project.key} size={40} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-[24px] font-semibold leading-tight tracking-tight">{project.name}</h1>
+              <h1 className="font-display text-h2 font-semibold leading-tight tracking-tight">{project.name}</h1>
               <SelectMenu<ProjectStatus>
                 label="Statut du projet"
                 value={project.status}
@@ -106,19 +106,19 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
                 }))}
                 trigger={
                   <span
-                    className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    style={{ color: status.tone, backgroundColor: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}
+                    className="rounded-full px-2 py-0.5 text-meta font-medium"
+                    style={{ color: status.text, backgroundColor: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}
                   >
                     {status.label}
                   </span>
                 }
               />
             </div>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13px] text-muted">
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-ui text-muted">
               {project.client && (
                 <span title={project.client.contacts ?? undefined}>
                   {project.client.name}
-                  {project.client.kind === "AGENCY" && <span className="text-faint"> (agence)</span>}
+                  {project.client.kind === "AGENCY" && <span className="text-muted"> (agence)</span>}
                 </span>
               )}
               {project.endClient && <span>· {project.endClient}</span>}
@@ -129,10 +129,10 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
                 </a>
               )}
             </p>
-            <p className="tabular mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2">
+            <p className="tabular mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
               <span><strong className="font-semibold">{open}</strong> ouvertes</span>
               {waiting > 0 && (
-                <span className="text-st-waiting">
+                <span className="text-waiting-text">
                   <strong className="font-semibold">{waiting}</strong> chez le client
                   <span className={cn("ml-1", oldestWaitingDays >= 5 && "font-semibold")}>
                     · la plus ancienne depuis {oldestWaitingDays === 0 ? "aujourd'hui" : `${oldestWaitingDays} j`}
@@ -173,13 +173,13 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
               aria-current={tab === key ? "page" : undefined}
               onClick={() => selectTab(key)}
               className={cn(
-                "-mb-px border-b-2 pb-2.5 text-[13px] font-medium transition-colors",
+                "-mb-px border-b-2 pb-2.5 text-ui font-medium transition-colors",
                 tab === key ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink",
               )}
             >
               {TAB_LABELS[key]}
               {key === "mises-en-ligne" && project.deliveries.length > 0 && (
-                <span className="tabular ml-1.5 text-[11px] text-faint">{project.deliveries.length}</span>
+                <span className="tabular ml-1.5 text-meta text-muted">{project.deliveries.length}</span>
               )}
             </button>
           ))}
@@ -208,10 +208,10 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
 function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries"]; onAdd: () => void }) {
   if (deliveries.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-6">
-        <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
-          <p className="text-[17px] font-semibold tracking-[-0.01em]">Aucune mise en ligne enregistrée</p>
-          <p className="mx-auto mt-1 max-w-md text-[13px] text-muted">
+      <div className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8">
+        <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
+          <p className="text-title font-semibold tracking-[-0.01em]">Aucune mise en ligne enregistrée</p>
+          <p className="mx-auto mt-1 max-w-md text-ui text-muted">
             Enregistrez chaque mise en ligne avec son heure exacte : c&apos;est la preuve de ce qui a été livré, et quand.
           </p>
           <div className="mt-5 flex justify-center">
@@ -225,17 +225,17 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
     );
   }
   return (
-    <ol className="mx-auto w-full max-w-3xl px-6 pb-10">
+    <ol className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 pb-10">
       {deliveries.map((delivery, index) => (
         <li key={delivery.id} className="relative grid grid-cols-[132px_1fr] gap-5 pb-6">
-          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right text-[12px] text-muted">
+          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right text-xs text-muted">
             {formatDateTime(delivery.deployedAt)}
           </time>
           <div className="relative border-l border-line pl-5">
-            <span className={cn("absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-bg", index === 0 ? "bg-st-done" : "bg-line-strong")} />
-            <p className="text-[14px] font-medium">{delivery.title}</p>
-            {delivery.notes && <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{delivery.notes}</p>}
-            <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px] text-muted">
+            <span className={cn("absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-bg", index === 0 ? "bg-done" : "bg-line-strong")} />
+            <p className="text-body font-medium">{delivery.title}</p>
+            {delivery.notes && <p className="mt-1 whitespace-pre-wrap text-ui leading-relaxed text-ink-2">{delivery.notes}</p>}
+            <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
               {delivery.author && (
                 <span className="flex items-center gap-1.5">
                   <Avatar name={delivery.author.name} color={delivery.author.color} size={16} /> {delivery.author.name}
@@ -256,17 +256,17 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
 
 function ActivityFeed({ activities }: { activities: ProjectData["activities"] }) {
   if (activities.length === 0) {
-    return <p className="mx-auto w-full max-w-3xl px-6 text-[13px] text-muted">Aucune activité pour l&apos;instant.</p>;
+    return <p className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 text-ui text-muted">Aucune activité pour l&apos;instant.</p>;
   }
   return (
-    <ol className="mx-auto w-full max-w-3xl space-y-3 px-6 pb-10">
+    <ol className="mx-auto w-full max-w-[var(--page-narrow)] space-y-3 px-4 sm:px-8 pb-10">
       {activities.map((activity) => (
-        <li key={activity.id} className="flex items-start gap-3 text-[13px]">
+        <li key={activity.id} className="flex items-start gap-3 text-ui">
           {activity.actor ? <Avatar name={activity.actor.name} color={activity.actor.color} size={22} /> : <span className="size-[22px]" />}
           <p className="min-w-0 flex-1 text-ink-2">
             <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
           </p>
-          <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)} className="shrink-0 text-[12px] text-faint">
+          <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)} className="shrink-0 text-xs text-muted">
             {timeAgo(activity.createdAt)}
           </time>
         </li>

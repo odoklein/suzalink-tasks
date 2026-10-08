@@ -20,7 +20,7 @@ function readRemembered() {
 
 type LoginState = { error?: string; at?: number } | undefined;
 
-const labelClass = "mb-2 block text-[14px] font-medium text-ink";
+const labelClass = "mb-2 block text-body font-medium text-ink";
 
 export function LoginForm() {
   const form = useRef<HTMLFormElement>(null);
@@ -44,9 +44,9 @@ export function LoginForm() {
       {knownEmail ? (
         <div>
           <p className={labelClass}>Votre email</p>
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2.5">
-            <span className="truncate text-[15px]">{knownEmail}</span>
-            <button type="button" onClick={() => setChanging(true)} className="shrink-0 text-[13px] font-medium text-accent hover:underline">
+          <div className="flex items-center justify-between gap-3 rounded-md bg-surface-2 px-3 py-2.5">
+            <span className="truncate text-body">{knownEmail}</span>
+            <button type="button" onClick={() => setChanging(true)} className="shrink-0 text-ui font-medium text-accent hover:underline">
               Changer
             </button>
           </div>
@@ -63,7 +63,7 @@ export function LoginForm() {
             required
             autoFocus
             placeholder="prenom@suzaliconseil.com"
-            className={`${fieldClass} py-2.5 text-[15px]`}
+            className={`${fieldClass} py-2.5 text-body`}
           />
         </div>
       )}
@@ -89,7 +89,7 @@ export function LoginForm() {
       </div>
 
       {state?.error && (
-        <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-[14px] text-danger">
+        <p role="alert" className="rounded-md bg-danger-soft px-3 py-2.5 text-body text-danger-text">
           {state.error}
         </p>
       )}
@@ -97,7 +97,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink py-3 text-[15px] font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-ink py-3 text-body font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-60"
       >
         {pending && <Loader2 className="size-4 animate-spin" />}
         {pending ? "Connexion…" : "Se connecter"}

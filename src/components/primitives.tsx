@@ -90,7 +90,7 @@ export function StatusPill({ status }: { status: TaskStatus }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
-      style={{ borderColor: `color-mix(in srgb, ${meta.tone} 35%, transparent)`, color: meta.tone }}
+      style={{ borderColor: `color-mix(in srgb, ${meta.tone} 35%, transparent)`, color: meta.text }}
     >
       <StatusIcon status={status} size={12} />
       {meta.label}
@@ -142,9 +142,9 @@ export function DueChip({ date, done = false }: { date: Date | string | null; do
   return (
     <span
       className={cn(
-        "tabular inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
-        tone === "overdue" && "bg-danger-soft text-danger",
-        tone === "soon" && "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
+        "tabular inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-meta font-medium",
+        tone === "overdue" && "bg-danger-soft text-danger-text",
+        tone === "soon" && "bg-waiting-soft text-waiting-text",
         tone === "muted" && "text-muted",
       )}
     >
@@ -160,7 +160,7 @@ export function DueChip({ date, done = false }: { date: Date | string | null; do
 export function ZoneChip({ zone }: { zone: string | null }) {
   if (!zone) return null;
   return (
-    <span className="inline-flex max-w-[11rem] items-center truncate rounded-md bg-sunken px-1.5 py-0.5 text-[11px] font-medium text-ink-2">
+    <span className="inline-flex max-w-[11rem] items-center truncate rounded-sm bg-sunken px-1.5 py-0.5 text-meta font-medium text-ink-2">
       {zone}
     </span>
   );
@@ -170,7 +170,7 @@ export function BillableBadge() {
   return (
     <span
       title="Hors périmètre : à facturer"
-      className="inline-flex items-center rounded-md border border-st-waiting/40 px-1 text-[11px] font-semibold text-st-waiting"
+      className="inline-flex items-center rounded-sm border border-waiting/40 px-1 text-meta font-semibold text-waiting-text"
     >
       €
     </span>
@@ -179,7 +179,7 @@ export function BillableBadge() {
 
 export function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex min-w-[1.25rem] items-center justify-center rounded border border-line bg-surface-2 px-1 font-mono text-[10px] font-medium text-muted">
+    <kbd className="inline-flex min-w-[1.25rem] items-center justify-center rounded-xs border border-line bg-surface-2 px-1 font-mono text-meta font-medium text-muted">
       {children}
     </kbd>
   );
@@ -189,7 +189,7 @@ export function ProjectTile({ color, label, size = 20 }: { color: string; label:
   return (
     <span
       style={{ backgroundColor: color, width: size, height: size, fontSize: size * 0.4 }}
-      className="inline-flex shrink-0 items-center justify-center rounded-[6px] font-mono font-semibold tracking-tight text-white"
+      className="inline-flex shrink-0 items-center justify-center rounded-sm font-mono font-semibold tracking-tight text-white"
     >
       {label.slice(0, 2)}
     </span>

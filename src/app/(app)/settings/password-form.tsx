@@ -33,7 +33,7 @@ export function PasswordForm() {
           <PinInput key={`confirm-${key}`} name="confirm" label="Confirmation du nouveau code" size="md" />
         </div>
       </div>
-      <p role="status" aria-live="polite" className={`min-h-[1.25rem] text-[13px] ${state?.error ? "text-danger" : "text-st-done"}`}>
+      <p role="status" aria-live="polite" className={`min-h-[1.25rem] text-ui ${state?.error ? "text-danger-text" : "text-done-text"}`}>
         {state?.error ?? state?.success}
       </p>
       <PrimaryButton type="submit" disabled={pending}>{pending ? "Enregistrement…" : "Changer le code"}</PrimaryButton>

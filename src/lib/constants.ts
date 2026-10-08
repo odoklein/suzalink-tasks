@@ -5,12 +5,14 @@ export const TASK_STATUSES: {
   label: string;
   short: string;
   tone: string;
+  /** Variante lisible comme texte (contraste AA) du ton solide. */
+  text: string;
 }[] = [
-  { value: "TODO", label: "À faire", short: "À faire", tone: "var(--st-todo)" },
-  { value: "IN_PROGRESS", label: "En cours", short: "En cours", tone: "var(--st-progress)" },
-  { value: "WAITING_CLIENT", label: "En attente client", short: "Attente client", tone: "var(--st-waiting)" },
-  { value: "REVIEW", label: "À valider", short: "À valider", tone: "var(--st-review)" },
-  { value: "DONE", label: "Fait", short: "Fait", tone: "var(--st-done)" },
+  { value: "TODO", label: "À faire", short: "À faire", tone: "var(--todo)", text: "var(--todo-text)" },
+  { value: "IN_PROGRESS", label: "En cours", short: "En cours", tone: "var(--progress)", text: "var(--progress-text)" },
+  { value: "WAITING_CLIENT", label: "En attente client", short: "Attente client", tone: "var(--waiting)", text: "var(--waiting-text)" },
+  { value: "REVIEW", label: "À valider", short: "À valider", tone: "var(--review)", text: "var(--review-text)" },
+  { value: "DONE", label: "Fait", short: "Fait", tone: "var(--done)", text: "var(--done-text)" },
 ];
 
 export const STATUS_BY_VALUE = Object.fromEntries(
@@ -29,11 +31,11 @@ export const PRIORITY_BY_VALUE = Object.fromEntries(
   PRIORITIES.map((priority) => [priority.value, priority]),
 ) as Record<Priority, (typeof PRIORITIES)[number]>;
 
-export const PROJECT_STATUSES: { value: ProjectStatus; label: string; tone: string }[] = [
-  { value: "ACTIVE", label: "En cours", tone: "var(--st-progress)" },
-  { value: "WAITING_CLIENT", label: "En attente client", tone: "var(--st-waiting)" },
-  { value: "PAUSED", label: "En pause", tone: "var(--st-todo)" },
-  { value: "DONE", label: "Livré", tone: "var(--st-done)" },
+export const PROJECT_STATUSES: { value: ProjectStatus; label: string; tone: string; text: string }[] = [
+  { value: "ACTIVE", label: "En cours", tone: "var(--progress)", text: "var(--progress-text)" },
+  { value: "WAITING_CLIENT", label: "En attente client", tone: "var(--waiting)", text: "var(--waiting-text)" },
+  { value: "PAUSED", label: "En pause", tone: "var(--todo)", text: "var(--todo-text)" },
+  { value: "DONE", label: "Livré", tone: "var(--done)", text: "var(--done-text)" },
 ];
 
 export const PROJECT_STATUS_BY_VALUE = Object.fromEntries(

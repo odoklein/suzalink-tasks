@@ -40,11 +40,11 @@ export default async function ProjectsPage() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-      <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto max-w-[var(--page-wide)] px-4 py-6 sm:px-8 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-[28px] font-semibold tracking-tight">Projets</h1>
-            <p className="mt-1 text-[14px] text-muted">
+            <h1 className="font-display text-h1 font-semibold tracking-tight">Projets</h1>
+            <p className="mt-1 text-body text-muted">
               {live.length} en cours
               {waitingTotal > 0 && <> · {waitingTotal} tâche{waitingTotal > 1 ? "s" : ""} bloquée{waitingTotal > 1 ? "s" : ""} chez les clients</>}
             </p>
@@ -53,9 +53,9 @@ export default async function ProjectsPage() {
         </div>
 
         {projects.length === 0 && (
-          <div className="mt-10 rounded-xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
-            <p className="text-[18px] font-semibold tracking-[-0.01em]">Aucun projet</p>
-            <p className="mt-1 text-[13px] text-muted">Créez le premier projet pour commencer à suivre les tâches.</p>
+          <div className="mt-10 rounded-lg border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
+            <p className="text-title font-semibold tracking-[-0.01em]">Aucun projet</p>
+            <p className="mt-1 text-ui text-muted">Créez le premier projet pour commencer à suivre les tâches.</p>
             <div className="mt-5 flex justify-center">
               <NewProjectButton />
             </div>
@@ -80,7 +80,7 @@ export default async function ProjectsPage() {
               <section key={group.value} aria-label={group.label}>
                 {delivered ? (
                   <details className="group/details">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-faint [&::-webkit-details-marker]:hidden">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted [&::-webkit-details-marker]:hidden">
                       <ChevronRight className="size-3.5 transition-transform group-open/details:rotate-90" />
                       <GroupTitle label={group.label} tone={group.tone} count={group.projects.length} />
                     </summary>
@@ -88,7 +88,7 @@ export default async function ProjectsPage() {
                   </details>
                 ) : (
                   <>
-                    <h2 className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-faint">
+                    <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                       <GroupTitle label={group.label} tone={group.tone} count={group.projects.length} />
                     </h2>
                     {list}
@@ -130,36 +130,36 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
   return (
     <Link
       href={`/projects/${project.slug}`}
-      className="group flex h-full flex-col rounded-xl border border-line bg-surface p-5 shadow-card transition-[border-color,transform] hover:-translate-y-0.5 hover:border-line-strong"
+      className="group flex h-full flex-col rounded-lg border border-line bg-surface p-5 shadow-card transition-[border-color,transform] hover:-translate-y-0.5 hover:border-line-strong"
     >
       <div className="flex items-start gap-3">
         <ProjectTile color={project.color} label={project.key} size={34} />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[17px] font-semibold tracking-[-0.01em] group-hover:text-accent">{project.name}</h3>
-          <p className="truncate text-[12px] text-muted">
+          <h3 className="truncate text-title font-semibold tracking-[-0.01em] group-hover:text-accent">{project.name}</h3>
+          <p className="truncate text-xs text-muted">
             {[project.client?.name, project.endClient].filter(Boolean).join(" · ") || "Projet interne"}
           </p>
         </div>
         <span
-          className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-          style={{ color: status.tone, backgroundColor: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}
+          className="shrink-0 rounded-full px-2 py-0.5 text-meta font-medium"
+          style={{ color: status.text, backgroundColor: `color-mix(in srgb, ${status.tone} 12%, transparent)` }}
         >
           {status.label}
         </span>
       </div>
 
       {project.statusNote ? (
-        <p className={cn("mt-4 rounded-lg bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-ink-2", compact ? "line-clamp-2" : "line-clamp-5")}>
+        <p className={cn("mt-4 rounded-md bg-surface-2 px-3 py-2 text-xs leading-relaxed text-ink-2", compact ? "line-clamp-2" : "line-clamp-5")}>
           {project.statusNote}
-          {project.statusNoteAt && <span className="ml-1.5 whitespace-nowrap text-[11px] text-faint">· {timeAgo(project.statusNoteAt)}</span>}
+          {project.statusNoteAt && <span className="ml-1.5 whitespace-nowrap text-meta text-muted">· {timeAgo(project.statusNoteAt)}</span>}
         </p>
       ) : (
-        !compact && <p className="mt-4 rounded-lg border border-dashed border-line px-3 py-2 text-[12px] text-faint">Pas encore de point d&apos;étape</p>
+        !compact && <p className="mt-4 rounded-md border border-dashed border-line px-3 py-2 text-xs text-muted">Pas encore de point d&apos;étape</p>
       )}
 
       {!compact && (
         <div className="mt-4">
-          <div className="flex items-baseline justify-between text-[12px]">
+          <div className="flex items-baseline justify-between text-xs">
             <span className="text-muted">Avancement</span>
             <span className="tabular font-medium">
               {done}/{total}
@@ -177,9 +177,9 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
         </div>
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-4 text-[12px] text-muted">
+      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-4 text-xs text-muted">
         {waitingTasks.length > 0 && (
-          <span className={cn("flex items-center gap-1 font-medium text-st-waiting", oldestWaiting >= 5 && "rounded-md bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] px-1.5 py-0.5")}>
+          <span className={cn("flex items-center gap-1 font-medium text-waiting-text", oldestWaiting >= 5 && "rounded-sm bg-waiting-soft px-1.5 py-0.5")}>
             <Hourglass className="size-3.5" />
             {waitingTasks.length} chez le client{oldestWaiting >= 1 && ` · ${oldestWaiting} j`}
           </span>

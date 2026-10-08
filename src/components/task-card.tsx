@@ -35,13 +35,13 @@ export function TaskCard({
         if (event.key === "Enter") openTask(task.id);
       }}
       className={cn(
-        "group cursor-pointer rounded-lg border border-line bg-surface p-3 shadow-card transition-[border-color,box-shadow]",
+        "group cursor-pointer rounded-md border border-line bg-surface p-3 shadow-card transition-[border-color,box-shadow]",
         "hover:border-line-strong",
         dragging && "rotate-[1.5deg] border-accent shadow-pop",
       )}
     >
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] text-faint">
+        <span className="font-mono text-meta text-muted">
           {projectKey}-{task.number}
         </span>
         {task.billable && <BillableBadge />}
@@ -49,7 +49,7 @@ export function TaskCard({
           <PriorityIcon priority={task.priority} />
         </span>
       </div>
-      <p className={cn("mt-1.5 line-clamp-3 text-[13px] font-medium leading-snug", done && "text-muted line-through decoration-faint")}>
+      <p className={cn("mt-1.5 line-clamp-3 text-ui font-medium leading-snug", done && "text-muted line-through decoration-faint")}>
         {task.title}
       </p>
       <div className="mt-2.5 flex items-center gap-1.5">
@@ -57,7 +57,7 @@ export function TaskCard({
         <DueChip date={task.dueDate} done={done} />
         <span className="ml-auto flex items-center gap-2">
           {task._count.comments > 0 && (
-            <span className="tabular flex items-center gap-0.5 text-[11px] text-muted">
+            <span className="tabular flex items-center gap-0.5 text-meta text-muted">
               <MessageSquare className="size-3" />
               {task._count.comments}
             </span>

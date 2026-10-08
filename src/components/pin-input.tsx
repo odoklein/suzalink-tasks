@@ -86,9 +86,9 @@ export function PinInput({
               }
             }}
             className={cn(
-              "tabular w-full min-w-0 rounded-xl border bg-surface text-center font-mono font-semibold text-ink caret-accent outline-none transition-[border-color,box-shadow,transform]",
+              "tabular w-full min-w-0 rounded-lg border bg-surface text-center font-mono font-semibold text-ink caret-accent outline-none transition-[border-color,box-shadow,transform]",
               "focus:border-accent focus:shadow-[0_0_0_4px_var(--accent-soft)]",
-              size === "lg" ? "h-14 text-[22px]" : "h-11 text-[18px]",
+              size === "lg" ? "h-14 text-h2" : "h-11 text-title",
               digit ? "border-line-strong" : "border-line",
               invalid && "border-danger focus:border-danger",
             )}

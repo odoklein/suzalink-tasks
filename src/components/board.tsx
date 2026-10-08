@@ -164,20 +164,20 @@ function Column({
     <section
       aria-label={label}
       className={cn(
-        "flex w-[296px] shrink-0 flex-col rounded-xl bg-sunken/70 transition-colors",
+        "flex w-[296px] shrink-0 flex-col rounded-lg bg-sunken/70 transition-colors",
         isOver && "bg-accent-soft/60",
-        status === "WAITING_CLIENT" && "bg-[color-mix(in_srgb,var(--st-waiting)_7%,var(--sunken))]",
+        status === "WAITING_CLIENT" && "bg-waiting-soft/60",
       )}
     >
       <header className="flex items-center gap-2 px-3 pb-2 pt-3">
         <StatusIcon status={status} />
-        <h3 className="text-[13px] font-semibold">{label}</h3>
-        <span className="tabular text-[12px] text-muted">{tasks.length}</span>
+        <h3 className="text-ui font-semibold">{label}</h3>
+        <span className="tabular text-xs text-muted">{tasks.length}</span>
         <button
           type="button"
           onClick={() => setAdding(true)}
           aria-label={`Ajouter une tâche dans « ${label} »`}
-          className="ml-auto rounded p-0.5 text-muted hover:bg-surface hover:text-ink"
+          className="ml-auto rounded-xs p-0.5 text-muted hover:bg-surface hover:text-ink"
         >
           <Plus className="size-4" />
         </button>
@@ -192,7 +192,7 @@ function Column({
             <SortableCard key={task.id} task={task} projectKey={projectKey} />
           ))}
           {tasks.length === 0 && !adding && (
-            <p className="mx-1 mt-1 rounded-lg border border-dashed border-line-strong px-3 py-5 text-center text-[12px] text-faint">
+            <p className="mx-1 mt-1 rounded-md border border-dashed border-line-strong px-3 py-5 text-center text-xs text-muted">
               Déposez une tâche ici
             </p>
           )}

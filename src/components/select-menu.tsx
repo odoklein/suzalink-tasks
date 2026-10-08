@@ -89,7 +89,7 @@ export function SelectMenu<T extends string>({
           setOpen((current) => !current);
           setActive(Math.max(0, options.findIndex((option) => option.value === value)));
         }}
-        className="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[13px] text-ink-2 transition-colors hover:bg-sunken"
+        className="flex min-w-0 items-center gap-2 rounded-sm px-1.5 py-1 text-left text-ui text-ink-2 transition-colors hover:bg-sunken"
       >
         {trigger}
       </button>
@@ -97,7 +97,7 @@ export function SelectMenu<T extends string>({
       {open && (
         <div
           className={cn(
-            "animate-pop-in absolute top-full z-50 mt-1 w-56 overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-pop",
+            "animate-pop-in absolute top-full z-popover mt-1 w-56 overflow-hidden rounded-md border border-line bg-surface p-1 shadow-pop",
             align === "end" ? "right-0" : "left-0",
           )}
           onClick={(event) => event.stopPropagation()}
@@ -112,7 +112,7 @@ export function SelectMenu<T extends string>({
               }}
               placeholder="Filtrer…"
               aria-label={`Filtrer : ${label}`}
-              className="mb-1 w-full rounded-md bg-surface-2 px-2 py-1.5 text-[13px] outline-none placeholder:text-faint"
+              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-none placeholder:text-faint"
             />
           )}
           <ul id={listId} role="listbox" aria-label={label} className="max-h-64 overflow-y-auto scroll-thin">
@@ -124,17 +124,17 @@ export function SelectMenu<T extends string>({
                 onMouseEnter={() => setActive(index)}
                 onClick={() => choose(option)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px]",
+                  "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-ui",
                   index === active && "bg-sunken",
                 )}
               >
                 {option.icon}
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                {option.hint && <span className="text-[11px] text-faint">{option.hint}</span>}
+                {option.hint && <span className="text-meta text-muted">{option.hint}</span>}
                 {option.value === value && <Check className="size-3.5 text-accent" />}
               </li>
             ))}
-            {filtered.length === 0 && <li className="px-2 py-2 text-[13px] text-muted">Aucun résultat</li>}
+            {filtered.length === 0 && <li className="px-2 py-2 text-ui text-muted">Aucun résultat</li>}
           </ul>
           {!searchable && (
             // Focus sur la liste pour que les flèches fonctionnent sans champ de recherche

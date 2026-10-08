@@ -54,21 +54,21 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
             onChange={(event) => setText(event.target.value)}
             rows={6}
             placeholder={"Date\tPage\tRetour\tCommentaire\tÉtat\n05/10\tHomepage\tInsérer la vidéo dans le bloc…\t\tPas fait"}
-            className={cn(fieldClass, "font-mono text-[12px]")}
+            className={cn(fieldClass, "font-mono text-xs")}
           />
         </div>
 
         {rows.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-line">
-            <p className="border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2">
+          <div className="overflow-hidden rounded-md border border-line">
+            <p className="border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink-2">
               {rows.length} tâche{rows.length > 1 ? "s" : ""} à créer
             </p>
             <ul className="max-h-56 overflow-y-auto scroll-thin">
               {rows.map((row, index) => (
-                <li key={index} className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[12px] last:border-b-0">
+                <li key={index} className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-xs last:border-b-0">
                   <StatusIcon status={row.status} size={13} />
                   <span className="w-20 shrink-0 truncate text-muted">{STATUS_BY_VALUE[row.status].short}</span>
-                  {row.zone && <span className="max-w-[8rem] shrink-0 truncate rounded bg-sunken px-1.5 py-0.5 text-[11px]">{row.zone}</span>}
+                  {row.zone && <span className="max-w-[8rem] shrink-0 truncate rounded-xs bg-sunken px-1.5 py-0.5 text-meta">{row.zone}</span>}
                   <span className="min-w-0 flex-1 truncate">{row.title}</span>
                 </li>
               ))}
@@ -152,11 +152,11 @@ export function RecapDialog({
         {text && (
           <>
             {counts && (
-              <p className="text-[12px] text-muted">
+              <p className="text-xs text-muted">
                 {counts.done} faites · {counts.waiting} en attente client · {counts.remaining} en cours
               </p>
             )}
-            <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-[13px] leading-relaxed")} />
+            <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-ui leading-relaxed")} />
             <div className="flex justify-end">
               <PrimaryButton type="button" onClick={copy}>
                 {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
@@ -266,14 +266,14 @@ export function NewProjectDialog() {
 
         <fieldset>
           <legend className={labelClass}>Client ou agence</legend>
-          <div className="mb-2 flex gap-1 text-[12px]">
+          <div className="mb-2 flex gap-1 text-xs">
             {(["existing", "new"] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 disabled={mode === "existing" && clients.length === 0}
                 onClick={() => setClientMode(mode)}
-                className={cn("rounded-md px-2.5 py-1 font-medium disabled:opacity-40", clientMode === mode ? "bg-sunken text-ink" : "text-muted")}
+                className={cn("rounded-sm px-2.5 py-1 font-medium disabled:opacity-40", clientMode === mode ? "bg-sunken text-ink" : "text-muted")}
               >
                 {mode === "existing" ? "Existant" : "Nouveau"}
               </button>
@@ -324,13 +324,13 @@ export function NewProjectDialog() {
                 aria-pressed={color === swatch}
                 onClick={() => setColor(swatch)}
                 style={{ backgroundColor: swatch }}
-                className={cn("size-6 rounded-md transition-transform", color === swatch && "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-surface")}
+                className={cn("size-6 rounded-sm transition-transform", color === swatch && "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-surface")}
               />
             ))}
           </div>
         </div>
 
-        {state?.error && <p className="text-[13px] text-danger">{state.error}</p>}
+        {state?.error && <p className="text-ui text-danger-text">{state.error}</p>}
         <div className="flex justify-end gap-2 pt-1">
           <GhostButton type="button" onClick={() => setNewProjectOpen(false)}>Annuler</GhostButton>
           <PrimaryButton type="submit" disabled={pending}>{pending ? "Création…" : "Créer le projet"}</PrimaryButton>

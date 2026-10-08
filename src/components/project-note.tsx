@@ -60,12 +60,12 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
               setEditing(false);
             }
           }}
-          className="w-full resize-none rounded-lg border border-accent bg-surface px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-faint"
+          className="w-full resize-none rounded-md border border-accent bg-surface px-3 py-2 text-ui leading-relaxed outline-none placeholder:text-faint"
         />
         <div className="mt-1.5 flex items-center gap-2">
-          <PrimaryButton type="button" disabled={pending} onClick={save} className="px-3 py-1.5 text-[12px]">Enregistrer</PrimaryButton>
-          <GhostButton type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-[12px]">Annuler</GhostButton>
-          <span className="ml-auto text-[11px] text-faint">Ctrl + Entrée pour enregistrer · {draft.length}/600</span>
+          <PrimaryButton type="button" disabled={pending} onClick={save} className="px-3 py-1.5 text-xs">Enregistrer</PrimaryButton>
+          <GhostButton type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs">Annuler</GhostButton>
+          <span className="ml-auto text-meta text-muted">Ctrl + Entrée pour enregistrer · {draft.length}/600</span>
         </div>
       </div>
     );
@@ -76,13 +76,13 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
       type="button"
       onClick={start}
       className={cn(
-        "group mt-3 block w-full max-w-3xl rounded-lg px-3 py-2 text-left transition-colors",
+        "group mt-3 block w-full max-w-3xl rounded-md px-3 py-2 text-left transition-colors",
         saved ? "bg-surface-2 hover:bg-sunken" : "border border-dashed border-line-strong text-muted hover:border-accent hover:text-ink",
       )}
     >
       {saved ? (
         <>
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
+          <span className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-wider text-muted">
             Point d&apos;étape
             {noteAt && (
               <span className="font-normal normal-case tracking-normal" title={formatDateTime(noteAt)} suppressHydrationWarning>
@@ -91,10 +91,10 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
             )}
             <Pencil className="ml-auto size-3 opacity-0 transition-opacity group-hover:opacity-100" />
           </span>
-          <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">{saved}</span>
+          <span className="mt-0.5 block text-ui leading-relaxed text-ink-2">{saved}</span>
         </>
       ) : (
-        <span className="flex items-center gap-2 text-[13px]">
+        <span className="flex items-center gap-2 text-ui">
           <Pencil className="size-3.5" /> Ajouter un point d&apos;étape : où on en est, et la prochaine action
         </span>
       )}

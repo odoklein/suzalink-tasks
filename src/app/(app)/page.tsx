@@ -126,14 +126,14 @@ export default async function TodayPage() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-      <div className="mx-auto max-w-[1220px] px-4 pb-12 pt-6 sm:px-8 sm:pt-8">
+      <div className="mx-auto max-w-[var(--page-wide)] px-4 pb-12 pt-6 sm:px-8 sm:pt-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[13px] font-medium capitalize text-muted">{parisDate}</p>
-            <h1 className="mt-1 font-display text-[32px] font-semibold leading-tight tracking-tight">
+            <p className="text-ui font-medium capitalize text-muted">{parisDate}</p>
+            <h1 className="mt-1 font-display text-hero font-semibold leading-tight tracking-tight">
               {greeting} {firstName}
             </h1>
-            <p className="mt-1 text-[14px] text-ink-2">
+            <p className="mt-1 text-body text-ink-2">
               {summary.length ? `${summary.join(" · ")}.` : "Rien d'urgent : bonne journée pour avancer."}
             </p>
           </div>
@@ -144,37 +144,37 @@ export default async function TodayPage() {
         <section aria-label="Chiffres clés" className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat
             icon={<AlarmClock className="size-4" />}
-            tone={overdue.length ? "var(--danger)" : "var(--st-todo)"}
+            tone={overdue.length ? "var(--danger)" : "var(--todo)"}
             label="En retard"
             value={overdue.length}
             hint={overdue.length ? "À traiter en premier" : "Rien en retard"}
           />
-          <Stat icon={<CalendarDays className="size-4" />} tone="var(--st-progress)" label="Aujourd'hui" value={dueToday.length} hint={`${thisWeek.length} d'ici 7 jours`} />
+          <Stat icon={<CalendarDays className="size-4" />} tone="var(--progress)" label="Aujourd'hui" value={dueToday.length} hint={`${thisWeek.length} d'ici 7 jours`} />
           <Stat
             icon={<Hourglass className="size-4" />}
-            tone="var(--st-waiting)"
+            tone="var(--waiting)"
             label="Chez le client"
             value={waiting.length}
             hint={waiting.length ? `La plus ancienne : ${oldestWaitingDays} j` : "Rien en attente"}
           />
-          <Stat icon={<Rocket className="size-4" />} tone="var(--st-done)" label="Mises en ligne" value={deliveredThisWeek} hint="Sur les 7 derniers jours" />
+          <Stat icon={<Rocket className="size-4" />} tone="var(--done)" label="Mises en ligne" value={deliveredThisWeek} hint="Sur les 7 derniers jours" />
         </section>
 
         {/* Les 7 prochains jours */}
-        <section aria-label="Les 7 prochains jours" className="mt-3 grid grid-cols-7 gap-1.5 rounded-xl border border-line bg-surface p-1.5 shadow-card">
+        <section aria-label="Les 7 prochains jours" className="mt-3 grid grid-cols-7 gap-1.5 rounded-lg border border-line bg-surface p-1.5 shadow-card">
           {week.map(({ day, tasks }, index) => (
             <div
               key={day.toISOString()}
               title={tasks.map((task) => `${task.project.key}-${task.number} ${task.title}`).join("\n") || "Aucune échéance"}
-              className={cn("rounded-lg px-2.5 py-2", index === 0 ? "bg-ink text-bg" : "hover:bg-surface-2")}
+              className={cn("rounded-md px-2.5 py-2", index === 0 ? "bg-ink text-bg" : "hover:bg-surface-2")}
             >
-              <p className={cn("text-[11px] font-medium capitalize", index === 0 ? "text-bg/70" : "text-muted")}>
+              <p className={cn("text-meta font-medium capitalize", index === 0 ? "text-bg/70" : "text-muted")}>
                 {index === 0 ? "Auj." : format(day, "EEE", { locale: fr })}
               </p>
               <div className="mt-0.5 flex items-baseline justify-between gap-2">
-                <span className="tabular text-[18px] font-semibold">{format(day, "d")}</span>
+                <span className="tabular text-title font-semibold">{format(day, "d")}</span>
                 {tasks.length > 0 && (
-                  <span className={cn("tabular rounded-full px-1.5 text-[11px] font-semibold", index === 0 ? "bg-bg/15" : "bg-accent-soft text-accent")}>
+                  <span className={cn("tabular rounded-full px-1.5 text-meta font-semibold", index === 0 ? "bg-bg/15" : "bg-accent-soft text-accent")}>
                     {tasks.length}
                   </span>
                 )}
@@ -195,9 +195,9 @@ export default async function TodayPage() {
             <Group title="Cette semaine" tasks={thisWeek} />
             <Group title="Plus tard ou sans échéance" tasks={later} />
             {mine.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-10 text-center">
-                <p className="text-[18px] font-semibold tracking-[-0.01em]">Rien ne vous est attribué</p>
-                <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted">
+              <div className="rounded-lg border border-dashed border-line-strong bg-surface px-6 py-10 text-center">
+                <p className="text-title font-semibold tracking-[-0.01em]">Rien ne vous est attribué</p>
+                <p className="mx-auto mt-1 max-w-sm text-ui text-muted">
                   {unassignedCount > 0
                     ? "Des tâches attendent un responsable juste en dessous : ouvrez-en une pour vous l'attribuer."
                     : "Tapez C pour créer une tâche, ou ouvrez un projet pour vous en attribuer."}
@@ -214,32 +214,32 @@ export default async function TodayPage() {
           </div>
 
           <aside className="space-y-5">
-            <Panel icon={<Hourglass className="size-4 text-st-waiting" />} title="Bloqué côté client" count={waiting.length} empty="Rien n'attend le client.">
+            <Panel icon={<Hourglass className="size-4 text-waiting-text" />} title="Bloqué côté client" count={waiting.length} empty="Rien n'attend le client.">
               {[...waitingByProject.values()].map((tasks) => (
                 <div key={tasks[0].project.slug} className="py-2.5 first:pt-0 last:pb-0">
-                  <Link href={`/projects/${tasks[0].project.slug}`} className="flex items-center gap-2 text-[13px] font-medium hover:underline">
+                  <Link href={`/projects/${tasks[0].project.slug}`} className="flex items-center gap-2 text-ui font-medium hover:underline">
                     <ProjectTile color={tasks[0].project.color} label={tasks[0].project.key} size={16} />
                     {tasks[0].project.name}
                     {tasks.some((task) => differenceInCalendarDays(now, task.statusChangedAt) >= 5) && (
-                      <span className="rounded bg-[color-mix(in_srgb,var(--st-waiting)_16%,transparent)] px-1.5 text-[10px] font-semibold uppercase tracking-wide text-st-waiting">
+                      <span className="rounded-xs bg-waiting-soft px-1.5 text-meta font-semibold uppercase tracking-wide text-waiting-text">
                         À relancer
                       </span>
                     )}
-                    <span className="tabular ml-auto text-[11px] font-normal text-muted">{tasks.length}</span>
+                    <span className="tabular ml-auto text-meta font-normal text-muted">{tasks.length}</span>
                   </Link>
                   <ul className="mt-1.5 space-y-1 pl-6">
                     {tasks.slice(0, 4).map((task) => {
                       const days = differenceInCalendarDays(now, task.statusChangedAt);
                       return (
-                        <li key={task.id} className="flex items-baseline gap-2 text-[12px]">
+                        <li key={task.id} className="flex items-baseline gap-2 text-xs">
                           <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
-                          <span className={cn("tabular shrink-0", days >= 5 ? "font-semibold text-st-waiting" : "text-faint")}>
+                          <span className={cn("tabular shrink-0", days >= 5 ? "font-semibold text-waiting-text" : "text-muted")}>
                             {days === 0 ? "auj." : `${days} j`}
                           </span>
                         </li>
                       );
                     })}
-                    {tasks.length > 4 && <li className="text-[11px] text-faint">+ {tasks.length - 4} autres</li>}
+                    {tasks.length > 4 && <li className="text-meta text-muted">+ {tasks.length - 4} autres</li>}
                   </ul>
                 </div>
               ))}
@@ -248,16 +248,16 @@ export default async function TodayPage() {
             <Panel icon={<StatusIcon status="REVIEW" size={16} />} title="À valider" count={review.length} empty="Rien à valider.">
               <ul className="space-y-1.5">
                 {review.map((task) => (
-                  <li key={task.id} className="flex items-center gap-2 text-[12px]">
+                  <li key={task.id} className="flex items-center gap-2 text-xs">
                     <ProjectTile color={task.project.color} label={task.project.key} size={14} />
                     <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
-                    <span className="font-mono text-[10px] text-faint">{task.project.key}-{task.number}</span>
+                    <span className="font-mono text-meta text-muted">{task.project.key}-{task.number}</span>
                   </li>
                 ))}
               </ul>
             </Panel>
 
-            <Panel icon={<span className="size-2 rounded-full bg-st-progress" />} title="Projets actifs" count={activeProjects.length} empty="Aucun projet actif.">
+            <Panel icon={<span className="size-2 rounded-full bg-progress" />} title="Projets actifs" count={activeProjects.length} empty="Aucun projet actif.">
               <ul className="space-y-3">
                 {activeProjects.map((project) => {
                   const total = project.tasks.length;
@@ -265,12 +265,12 @@ export default async function TodayPage() {
                   return (
                     <li key={project.id}>
                       <Link href={`/projects/${project.slug}`} className="group block">
-                        <div className="flex items-center gap-2 text-[12px]">
+                        <div className="flex items-center gap-2 text-xs">
                           <ProjectTile color={project.color} label={project.key} size={16} />
                           <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{project.name}</span>
                           <span className="tabular text-muted">{total ? Math.round((done / total) * 100) : 0} %</span>
                         </div>
-                        {project.statusNote && <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-muted">{project.statusNote}</p>}
+                        {project.statusNote && <p className="mt-1 line-clamp-2 text-meta leading-snug text-muted">{project.statusNote}</p>}
                         <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-sunken">
                           {TASK_STATUSES.slice()
                             .reverse()
@@ -289,7 +289,7 @@ export default async function TodayPage() {
             <Panel icon={<Users className="size-4 text-muted" />} title="Charge de l'équipe" count={teamLoad.length} empty="Aucun membre.">
               <ul className="space-y-2.5">
                 {teamLoad.map((member) => (
-                  <li key={member.id} className="flex items-center gap-2.5 text-[12px]">
+                  <li key={member.id} className="flex items-center gap-2.5 text-xs">
                     <Avatar name={member.name} color={member.color} size={20} />
                     <span className="w-24 shrink-0 truncate">{member.name.split(" ")[0]}</span>
                     <span className="flex h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-sunken">
@@ -301,12 +301,12 @@ export default async function TodayPage() {
               </ul>
             </Panel>
 
-            <Panel icon={<Rocket className="size-4 text-st-done" />} title="Dernières mises en ligne" count={deliveries.length} empty="Aucune mise en ligne enregistrée.">
+            <Panel icon={<Rocket className="size-4 text-done-text" />} title="Dernières mises en ligne" count={deliveries.length} empty="Aucune mise en ligne enregistrée.">
               <ol className="space-y-3">
                 {deliveries.map((delivery) => (
                   <li key={delivery.id} className="flex gap-2.5">
                     <ProjectTile color={delivery.project.color} label={delivery.project.key} size={16} />
-                    <div className="min-w-0 text-[12px]">
+                    <div className="min-w-0 text-xs">
                       <p className="truncate font-medium text-ink">{delivery.title}</p>
                       <p className="text-muted" title={formatDateTime(delivery.deployedAt)}>
                         {delivery.project.name} · {timeAgo(delivery.deployedAt)}
@@ -337,18 +337,18 @@ function Stat({
   hint: string;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 shadow-card">
-      <div className="flex items-center gap-2 text-[12px] font-medium text-muted">
+    <div className="rounded-lg border border-line bg-surface p-4 shadow-card">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted">
         <span
-          className="flex size-6 items-center justify-center rounded-md"
+          className="flex size-6 items-center justify-center rounded-sm"
           style={{ color: tone, backgroundColor: `color-mix(in srgb, ${tone} 12%, transparent)` }}
         >
           {icon}
         </span>
         {label}
       </div>
-      <p className="tabular mt-3 font-display text-[30px] font-semibold leading-none tracking-tight">{value}</p>
-      <p className="mt-1.5 text-[12px] text-muted">{hint}</p>
+      <p className="tabular mt-3 font-display text-hero font-semibold leading-none tracking-tight">{value}</p>
+      <p className="mt-1.5 text-xs text-muted">{hint}</p>
     </div>
   );
 }
@@ -371,19 +371,19 @@ function Group({
   if (tasks.length === 0) return null;
   return (
     <section>
-      <h2 className={cn("mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider", tone === "danger" ? "text-danger" : "text-faint")}>
+      <h2 className={cn("mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider", tone === "danger" ? "text-danger-text" : "text-muted")}>
         {icon}
         {title}
         <span className="tabular font-normal">{total ?? tasks.length}</span>
-        {hint && <span className="ml-1 hidden font-normal normal-case tracking-normal text-faint sm:inline">{hint}</span>}
+        {hint && <span className="ml-1 hidden font-normal normal-case tracking-normal text-muted sm:inline">{hint}</span>}
       </h2>
-      <ul className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+      <ul className="overflow-hidden rounded-lg border border-line bg-surface shadow-card">
         {tasks.map((task) => (
           <TaskRow key={task.id} task={task} projectKey={task.project.key} project={task.project} />
         ))}
       </ul>
       {total !== undefined && total > tasks.length && (
-        <p className="mt-1.5 text-[12px] text-faint">+ {total - tasks.length} autres, à retrouver dans les projets.</p>
+        <p className="mt-1.5 text-xs text-muted">+ {total - tasks.length} autres, à retrouver dans les projets.</p>
       )}
     </section>
   );
@@ -403,13 +403,13 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-4 shadow-card">
-      <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold">
+    <section className="rounded-lg border border-line bg-surface p-4 shadow-card">
+      <h2 className="mb-3 flex items-center gap-2 text-ui font-semibold">
         {icon}
         {title}
-        <span className="tabular ml-auto text-[12px] font-normal text-muted">{count}</span>
+        <span className="tabular ml-auto text-xs font-normal text-muted">{count}</span>
       </h2>
-      {count === 0 ? <p className="text-[12px] text-muted">{empty}</p> : <div className="divide-y divide-line">{children}</div>}
+      {count === 0 ? <p className="text-xs text-muted">{empty}</p> : <div className="divide-y divide-line">{children}</div>}
     </section>
   );
 }

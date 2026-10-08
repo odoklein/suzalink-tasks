@@ -45,22 +45,22 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
     <div className="mt-4">
       {issued && <IssuedPin issued={issued} onClose={() => setIssued(null)} />}
 
-      <ul className="divide-y divide-line rounded-lg border border-line">
+      <ul className="divide-y divide-line rounded-md border border-line">
         {members.map((member) => (
           <li key={member.id} className="flex items-center gap-3 px-3 py-2.5">
             <Avatar name={member.name} color={member.color} size={28} />
             <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-[13px] font-medium">
+              <p className="truncate text-ui font-medium">
                 {member.name}
-                {member.id === currentUserId && <span className="ml-1.5 text-[11px] font-normal text-faint">vous</span>}
+                {member.id === currentUserId && <span className="ml-1.5 text-meta font-normal text-muted">vous</span>}
               </p>
-              <p className="truncate text-[12px] text-muted">{member.email}</p>
+              <p className="truncate text-xs text-muted">{member.email}</p>
             </div>
-            {member.locked && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger">Bloqué</span>}
-            <span className="hidden text-[12px] text-muted sm:inline">
+            {member.locked && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-meta font-medium text-danger-text">Bloqué</span>}
+            <span className="hidden text-xs text-muted sm:inline">
               {member.openTasks} tâche{member.openTasks > 1 ? "s" : ""}
             </span>
-            <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-ink-2">
+            <span className="rounded-full bg-sunken px-2 py-0.5 text-meta font-medium text-ink-2">
               {member.role === "ADMIN" ? "Admin" : "Membre"}
             </span>
             {member.id !== currentUserId && (
@@ -69,7 +69,7 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
                 disabled={pendingReset}
                 onClick={() => reset(member)}
                 title="Générer un nouveau code (code oublié ou compte bloqué)"
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50"
               >
                 <KeyRound className="size-3.5" />
                 <span className="hidden sm:inline">Nouveau code</span>
@@ -79,8 +79,8 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
         ))}
       </ul>
 
-      <form key={formKey} action={action} className="mt-4 rounded-lg border border-dashed border-line-strong p-4">
-        <p className="flex items-center gap-2 text-[13px] font-semibold">
+      <form key={formKey} action={action} className="mt-4 rounded-md border border-dashed border-line-strong p-4">
+        <p className="flex items-center gap-2 text-ui font-semibold">
           <UserPlus className="size-4 text-muted" /> Ajouter un membre
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
@@ -102,9 +102,9 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <PrimaryButton type="submit" disabled={pending}>{pending ? "Création…" : "Créer le compte"}</PrimaryButton>
-          <p role="status" aria-live="polite" className="text-[12px] text-danger">{state?.error}</p>
+          <p role="status" aria-live="polite" className="text-xs text-danger-text">{state?.error}</p>
         </div>
-        <p className="mt-2 text-[12px] text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle le changera dans Paramètres.</p>
+        <p className="mt-2 text-xs text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle le changera dans Paramètres.</p>
       </form>
     </div>
   );
@@ -122,14 +122,14 @@ function IssuedPin({ issued, onClose }: { issued: Issued; onClose: () => void })
     }
   };
   return (
-    <div role="status" className="animate-pop-in mb-4 flex flex-wrap items-center gap-4 rounded-lg border border-accent/40 bg-accent-soft px-4 py-3">
+    <div role="status" className="animate-pop-in mb-4 flex flex-wrap items-center gap-4 rounded-md border border-accent/40 bg-accent-soft px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] text-ink-2">Code de {issued.name} : affiché une seule fois</p>
-        <p className="tabular mt-0.5 font-mono text-[26px] font-semibold tracking-[0.3em]">{issued.pin}</p>
+        <p className="text-xs text-ink-2">Code de {issued.name} : affiché une seule fois</p>
+        <p className="tabular mt-0.5 font-mono text-h1 font-semibold tracking-[0.3em]">{issued.pin}</p>
       </div>
       <div className="flex gap-2">
         <GhostButton type="button" onClick={copy}>
-          {copied ? <Check className="size-4 text-st-done" /> : <Copy className="size-4" />}
+          {copied ? <Check className="size-4 text-done-text" /> : <Copy className="size-4" />}
           {copied ? "Copié" : "Copier"}
         </GhostButton>
         <GhostButton type="button" onClick={onClose}>Fermer</GhostButton>

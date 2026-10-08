@@ -63,11 +63,11 @@ export function TaskRow({
         onClick={() => openTask(task.id)}
         className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left"
       >
-        <span className="w-12 shrink-0 font-mono text-[11px] text-faint">
+        <span className="w-12 shrink-0 font-mono text-meta text-muted">
           {projectKey}-{task.number}
         </span>
         {project && <ProjectTile color={project.color} label={projectKey} size={16} />}
-        <span className={cn("min-w-0 flex-1 truncate text-[13px]", done && "text-muted line-through decoration-faint")}>
+        <span className={cn("min-w-0 flex-1 truncate text-ui", done && "text-muted line-through decoration-faint")}>
           {task.title}
         </span>
         {task.billable && <BillableBadge />}
@@ -77,7 +77,7 @@ export function TaskRow({
           </span>
         )}
         {task._count.comments > 0 && (
-          <span className="tabular flex items-center gap-0.5 text-[11px] text-muted">
+          <span className="tabular flex items-center gap-0.5 text-meta text-muted">
             <MessageSquare className="size-3" />
             {task._count.comments}
           </span>

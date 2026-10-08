@@ -27,7 +27,7 @@ import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 const inputClass =
-  "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
+  "w-full rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-ui text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
 
 export function TaskDrawer() {
   const { openTaskId, closeTask, team } = useApp();
@@ -81,11 +81,11 @@ export function TaskDrawer() {
 
   return (
     <>
-      <div className="animate-fade-in fixed inset-0 z-40 bg-[rgb(10_12_16/0.18)]" onMouseDown={closeTask} />
+      <div className="animate-fade-in fixed inset-0 z-drawer bg-[rgb(10_12_16/0.18)]" onMouseDown={closeTask} />
       <aside
         role="dialog"
         aria-label="Détail de la tâche"
-        className="animate-slide-in fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col border-l border-line bg-surface shadow-pop"
+        className="animate-slide-in fixed inset-y-0 right-0 z-drawer flex w-full max-w-[var(--drawer-w)] flex-col border-l border-line bg-surface shadow-pop"
       >
         {!task || loading ? (
           <DrawerSkeleton onClose={closeTask} />
@@ -96,12 +96,12 @@ export function TaskDrawer() {
               <Link
                 href={`/projects/${task.project.slug}`}
                 onClick={closeTask}
-                className="flex items-center gap-1 text-[13px] text-muted hover:text-ink"
+                className="flex items-center gap-1 text-ui text-muted hover:text-ink"
               >
                 {task.project.name}
                 <ArrowUpRight className="size-3" />
               </Link>
-              <span className="font-mono text-[12px] text-faint">
+              <span className="font-mono text-xs text-muted">
                 {task.project.key}-{task.number}
               </span>
               <div className="ml-auto flex items-center gap-1">
@@ -114,7 +114,7 @@ export function TaskDrawer() {
                     })
                   }
                 />
-                <button type="button" onClick={closeTask} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-ink">
+                <button type="button" onClick={closeTask} aria-label="Fermer" className="rounded-sm p-1.5 text-muted hover:bg-sunken hover:text-ink">
                   <X className="size-4" />
                 </button>
               </div>
@@ -173,7 +173,7 @@ export function TaskDrawer() {
                       ) : (
                         <>
                           <EmptyAvatar size={18} />
-                          <span className="text-faint">Personne</span>
+                          <span className="text-muted">Personne</span>
                         </>
                       )
                     }
@@ -195,12 +195,12 @@ export function TaskDrawer() {
                   <InlineInput value={task.source ?? ""} placeholder="Retours du 06/10…" onSave={(source) => patch({ source })} />
                 </Prop>
                 <Prop label="Hors périmètre">
-                  <label className="flex cursor-pointer items-center gap-2 px-1.5 py-1 text-[13px] text-ink-2">
+                  <label className="flex cursor-pointer items-center gap-2 px-1.5 py-1 text-ui text-ink-2">
                     <input
                       type="checkbox"
                       checked={task.billable}
                       onChange={(event) => patch({ billable: event.target.checked })}
-                      className="size-4 accent-[var(--st-waiting)]"
+                      className="size-4 accent-[var(--waiting)]"
                     />
                     {task.billable ? "À facturer en supplément" : "Non"}
                   </label>
@@ -208,7 +208,7 @@ export function TaskDrawer() {
               </dl>
 
               <section className="mt-5 border-t border-line px-5 pt-4">
-                <h3 className="mb-1.5 text-[12px] font-semibold uppercase tracking-wider text-faint">Description</h3>
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">Description</h3>
                 <DescriptionField
                   key={task.id}
                   value={task.description ?? ""}
@@ -217,7 +217,7 @@ export function TaskDrawer() {
               </section>
 
               <section className="mt-5 border-t border-line px-5 pb-6 pt-4">
-                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-faint">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
                   Commentaires {task.comments.length > 0 && <span className="tabular">({task.comments.length})</span>}
                 </h3>
                 <ol className="space-y-4">
@@ -225,10 +225,10 @@ export function TaskDrawer() {
                     <li key={comment.id} className="flex gap-3">
                       {comment.author ? <Avatar name={comment.author.name} color={comment.author.color} size={24} /> : <EmptyAvatar size={24} />}
                       <div className="min-w-0 flex-1">
-                        <p className="text-[12px] text-muted">
+                        <p className="text-xs text-muted">
                           <span className="font-medium text-ink">{comment.author?.name ?? "Ancien membre"}</span> · {timeAgo(comment.createdAt)}
                         </p>
-                        <p className="mt-0.5 whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{comment.body}</p>
+                        <p className="mt-0.5 whitespace-pre-wrap text-ui leading-relaxed text-ink-2">{comment.body}</p>
                       </div>
                     </li>
                   ))}
@@ -247,10 +247,10 @@ export function TaskDrawer() {
 
                 {task.activities.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-faint">Historique</h3>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Historique</h3>
                     <ol className="space-y-1.5 border-l border-line pl-3">
                       {task.activities.map((activity) => (
-                        <li key={activity.id} className="text-[12px] text-muted">
+                        <li key={activity.id} className="text-xs text-muted">
                           <span className="text-ink-2">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message} ·{" "}
                           <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)}>
                             {timeAgo(activity.createdAt)}
@@ -260,7 +260,7 @@ export function TaskDrawer() {
                     </ol>
                   </div>
                 )}
-                <p className="mt-4 text-[11px] text-faint">
+                <p className="mt-4 text-meta text-muted">
                   Créée {task.creator ? `par ${task.creator.name} ` : ""}le {formatDateTime(task.createdAt)}
                 </p>
               </section>
@@ -275,7 +275,7 @@ export function TaskDrawer() {
 function Prop({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <>
-      <dt className="py-1 text-[12px] text-muted">{label}</dt>
+      <dt className="py-1 text-xs text-muted">{label}</dt>
       <dd className="min-w-0">{children}</dd>
     </>
   );
@@ -305,7 +305,7 @@ function TitleField({ value, onSave }: { value: string; onSave: (value: string) 
           (event.target as HTMLTextAreaElement).blur();
         }
       }}
-      className="w-full resize-none bg-transparent text-[21px] font-semibold leading-snug tracking-[-0.01em] outline-none"
+      className="w-full resize-none bg-transparent text-h2 font-semibold leading-snug tracking-[-0.01em] outline-none"
     />
   );
 }
@@ -335,7 +335,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (value: st
       aria-label="Description"
       onChange={(event) => setDraft(event.target.value)}
       onBlur={() => onSave(draft)}
-      className="w-full resize-none rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] leading-relaxed text-ink-2 outline-none placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface"
+      className="w-full resize-none rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-ui leading-relaxed text-ink-2 outline-none placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface"
     />
   );
 }
@@ -348,7 +348,7 @@ function CommentComposer({ onSubmit }: { onSubmit: (body: string) => Promise<boo
       if (await onSubmit(body)) setBody("");
     });
   return (
-    <div className="mt-4 rounded-lg border border-line bg-surface-2 focus-within:border-accent">
+    <div className="mt-4 rounded-md border border-line bg-surface-2 focus-within:border-accent">
       <textarea
         value={body}
         rows={2}
@@ -361,15 +361,15 @@ function CommentComposer({ onSubmit }: { onSubmit: (body: string) => Promise<boo
         }}
         placeholder="Écrire un commentaire…"
         aria-label="Nouveau commentaire"
-        className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-faint"
+        className="w-full resize-none bg-transparent px-3 py-2 text-ui outline-none placeholder:text-faint"
       />
       <div className="flex items-center justify-between px-3 pb-2">
-        <span className="text-[11px] text-faint">Ctrl + Entrée pour envoyer</span>
+        <span className="text-meta text-muted">Ctrl + Entrée pour envoyer</span>
         <button
           type="button"
           disabled={pending || !body.trim()}
           onClick={send}
-          className="rounded-md bg-ink px-2.5 py-1 text-[12px] font-semibold text-bg disabled:opacity-40"
+          className="rounded-sm bg-ink px-2.5 py-1 text-xs font-semibold text-bg disabled:opacity-40"
         >
           Commenter
         </button>
@@ -386,11 +386,11 @@ function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
     return () => clearTimeout(timer);
   }, [armed]);
   return armed ? (
-    <button type="button" onClick={onConfirm} className="rounded-md bg-danger px-2 py-1 text-[12px] font-semibold text-white">
+    <button type="button" onClick={onConfirm} className="rounded-sm bg-danger px-2 py-1 text-xs font-semibold text-white">
       Confirmer la suppression
     </button>
   ) : (
-    <button type="button" onClick={() => setArmed(true)} aria-label="Supprimer la tâche" className="rounded-md p-1.5 text-muted hover:bg-danger-soft hover:text-danger">
+    <button type="button" onClick={() => setArmed(true)} aria-label="Supprimer la tâche" className="rounded-sm p-1.5 text-muted hover:bg-danger-soft hover:text-danger-text">
       <Trash2 className="size-4" />
     </button>
   );
@@ -400,14 +400,14 @@ function DrawerSkeleton({ onClose }: { onClose: () => void }) {
   return (
     <div className="p-5">
       <div className="flex justify-end">
-        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken">
+        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-sm p-1.5 text-muted hover:bg-sunken">
           <X className="size-4" />
         </button>
       </div>
-      <div className="mt-2 h-7 w-3/4 animate-pulse rounded-md bg-sunken" />
+      <div className="mt-2 h-7 w-3/4 animate-pulse rounded-sm bg-sunken" />
       <div className="mt-6 space-y-3">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="h-5 animate-pulse rounded bg-sunken" style={{ width: `${55 + ((index * 13) % 35)}%` }} />
+          <div key={index} className="h-5 animate-pulse rounded-xs bg-sunken" style={{ width: `${55 + ((index * 13) % 35)}%` }} />
         ))}
       </div>
     </div>

@@ -40,31 +40,31 @@ export default async function SettingsPage() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-      <div className="mx-auto max-w-[720px] px-4 py-6 sm:px-8 sm:py-8">
-        <h1 className="font-display text-[28px] font-semibold tracking-tight">Paramètres</h1>
+      <div className="mx-auto max-w-[var(--page-narrow)] px-4 py-6 sm:px-8 sm:py-8">
+        <h1 className="font-display text-h1 font-semibold tracking-tight">Paramètres</h1>
 
-        <section className="mt-6 flex items-center gap-4 rounded-xl border border-line bg-surface p-5 shadow-card">
+        <section className="mt-6 flex items-center gap-4 rounded-lg border border-line bg-surface p-5 shadow-card">
           <Avatar name={user.name} color={user.color} size={44} />
           <div>
-            <p className="text-[17px] font-semibold tracking-[-0.01em]">{user.name}</p>
-            <p className="text-[13px] text-muted">
+            <p className="text-title font-semibold tracking-[-0.01em]">{user.name}</p>
+            <p className="text-ui text-muted">
               {user.email} · {user.role === "ADMIN" ? "Administrateur" : "Membre"}
             </p>
           </div>
         </section>
 
-        <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
-          <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Code PIN</h2>
-          <p className="mt-1 text-[13px] text-muted">
+        <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-title font-semibold tracking-[-0.01em]">Code PIN</h2>
+          <p className="mt-1 text-ui text-muted">
             6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes.
           </p>
           <PasswordForm />
         </section>
 
         {user.role === "ADMIN" && (
-          <section className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-card">
-            <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Équipe</h2>
-            <p className="mt-1 text-[13px] text-muted">
+          <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
+            <h2 className="text-title font-semibold tracking-[-0.01em]">Équipe</h2>
+            <p className="mt-1 text-ui text-muted">
               Ajoutez un membre ou redonnez un code à quelqu&apos;un qui l&apos;a oublié ou dont le compte est bloqué.
             </p>
             <TeamSection members={members} currentUserId={user.id} />

@@ -82,13 +82,6 @@
   --z-palette: 70;
   --z-popover: 75;
   --z-toast: 80;
-
-  /* Alias historiques (supprimés en P2-04) */
-  --st-todo: var(--todo);
-  --st-progress: var(--progress);
-  --st-waiting: var(--waiting);
-  --st-review: var(--review);
-  --st-done: var(--done);
 }
 
 :root[data-theme="light"] {
@@ -231,12 +224,6 @@
   --color-soon-text: var(--soon-text);
   --color-soon-soft: var(--soon-soft);
 
-  /* Alias historiques (supprimés en P2-04) */
-  --color-st-todo: var(--st-todo);
-  --color-st-progress: var(--st-progress);
-  --color-st-waiting: var(--st-waiting);
-  --color-st-review: var(--st-review);
-  --color-st-done: var(--st-done);
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display-face), var(--font-body), ui-sans-serif, sans-serif;

@@ -50,7 +50,7 @@ export function NewTaskDialog() {
       description="Entrée pour créer ; vous pouvez en enchaîner plusieurs."
     >
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-[13px] text-muted">
+        <div className="flex items-center gap-2 text-ui text-muted">
           Dans
           <SelectMenu<string>
             label="Projet"
@@ -71,7 +71,7 @@ export function NewTaskDialog() {
           />
         </div>
         <QuickAdd key={project.id} projectId={project.id} autoFocus placeholder="Titre de la tâche…" />
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-surface-2 px-3 py-2.5 text-[12px] text-muted">
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md bg-surface-2 px-3 py-2.5 text-xs text-muted">
           <li><Kbd>@odo</Kbd> assigner</li>
           <li><Kbd>!haute</Kbd> priorité</li>
           <li><Kbd>#homepage</Kbd> page</li>
