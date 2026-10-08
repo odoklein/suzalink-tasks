@@ -134,7 +134,15 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     >
       <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto px-6 pb-6 scroll-thin">
         {TASK_STATUSES.map((status) => (
-          <Column key={status.value} status={status.value} label={status.label} tasks={columns[status.value]} projectId={projectId} projectKey={projectKey} />
+          <Column
+            key={status.value}
+            status={status.value}
+            label={status.label}
+            tasks={columns[status.value]}
+            projectId={projectId}
+            projectKey={projectKey}
+            dragging={activeId !== null}
+          />
         ))}
       </div>
       <DragOverlay dropAnimation={{ duration: 160, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}>
@@ -150,12 +158,14 @@ function Column({
   tasks,
   projectId,
   projectKey,
+  dragging,
 }: {
   status: TaskStatus;
   label: string;
   tasks: TaskCardData[];
   projectId: string;
   projectKey: string;
+  dragging: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [adding, setAdding] = useState(false);
@@ -192,8 +202,13 @@ function Column({
             <SortableCard key={task.id} task={task} projectKey={projectKey} />
           ))}
           {tasks.length === 0 && !adding && (
-            <p className="mx-1 mt-1 rounded-md border border-dashed border-line-strong px-3 py-5 text-center text-xs text-muted">
-              Déposez une tâche ici
+            <p
+              className={cn(
+                "mx-1 mt-1 rounded-md px-3 py-5 text-center text-xs text-muted",
+                dragging && "border border-dashed border-line-strong",
+              )}
+            >
+              {dragging ? "Déposez une tâche ici" : "Aucune tâche"}
             </p>
           )}
         </div>

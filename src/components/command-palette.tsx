@@ -54,7 +54,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="animate-fade-in fixed inset-0 z-palette flex items-start justify-center bg-[rgb(10_12_16/0.42)] px-4 pt-[14vh] backdrop-blur-[2px]"
+      className="animate-fade-in fixed inset-0 z-palette flex items-start justify-center bg-[var(--scrim)] px-4 pt-[14vh] backdrop-blur-[2px]"
       onMouseDown={close}
     >
       <Command

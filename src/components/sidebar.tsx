@@ -54,7 +54,7 @@ export function Sidebar() {
 
   return (
     <>
-      {navOpen && <div className="animate-fade-in fixed inset-0 z-sidebar bg-[rgb(10_12_16/0.4)] md:hidden" onClick={close} aria-hidden="true" />}
+      {navOpen && <div className="animate-fade-in fixed inset-0 z-sidebar bg-[var(--scrim)] md:hidden" onClick={close} aria-hidden="true" />}
       <aside
         aria-label="Menu"
         className={cn(

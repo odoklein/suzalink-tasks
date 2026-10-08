@@ -40,9 +40,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" className={`${body.variable} ${display.variable} ${code.variable}`}>
       <body>
         {children}
+        {/* En bas au centre : ne couvre plus le bouton « Commenter » du tiroir. */}
         <Toaster
-          position="bottom-right"
+          position="bottom-center"
+          containerAriaLabel="Notifications"
           toastOptions={{
+            closeButtonAriaLabel: "Fermer",
             style: {
               background: "var(--surface)",
               color: "var(--ink)",

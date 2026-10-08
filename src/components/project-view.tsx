@@ -17,6 +17,7 @@ import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
+import { formatParis } from "@/lib/time";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 export type ProjectTab = "tableau" | "liste" | "mises-en-ligne" | "activite";
@@ -227,11 +228,14 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
   return (
     <ol className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 pb-10">
       {deliveries.map((delivery, index) => (
-        <li key={delivery.id} className="relative grid grid-cols-[132px_1fr] gap-5 pb-6">
-          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right text-xs text-muted">
-            {formatDateTime(delivery.deployedAt)}
+        <li key={delivery.id} className="grid grid-cols-[88px_1fr] gap-5">
+          {/* Deux lignes : « 7 oct. » en encre, « 15h21 » en discret ; heure de Paris des deux côtés. */}
+          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right text-xs leading-tight">
+            <span className="block font-medium text-ink">{formatParis(delivery.deployedAt, "d MMM")}</span>
+            <span className="block text-muted">{formatParis(delivery.deployedAt, "HH'h'mm")}</span>
           </time>
-          <div className="relative border-l border-line pl-5">
+          {/* La ligne est portée par la colonne de contenu, padding compris : plus de trous entre les items. */}
+          <div className={cn("relative border-l pb-6 pl-5", index === deliveries.length - 1 ? "border-transparent" : "border-line")}>
             <span className={cn("absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-bg", index === 0 ? "bg-done" : "bg-line-strong")} />
             <p className="text-body font-medium">{delivery.title}</p>
             {delivery.notes && <p className="mt-1 whitespace-pre-wrap text-ui leading-relaxed text-ink-2">{delivery.notes}</p>}
