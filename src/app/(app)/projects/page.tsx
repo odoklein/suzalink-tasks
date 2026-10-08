@@ -8,6 +8,8 @@ import { Avatar, DueChip, ProjectTile } from "@/components/primitives";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { formatPercent } from "@/lib/fr";
+import { plural } from "@/lib/plural";
 import { cn, timeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Projets" };
@@ -46,7 +48,7 @@ export default async function ProjectsPage() {
             <h1 className="font-display text-[28px] font-semibold tracking-tight">Projets</h1>
             <p className="mt-1 text-[14px] text-muted">
               {live.length} en cours
-              {waitingTotal > 0 && <> · {waitingTotal} tâche{waitingTotal > 1 ? "s" : ""} bloquée{waitingTotal > 1 ? "s" : ""} chez les clients</>}
+              {waitingTotal > 0 && <> · {plural(waitingTotal, "tâche")} chez les clients</>}
             </p>
           </div>
           <NewProjectButton />
@@ -163,7 +165,7 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
             <span className="text-muted">Avancement</span>
             <span className="tabular font-medium">
               {done}/{total}
-              <span className="ml-1.5 text-muted">{total ? Math.round((done / total) * 100) : 0} %</span>
+              <span className="ml-1.5 text-muted">{formatPercent(total ? done / total : 0)}</span>
             </span>
           </div>
           <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-sunken" role="img" aria-label={`${done} tâches faites sur ${total}`}>

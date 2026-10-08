@@ -123,3 +123,42 @@ export function parseFeedbackTable(text: string): ImportedRow[] {
     })
     .filter((row): row is NonNullable<typeof row> => row !== null);
 }
+
+export type PlannedTask = {
+  number: number;
+  title: string;
+  description?: string;
+  zone?: string;
+  status: TaskStatus;
+  source: string;
+  position: number;
+};
+
+/**
+ * Prépare les tâches d'un import en une seule passe : numéros contigus à partir de `firstNumber`
+ * et positions `base + 1000 × rang` par statut (`basePositions` : plus grande position actuelle de
+ * chaque colonne), donc sans doublon ni requête par ligne.
+ */
+export function planImport(
+  rows: ImportedRow[],
+  {
+    firstNumber,
+    basePositions,
+    sourceLabel,
+  }: { firstNumber: number; basePositions: Partial<Record<TaskStatus, number>>; sourceLabel: string },
+): PlannedTask[] {
+  const rank = new Map<TaskStatus, number>();
+  return rows.map((row, index) => {
+    const n = (rank.get(row.status) ?? 0) + 1;
+    rank.set(row.status, n);
+    return {
+      number: firstNumber + index,
+      title: row.title,
+      description: row.description,
+      zone: row.zone,
+      status: row.status,
+      source: sourceLabel.trim() || (row.date ? `Retours du ${row.date}` : "Retours client"),
+      position: (basePositions[row.status] ?? 0) + 1000 * n,
+    };
+  });
+}

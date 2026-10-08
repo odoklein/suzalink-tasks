@@ -1,18 +1,37 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { decrypt, SESSION_COOKIE } from "@/lib/session";
+import { readSession } from "@/lib/dal";
+import { db } from "@/lib/db";
+import { joinOr, NNBSP } from "@/lib/fr";
+import { safeNextPath } from "@/lib/next-path";
 
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
 
-export default async function LoginPage() {
+/** Prénoms des administrateurs actifs (lecture publique, noms seulement) pour « Code oublié ? ». */
+async function adminFirstNames() {
+  try {
+    const admins = await db.user.findMany({
+      where: { role: "ADMIN", active: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    });
+    return admins.map((admin) => admin.name.split(" ")[0]);
+  } catch {
+    return []; // base indisponible : la page de connexion s'affiche quand même
+  }
+}
+
+export default async function LoginPage(props: PageProps<"/login">) {
+  const { next: rawNext } = await props.searchParams;
+  const next = safeNextPath(Array.isArray(rawNext) ? rawNext[0] : rawNext);
   // Déjà connecté avec une session valide : direction l'accueil.
-  // (Un cookie invalide reste ici, sans boucle de redirection.)
-  const session = await decrypt((await cookies()).get(SESSION_COOKIE)?.value);
-  if (session?.userId) redirect("/");
+  // (Un cookie invalide ou révoqué reste ici, sans boucle de redirection.)
+  const session = await readSession();
+  if (session) redirect(next);
+  const admins = await adminFirstNames();
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">
@@ -26,11 +45,11 @@ export default async function LoginPage() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-line bg-surface p-6 shadow-card sm:p-7">
-          <LoginForm />
+          <LoginForm next={next} />
         </div>
 
         <p className="mt-6 text-center text-[13px] text-muted">
-          Code oublié ? Demandez à Odo ou Hichem.
+          {admins.length ? `Code oublié${NNBSP}? Demandez à ${joinOr(admins)}.` : `Code oublié${NNBSP}? Demandez à un administrateur.`}
         </p>
       </div>
     </main>

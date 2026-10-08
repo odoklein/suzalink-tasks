@@ -13,22 +13,24 @@ import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/co
 import { StatusIcon } from "@/components/primitives";
 import { PROJECT_COLORS, STATUS_BY_VALUE } from "@/lib/constants";
 import { parseFeedbackTable } from "@/lib/feedback-import";
+import { plural } from "@/lib/plural";
+import { formatParis, toParisDateInput, toParisDateTimeInput } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 export function ImportDialog({ open, onClose, projectId }: { open: boolean; onClose: () => void; projectId: string }) {
   const [text, setText] = useState("");
-  const [source, setSource] = useState(() => `Retours du ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`);
+  const [source, setSource] = useState(() => `Retours du ${formatParis(new Date(), "dd/MM")}`);
   const [pending, startTransition] = useTransition();
   const rows = useMemo(() => parseFeedbackTable(text), [text]);
 
   const submit = () =>
     startTransition(async () => {
       const result = await importFeedback(projectId, text, source);
-      if ("error" in result && result.error) {
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }
-      toast.success(`${result.count} retours importés`);
+      toast.success(plural(result.count, "retour importé", "retours importés"));
       setText("");
       onClose();
     });
@@ -61,7 +63,7 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
         {rows.length > 0 && (
           <div className="overflow-hidden rounded-lg border border-line">
             <p className="border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2">
-              {rows.length} tâche{rows.length > 1 ? "s" : ""} à créer
+              {plural(rows.length, "tâche")} à créer
             </p>
             <ul className="max-h-56 overflow-y-auto scroll-thin">
               {rows.map((row, index) => (
@@ -79,7 +81,7 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
         <div className="flex justify-end gap-2 pt-1">
           <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
           <PrimaryButton type="button" disabled={pending || rows.length === 0} onClick={submit}>
-            {pending ? "Import…" : `Créer ${rows.length || ""} tâches`}
+            {pending ? "Import…" : rows.length ? `Créer ${plural(rows.length, "tâche")}` : "Créer les tâches"}
           </PrimaryButton>
         </div>
       </div>
@@ -140,7 +142,7 @@ export function RecapDialog({
             <input id="recap-since" type="date" value={since} onChange={(event) => setSince(event.target.value)} className={cn(fieldClass, "w-auto")} />
           </div>
           {lastDeliveryAt && (
-            <GhostButton type="button" onClick={() => setSince(lastDeliveryAt.slice(0, 10))}>
+            <GhostButton type="button" onClick={() => setSince(toParisDateInput(lastDeliveryAt))}>
               Depuis la dernière mise en ligne
             </GhostButton>
           )}
@@ -153,7 +155,7 @@ export function RecapDialog({
           <>
             {counts && (
               <p className="text-[12px] text-muted">
-                {counts.done} faites · {counts.waiting} en attente client · {counts.remaining} en cours
+                {plural(counts.done, "faite")} · {counts.waiting} chez le client · {counts.remaining} en cours
               </p>
             )}
             <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-[13px] leading-relaxed")} />
@@ -181,8 +183,8 @@ export function DeliveryDialog({
   projectId: string;
   siteUrl: string | null;
 }) {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  // Heure de Paris, comme l'équipe : le serveur relit cette valeur en heure de Paris (voir createDelivery).
+  const local = toParisDateTimeInput(new Date());
   const [pending, startTransition] = useTransition();
 
   return (
@@ -204,7 +206,7 @@ export function DeliveryDialog({
               url: String(data.get("url") ?? ""),
               deployedAt: String(data.get("deployedAt") ?? ""),
             });
-            if ("error" in result && result.error) {
+            if (!result.ok) {
               toast.error(result.error);
               return;
             }
@@ -215,7 +217,7 @@ export function DeliveryDialog({
       >
         <div>
           <label htmlFor="delivery-title" className={labelClass}>Ce qui a été mis en ligne</label>
-          <input id="delivery-title" name="title" required placeholder="Corrections du tableau de Luna" className={fieldClass} />
+          <input id="delivery-title" name="title" required maxLength={180} placeholder="Corrections du tableau de Luna" className={fieldClass} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -224,7 +226,7 @@ export function DeliveryDialog({
           </div>
           <div>
             <label htmlFor="delivery-url" className={labelClass}>Lien</label>
-            <input id="delivery-url" name="url" defaultValue={siteUrl ?? ""} placeholder="https://…" className={fieldClass} />
+            <input id="delivery-url" name="url" type="url" defaultValue={siteUrl ?? ""} placeholder="https://…" className={fieldClass} />
           </div>
         </div>
         <div>
@@ -260,7 +262,15 @@ export function NewProjectDialog() {
           </div>
           <div>
             <label htmlFor="project-key" className={labelClass}>Préfixe</label>
-            <input id="project-key" name="key" maxLength={4} placeholder="BG" className={cn(fieldClass, "font-mono uppercase")} />
+            <input
+              id="project-key"
+              name="key"
+              maxLength={4}
+              pattern="[A-Za-z0-9]{1,4}"
+              title="1 à 4 lettres ou chiffres"
+              placeholder="BG"
+              className={cn(fieldClass, "font-mono uppercase")}
+            />
           </div>
         </div>
 
@@ -309,7 +319,7 @@ export function NewProjectDialog() {
         </div>
         <div>
           <label htmlFor="project-url" className={labelClass}>Lien du site ou de la maquette</label>
-          <input id="project-url" name="siteUrl" placeholder="https://bieres.netlify.app" className={fieldClass} />
+          <input id="project-url" name="siteUrl" type="url" placeholder="https://bieres.netlify.app" className={fieldClass} />
         </div>
 
         <div>

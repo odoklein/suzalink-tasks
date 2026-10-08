@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { updateProjectNote } from "@/app/actions/projects";
 import { GhostButton, PrimaryButton } from "@/components/dialog";
+import { NNBSP } from "@/lib/fr";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 /** Point d'étape du projet : en une ou deux phrases, où on en est et la prochaine action. */
@@ -33,10 +34,15 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
   const save = () =>
     startTransition(async () => {
       const text = draft.trim();
+      const result = await updateProjectNote(projectId, text);
+      if (!result.ok) {
+        // On reste en édition : le brouillon est intact et rien n'est affiché comme enregistré.
+        toast.error(result.error);
+        return;
+      }
       setSaved(text || null);
       setEditing(false);
-      await updateProjectNote(projectId, text);
-      toast.success(text ? "Point d'étape enregistré" : "Point d'étape retiré");
+      toast.success(text ? "Point d’étape enregistré" : "Point d’étape retiré");
     });
 
   if (editing) {
@@ -47,13 +53,13 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
           value={draft}
           rows={3}
           maxLength={600}
-          aria-label="Point d'étape"
+          aria-label="Point d’étape"
           placeholder="Où en est le projet ? Qu'attend-on, de qui, et quelle est la prochaine action ?"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
               event.preventDefault();
-              save();
+              if (!pending) save();
             }
             if (event.key === "Escape") {
               event.stopPropagation();
@@ -83,7 +89,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
       {saved ? (
         <>
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
-            Point d&apos;étape
+            Point d’étape
             {noteAt && (
               <span className="font-normal normal-case tracking-normal" title={formatDateTime(noteAt)} suppressHydrationWarning>
                 · {timeAgo(noteAt)}
@@ -95,7 +101,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
         </>
       ) : (
         <span className="flex items-center gap-2 text-[13px]">
-          <Pencil className="size-3.5" /> Ajouter un point d&apos;étape : où on en est, et la prochaine action
+          <Pencil className="size-3.5" /> Ajouter un point d’étape{NNBSP}: où on en est, et la prochaine action
         </span>
       )}
     </button>

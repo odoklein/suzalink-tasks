@@ -2,11 +2,12 @@
 
 import type { TaskStatus } from "@prisma/client";
 import { Plus } from "lucide-react";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useId, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { quickAddTask } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
+import { rememberLastProject } from "@/lib/last-project";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +17,13 @@ const TOKEN_TONE: Record<string, string> = {
   zone: "bg-sunken text-ink-2",
   due: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
   billable: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
+  ambiguous: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
 };
 
 /** Saisie rapide avec aperçu en direct des éléments reconnus. */
 export function QuickAdd({
   projectId,
+  projectSlug,
   status,
   placeholder = "Nouvelle tâche…",
   compact = false,
@@ -28,28 +31,42 @@ export function QuickAdd({
   onDone,
 }: {
   projectId: string;
+  /** Si fourni, mémorisé comme dernier projet utilisé après une création. */
+  projectSlug?: string;
   status?: TaskStatus;
   placeholder?: string;
   compact?: boolean;
   autoFocus?: boolean;
   onDone?: () => void;
 }) {
-  const { team } = useApp();
+  const { team, openTask } = useApp();
   const [value, setValue] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const input = useRef<HTMLInputElement>(null);
   const parsed = useMemo(() => parseQuickAdd(value, team), [value, team]);
+  const errorId = useId();
 
+  // Le champ reste actif pendant l'enregistrement : on le vide tout de suite pour enchaîner
+  // la tâche suivante, et on remet le texte en cas d'échec.
   const submit = () => {
-    if (!parsed.title.trim()) return;
+    const text = value;
+    const snapshot = parsed;
+    if (!snapshot.title.trim()) {
+      setError("Ajoutez un titre");
+      return;
+    }
+    setValue("");
+    setError(null);
     startTransition(async () => {
-      const result = await quickAddTask(projectId, value, status);
-      if ("error" in result && result.error) {
+      const result = await quickAddTask(projectId, text, status, snapshot.assigneeId);
+      if (!result.ok) {
         toast.error(result.error);
+        setValue((current) => current || text);
         return;
       }
-      setValue("");
-      input.current?.focus();
+      if (projectSlug) rememberLastProject(projectSlug);
+      toast.success(`${result.ref} créée`, { action: { label: "Ouvrir", onClick: () => openTask(result.id) } });
     });
   };
 
@@ -66,8 +83,12 @@ export function QuickAdd({
           ref={input}
           autoFocus={autoFocus}
           value={value}
-          disabled={pending}
-          onChange={(event) => setValue(event.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          onChange={(event) => {
+            setValue(event.target.value);
+            if (error) setError(null);
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -84,6 +105,11 @@ export function QuickAdd({
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
         />
       </div>
+      {error && (
+        <p id={errorId} role="alert" className="mt-1 pl-5 text-[12px] text-danger">
+          {error}
+        </p>
+      )}
       {parsed.tokens.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1 pl-5">
           {parsed.tokens.map((token, index) => (

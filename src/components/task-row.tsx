@@ -41,13 +41,13 @@ export function TaskRow({
   const setStatus = (status: TaskStatus) =>
     startTransition(async () => {
       const result = await updateTask(task.id, { status });
-      if ("error" in result && result.error) toast.error(result.error);
+      if (!result.ok) toast.error(result.error);
     });
 
   return (
     <li
       className={cn(
-        "group flex items-center gap-2 overflow-hidden border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
+        "group flex items-center gap-2 border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
         pending && "opacity-60",
       )}
     >

@@ -1,12 +1,13 @@
 "use client";
 
 import { Check, Copy, KeyRound, UserPlus } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { addMember, resetMemberPin, type MemberState } from "@/app/actions/team";
+import { addMember, resetMemberPin, setMemberActive, type MemberState } from "@/app/actions/team";
 import { fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { Avatar } from "@/components/primitives";
+import { plural } from "@/lib/plural";
 
 export type Member = {
   id: string;
@@ -14,21 +15,26 @@ export type Member = {
   email: string;
   color: string;
   role: "ADMIN" | "MEMBER";
+  active: boolean;
   openTasks: number;
   locked: boolean;
 };
 
-type Issued = { name: string; pin: string };
+type Issued = { name: string; pin: string; email: string };
+
+const APP_URL = "https://tasks.suzaliconseil.com";
 
 export function TeamSection({ members, currentUserId }: { members: Member[]; currentUserId: string }) {
   const [issued, setIssued] = useState<Issued | null>(null);
   const [pendingReset, startTransition] = useTransition();
+  // « Nouveau code » demande une confirmation : l'ancien code cesse de fonctionner.
+  const [confirmingReset, setConfirmingReset] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
   const [state, action, pending] = useActionState<MemberState, FormData>(async (previous, formData) => {
     const result = await addMember(previous, formData);
     if (result?.pin && result.name) {
-      setIssued({ name: result.name, pin: result.pin });
+      setIssued({ name: result.name, pin: result.pin, email: result.email ?? "" });
       setFormKey((key) => key + 1);
     }
     return result;
@@ -36,9 +42,17 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
 
   const reset = (member: Member) =>
     startTransition(async () => {
+      setConfirmingReset(null);
       const result = await resetMemberPin(member.id);
       if (result?.error) toast.error(result.error);
-      else if (result?.pin) setIssued({ name: member.name, pin: result.pin });
+      else if (result?.pin) setIssued({ name: member.name, pin: result.pin, email: result.email ?? member.email });
+    });
+
+  const toggleActive = (member: Member) =>
+    startTransition(async () => {
+      const result = await setMemberActive(member.id, !member.active);
+      if (result?.error) toast.error(result.error);
+      else toast.success(member.active ? `Compte de ${member.name} désactivé, sessions fermées` : `Compte de ${member.name} réactivé`);
     });
 
   return (
@@ -47,7 +61,8 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
 
       <ul className="divide-y divide-line rounded-lg border border-line">
         {members.map((member) => (
-          <li key={member.id} className="flex items-center gap-3 px-3 py-2.5">
+          <li key={member.id} className="px-3 py-2.5">
+            <div className="flex items-center gap-3">
             <Avatar name={member.name} color={member.color} size={28} />
             <div className="min-w-0 flex-1 leading-tight">
               <p className="truncate text-[13px] font-medium">
@@ -56,9 +71,10 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
               </p>
               <p className="truncate text-[12px] text-muted">{member.email}</p>
             </div>
+            {!member.active && <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-muted">Désactivé</span>}
             {member.locked && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-medium text-danger">Bloqué</span>}
             <span className="hidden text-[12px] text-muted sm:inline">
-              {member.openTasks} tâche{member.openTasks > 1 ? "s" : ""}
+              {plural(member.openTasks, "tâche")}
             </span>
             <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-ink-2">
               {member.role === "ADMIN" ? "Admin" : "Membre"}
@@ -67,13 +83,36 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
               <button
                 type="button"
                 disabled={pendingReset}
-                onClick={() => reset(member)}
+                onClick={() => setConfirmingReset(member.id)}
+                aria-expanded={confirmingReset === member.id}
                 title="Générer un nouveau code (code oublié ou compte bloqué)"
                 className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50"
               >
                 <KeyRound className="size-3.5" />
                 <span className="hidden sm:inline">Nouveau code</span>
               </button>
+            )}
+            {member.id !== currentUserId && (
+              <ActiveToggle member={member} disabled={pendingReset} onConfirm={() => toggleActive(member)} />
+            )}
+            </div>
+            {confirmingReset === member.id && (
+              <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[12px] text-ink-2">
+                <span className="min-w-0 flex-1">
+                  Le code actuel de {member.name.split(" ")[0]} ne fonctionnera plus. Générer un nouveau code ?
+                </span>
+                <button
+                  type="button"
+                  disabled={pendingReset}
+                  onClick={() => reset(member)}
+                  className="rounded-md bg-ink px-2.5 py-1 font-semibold text-bg disabled:opacity-50"
+                >
+                  Générer un nouveau code
+                </button>
+                <button type="button" onClick={() => setConfirmingReset(null)} className="rounded-md px-2 py-1 font-medium text-muted hover:text-ink">
+                  Annuler
+                </button>
+              </div>
             )}
           </li>
         ))}
@@ -104,19 +143,59 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
           <PrimaryButton type="submit" disabled={pending}>{pending ? "Création…" : "Créer le compte"}</PrimaryButton>
           <p role="status" aria-live="polite" className="text-[12px] text-danger">{state?.error}</p>
         </div>
-        <p className="mt-2 text-[12px] text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle le changera dans Paramètres.</p>
+        <p className="mt-2 text-[12px] text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle choisira son propre code à la première connexion.</p>
       </form>
     </div>
   );
 }
 
+/** Désactiver demande une confirmation (deuxième clic) ; réactiver est immédiat. */
+function ActiveToggle({ member, disabled, onConfirm }: { member: Member; disabled: boolean; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const timer = setTimeout(() => setArmed(false), 3500);
+    return () => clearTimeout(timer);
+  }, [armed]);
+  const confirm = () => {
+    setArmed(false);
+    onConfirm();
+  };
+  if (!member.active) {
+    return (
+      <button type="button" disabled={disabled} onClick={onConfirm} className="rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50">
+        Réactiver
+      </button>
+    );
+  }
+  return armed ? (
+    <button type="button" disabled={disabled} onClick={confirm} className="rounded-md bg-danger px-2 py-1 text-[12px] font-semibold text-white disabled:opacity-50">
+      Confirmer
+    </button>
+  ) : (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => setArmed(true)}
+      title="Le compte ne pourra plus se connecter ; ses sessions sont fermées."
+      className="rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+    >
+      Désactiver
+    </button>
+  );
+}
+
 function IssuedPin({ issued, onClose }: { issued: Issued; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
+  const [copied, setCopied] = useState<"pin" | "invite" | null>(null);
+  const copy = async (what: "pin" | "invite") => {
+    const text =
+      what === "pin"
+        ? issued.pin
+        : `Connectez-vous sur ${APP_URL} avec ${issued.email} et le code ${issued.pin}. Vous choisirez votre propre code à la première connexion.`;
     try {
-      await navigator.clipboard.writeText(issued.pin);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+      setTimeout(() => setCopied(null), 1800);
     } catch {
       toast.error("Copie impossible : notez le code à la main.");
     }
@@ -128,10 +207,16 @@ function IssuedPin({ issued, onClose }: { issued: Issued; onClose: () => void })
         <p className="tabular mt-0.5 font-mono text-[26px] font-semibold tracking-[0.3em]">{issued.pin}</p>
       </div>
       <div className="flex gap-2">
-        <GhostButton type="button" onClick={copy}>
-          {copied ? <Check className="size-4 text-st-done" /> : <Copy className="size-4" />}
-          {copied ? "Copié" : "Copier"}
+        <GhostButton type="button" onClick={() => copy("pin")}>
+          {copied === "pin" ? <Check className="size-4 text-st-done" /> : <Copy className="size-4" />}
+          {copied === "pin" ? "Copié" : "Copier"}
         </GhostButton>
+        {issued.email && (
+          <GhostButton type="button" onClick={() => copy("invite")}>
+            {copied === "invite" ? <Check className="size-4 text-st-done" /> : <Copy className="size-4" />}
+            {copied === "invite" ? "Copiée" : "Copier l’invitation"}
+          </GhostButton>
+        )}
         <GhostButton type="button" onClick={onClose}>Fermer</GhostButton>
       </div>
     </div>

@@ -54,9 +54,15 @@ model User {
   role         Role     @default(MEMBER)
   createdAt    DateTime @default(now())
 
-  // Protection contre les essais en série : 5 erreurs → 15 min de blocage
+  // Protection contre les essais en série : 5 erreurs → blocage de 15 min, puis 1 h, puis 24 h
   failedLogins Int       @default(0)
   lockedUntil  DateTime?
+  lockLevel    Int       @default(0) // nombre de blocages consécutifs (remis à 0 à la connexion réussie)
+
+  // Révocation des sessions : le JWT porte la version ; l'incrémenter déconnecte tous les appareils.
+  sessionVersion Int     @default(0)
+  active         Boolean @default(true) // compte désactivé : plus de connexion, sessions refusées
+  mustChangePin  Boolean @default(false) // code donné par un admin : à remplacer à la première connexion
 
   assignedTasks Task[]     @relation("TaskAssignee")
   createdTasks  Task[]     @relation("TaskCreator")
@@ -171,7 +177,8 @@ model Activity {
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   taskId    String?
-  task      Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  // SetNull : l'historique du projet garde la trace d'une tâche supprimée.
+  task      Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
   actorId   String?
   actor     User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
 

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/actions/auth";
 import { useApp } from "@/components/app-context";
+import { useOpenNewTask } from "@/components/new-task-dialog";
 import { Avatar, Kbd } from "@/components/primitives";
 import { PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import type { ProjectNavItem } from "@/lib/dal";
@@ -19,7 +20,8 @@ const NAV = [
 
 /** Barre du haut sur téléphone : la barre latérale s'ouvre en tiroir. */
 export function MobileBar() {
-  const { setNavOpen, setNewTaskOpen, setPaletteOpen } = useApp();
+  const { setNavOpen, setPaletteOpen } = useApp();
+  const openNewTask = useOpenNewTask();
   return (
     <header className="flex shrink-0 items-center gap-1 border-b border-line bg-surface-2 px-2 py-2 md:hidden">
       <button type="button" onClick={() => setNavOpen(true)} aria-label="Ouvrir le menu" className="rounded-md p-2 text-ink-2 hover:bg-sunken">
@@ -30,7 +32,7 @@ export function MobileBar() {
       <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Rechercher" className="ml-auto rounded-md p-2 text-ink-2 hover:bg-sunken">
         <Search className="size-5" />
       </button>
-      <button type="button" onClick={() => setNewTaskOpen(true)} aria-label="Nouvelle tâche" className="rounded-md bg-ink p-2 text-bg">
+      <button type="button" onClick={openNewTask} aria-label="Nouvelle tâche" className="rounded-md bg-ink p-2 text-bg">
         <SquarePen className="size-4" />
       </button>
     </header>
@@ -39,7 +41,8 @@ export function MobileBar() {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, projects, setPaletteOpen, setNewProjectOpen, setNewTaskOpen, navOpen, setNavOpen } = useApp();
+  const { user, projects, setPaletteOpen, setNewProjectOpen, navOpen, setNavOpen } = useApp();
+  const openNewTask = useOpenNewTask();
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   const close = () => setNavOpen(false);
@@ -73,7 +76,7 @@ export function Sidebar() {
             type="button"
             onClick={() => {
               close();
-              setNewTaskOpen(true);
+              openNewTask();
             }}
             className="flex w-full items-center gap-2 rounded-lg bg-ink px-2.5 py-2 text-[13px] font-semibold text-bg shadow-card transition-opacity hover:opacity-90"
           >

@@ -7,8 +7,12 @@ import { SESSION_COOKIE } from "@/lib/session-cookie";
 // la signature est vérifiée dans lib/dal.ts et dans chaque Server Action.
 export default function proxy(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE);
-  if (!hasSession && request.nextUrl.pathname !== "/login") {
-    return NextResponse.redirect(new URL("/login", request.nextUrl));
+  const { pathname, search } = request.nextUrl;
+  if (!hasSession && pathname !== "/login") {
+    // Retour à la page demandée après connexion (chemin validé par l'action de connexion).
+    const login = new URL("/login", request.nextUrl);
+    if (pathname !== "/") login.searchParams.set("next", `${pathname}${search}`);
+    return NextResponse.redirect(login);
   }
   return NextResponse.next();
 }

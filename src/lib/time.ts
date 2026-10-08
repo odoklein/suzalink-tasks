@@ -43,6 +43,11 @@ export function fromParisDateTimeInput(s: string): Date {
   return plain(new TZDate(year, month - 1, day, hour, minute, second, TZ));
 }
 
+/** Lit un `<input type="date">` (`yyyy-MM-dd`) : minuit à Paris, en instant UTC. `Invalid Date` si le format est faux. */
+export function fromParisDateInput(s: string): Date {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s.trim()) ? fromParisDateTimeInput(`${s.trim()}T00:00`) : new Date(NaN);
+}
+
 /** `format` de date-fns en heure de Paris, avec les noms de jours et de mois en français. */
 export function formatParis(d: DateInput, pattern: string): string {
   return format(d, pattern, { in: tz(TZ), locale: fr });

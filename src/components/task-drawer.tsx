@@ -24,78 +24,147 @@ import {
 } from "@/components/primitives";
 import { SelectMenu } from "@/components/select-menu";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
+import { toParisDateInput } from "@/lib/time";
+import { DESCRIPTION_MAX, isPlausibleDateInput, TITLE_MAX } from "@/lib/validate";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 const inputClass =
   "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
 
+/**
+ * Ce que le tiroir sait de la tâche `id` : détail chargé, tâche disparue, ou échec de chargement.
+ * Sans entrée pour la tâche ouverte, l'état est « loading » (squelette).
+ */
+type DrawerData =
+  | { id: string; status: "ready"; task: TaskDetail }
+  | { id: string; status: "missing" }
+  | { id: string; status: "error" };
+
 export function TaskDrawer() {
   const { openTaskId, closeTask, team } = useApp();
-  const [loaded, setLoaded] = useState<TaskDetail | null>(null);
+  const [data, setData] = useState<DrawerData | null>(null);
   const [, startTransition] = useTransition();
+  // Brouillons du titre et de la description : ils survivent au démontage des champs
+  // (Échap, clic sur le fond…) et sont envoyés par `flushDrafts` avant la fermeture.
+  const drafts = useRef<{ title?: string; description?: string }>({});
+  const latestTask = useRef<TaskDetail | null>(null);
+  const loadSeq = useRef(0);
 
   // Le détail affiché est celui de la tâche ouverte ; sinon on montre le squelette.
-  const task = loaded && loaded.id === openTaskId ? loaded : null;
-  const setTask = setLoaded;
+  const current = data && data.id === openTaskId ? data : null;
+  const status = !current ? "loading" : current.status;
+  const task = current?.status === "ready" ? current.task : null;
 
-  const load = useCallback(async (id: string) => {
-    const detail = await getTaskDetail(id);
-    setLoaded(detail);
+  useEffect(() => {
+    latestTask.current = task;
+  });
+
+  /**
+   * Charge le détail. `background` : rechargement après une modification, un échec réseau ne doit pas
+   * remplacer par une erreur un détail déjà affiché (mais une tâche supprimée entre-temps passe bien en « supprimée »).
+   */
+  const load = useCallback(async (id: string, background = false) => {
+    const seq = ++loadSeq.current;
+    let next: DrawerData | null;
+    try {
+      const detail = await getTaskDetail(id);
+      if (detail === null) next = { id, status: "missing" };
+      else if ("error" in detail) next = background ? null : { id, status: "error" };
+      else next = { id, status: "ready", task: detail };
+    } catch {
+      next = background ? null : { id, status: "error" };
+    }
+    // Une réponse plus ancienne que la dernière demande ne doit jamais écraser les données.
+    if (seq !== loadSeq.current || !next) return;
+    setData(next);
   }, []);
 
   useEffect(() => {
-    if (!openTaskId) return;
-    let cancelled = false;
-    getTaskDetail(openTaskId).then((detail) => {
-      if (!cancelled) setLoaded(detail);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [openTaskId]);
+    if (openTaskId) void load(openTaskId);
+  }, [openTaskId, load]);
 
-  const loading = !task;
+  const retry = () => {
+    if (!openTaskId) return;
+    setData(null); // retour au squelette pendant le nouvel essai
+    void load(openTaskId);
+  };
+
+  const sendPatch = useCallback(
+    (target: TaskDetail, changes: TaskPatch, detached = false) => {
+      // `detached` : le tiroir se ferme ou change de tâche, on n'y touche plus (ni mise à jour
+      // optimiste ni rechargement) ; sinon une réponse tardive écraserait la tâche affichée.
+      if (!detached) setData({ id: target.id, status: "ready", task: { ...target, ...(changes as Partial<TaskDetail>) } });
+      startTransition(async () => {
+        const result = await updateTask(target.id, changes);
+        if (!result.ok) toast.error(result.error);
+        if (!detached) await load(target.id, true);
+      });
+    },
+    [load],
+  );
+
+  /** Envoie le titre et la description tapés mais pas encore enregistrés (le blur n'a pas eu lieu). */
+  const flushDrafts = useCallback(() => {
+    const current = latestTask.current;
+    const pending = drafts.current;
+    drafts.current = {};
+    if (!current) return;
+    const changes: TaskPatch = {};
+    const title = pending.title?.trim();
+    if (title && title !== current.title) changes.title = title;
+    if (pending.description !== undefined && pending.description.trim() !== (current.description ?? "").trim()) {
+      changes.description = pending.description;
+    }
+    if (Object.keys(changes).length > 0) sendPatch(current, changes, true);
+  }, [sendPatch]);
+
+  const requestClose = useCallback(() => {
+    flushDrafts();
+    closeTask();
+  }, [flushDrafts, closeTask]);
+
+  // Filet de sécurité : si le tiroir change de tâche ou se ferme autrement (palette, lien…),
+  // les brouillons de la tâche précédente partent quand même.
+  useEffect(() => flushDrafts, [openTaskId, flushDrafts]);
 
   useEffect(() => {
     if (!openTaskId) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox]")) closeTask();
+      if (event.key === "Escape" && !(event.target as HTMLElement).closest("[role=listbox],[data-select-menu]")) requestClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openTaskId, closeTask]);
+  }, [openTaskId, requestClose]);
 
   if (!openTaskId) return null;
 
   const patch = (changes: TaskPatch) => {
-    if (!task) return;
-    setTask({ ...task, ...(changes as Partial<TaskDetail>) });
-    startTransition(async () => {
-      const result = await updateTask(task.id, changes);
-      if ("error" in result && result.error) toast.error(result.error);
-      await load(task.id);
-    });
+    if (task) sendPatch(task, changes);
   };
 
   const assignee = team.find((member) => member.id === task?.assigneeId) ?? null;
 
   return (
     <>
-      <div className="animate-fade-in fixed inset-0 z-40 bg-[rgb(10_12_16/0.18)]" onMouseDown={closeTask} />
+      <div className="animate-fade-in fixed inset-0 z-40 bg-[rgb(10_12_16/0.18)]" onMouseDown={requestClose} />
       <aside
         role="dialog"
         aria-label="Détail de la tâche"
         className="animate-slide-in fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col border-l border-line bg-surface shadow-pop"
       >
-        {!task || loading ? (
-          <DrawerSkeleton onClose={closeTask} />
+        {status === "missing" ? (
+          <DrawerMessage title="Cette tâche a été supprimée." onClose={requestClose} />
+        ) : status === "error" ? (
+          <DrawerMessage title="Impossible de charger la tâche." onClose={requestClose} onRetry={retry} />
+        ) : !task ? (
+          <DrawerSkeleton onClose={requestClose} />
         ) : (
           <>
             <header className="flex items-center gap-2.5 border-b border-line px-5 py-3">
               <ProjectTile color={task.project.color} label={task.project.key} size={20} />
               <Link
                 href={`/projects/${task.project.slug}`}
-                onClick={closeTask}
+                onClick={requestClose}
                 className="flex items-center gap-1 text-[13px] text-muted hover:text-ink"
               >
                 {task.project.name}
@@ -108,13 +177,18 @@ export function TaskDrawer() {
                 <DeleteButton
                   onConfirm={() =>
                     startTransition(async () => {
-                      await deleteTask(task.id);
+                      const result = await deleteTask(task.id);
+                      if (!result.ok) {
+                        toast.error(result.error);
+                        return;
+                      }
                       toast.success(`${task.project.key}-${task.number} supprimée`);
+                      drafts.current = {};
                       closeTask();
                     })
                   }
                 />
-                <button type="button" onClick={closeTask} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-ink">
+                <button type="button" onClick={requestClose} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-ink">
                   <X className="size-4" />
                 </button>
               </div>
@@ -122,7 +196,12 @@ export function TaskDrawer() {
 
             <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
               <div className="px-5 pt-5">
-                <TitleField key={task.id} value={task.title} onSave={(title) => title !== task.title && patch({ title })} />
+                <TitleField
+                  key={task.id}
+                  value={task.title}
+                  onDraft={(title) => (drafts.current.title = title)}
+                  onSave={(title) => title !== task.title && patch({ title })}
+                />
               </div>
 
               <dl className="mt-4 grid grid-cols-[112px_1fr] items-center gap-x-3 gap-y-1 px-5">
@@ -154,9 +233,9 @@ export function TaskDrawer() {
                     }
                   />
                 </Prop>
-                <Prop label="Assignée à">
+                <Prop label="Attribuée à">
                   <SelectMenu<string>
-                    label="Assigner"
+                    label="Attribuer"
                     searchable
                     value={task.assigneeId ?? "none"}
                     onChange={(id) => patch({ assigneeId: id === "none" ? null : id })}
@@ -180,12 +259,10 @@ export function TaskDrawer() {
                   />
                 </Prop>
                 <Prop label="Échéance">
-                  <input
-                    type="date"
-                    aria-label="Échéance"
-                    defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ""}
-                    onChange={(event) => patch({ dueDate: event.target.value || null })}
-                    className={cn(inputClass, "tabular w-auto")}
+                  <DueDateField
+                    key={task.id}
+                    value={task.dueDate ? toParisDateInput(task.dueDate) : ""}
+                    onSave={(dueDate) => patch({ dueDate })}
                   />
                 </Prop>
                 <Prop label="Page / zone">
@@ -194,7 +271,7 @@ export function TaskDrawer() {
                 <Prop label="Source">
                   <InlineInput value={task.source ?? ""} placeholder="Retours du 06/10…" onSave={(source) => patch({ source })} />
                 </Prop>
-                <Prop label="Hors périmètre">
+                <Prop label="Hors périmètre (€)">
                   <label className="flex cursor-pointer items-center gap-2 px-1.5 py-1 text-[13px] text-ink-2">
                     <input
                       type="checkbox"
@@ -212,6 +289,7 @@ export function TaskDrawer() {
                 <DescriptionField
                   key={task.id}
                   value={task.description ?? ""}
+                  onDraft={(description) => (drafts.current.description = description)}
                   onSave={(description) => description !== (task.description ?? "") && patch({ description })}
                 />
               </section>
@@ -234,13 +312,15 @@ export function TaskDrawer() {
                   ))}
                 </ol>
                 <CommentComposer
+                  key={task.id}
+                  taskId={task.id}
                   onSubmit={async (body) => {
                     const result = await addComment(task.id, body);
-                    if ("error" in result && result.error) {
+                    if (!result.ok) {
                       toast.error(result.error);
                       return false;
                     }
-                    await load(task.id);
+                    await load(task.id, true);
                     return true;
                   }}
                 />
@@ -251,7 +331,7 @@ export function TaskDrawer() {
                     <ol className="space-y-1.5 border-l border-line pl-3">
                       {task.activities.map((activity) => (
                         <li key={activity.id} className="text-[12px] text-muted">
-                          <span className="text-ink-2">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message} ·{" "}
+                          <span className="text-ink-2">{activity.actor?.name ?? "Quelqu’un"}</span> {activity.message} ·{" "}
                           <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)}>
                             {timeAgo(activity.createdAt)}
                           </time>
@@ -281,7 +361,15 @@ function Prop({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function TitleField({ value, onSave }: { value: string; onSave: (value: string) => void }) {
+function TitleField({
+  value,
+  onSave,
+  onDraft,
+}: {
+  value: string;
+  onSave: (value: string) => void;
+  onDraft: (value: string) => void;
+}) {
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -297,7 +385,11 @@ function TitleField({ value, onSave }: { value: string; onSave: (value: string) 
       value={draft}
       rows={1}
       aria-label="Titre de la tâche"
-      onChange={(event) => setDraft(event.target.value)}
+      maxLength={TITLE_MAX}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onDraft(event.target.value);
+      }}
       onBlur={() => onSave(draft.trim() || value)}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
@@ -306,6 +398,34 @@ function TitleField({ value, onSave }: { value: string; onSave: (value: string) 
         }
       }}
       className="w-full resize-none bg-transparent font-display text-[21px] font-semibold leading-snug tracking-tight outline-none"
+    />
+  );
+}
+
+/**
+ * Échéance : enregistrée au blur ou sur Entrée seulement (pas à chaque frappe, sinon chaque chiffre de
+ * l'année part au serveur), et une année avant 2000 (saisie en cours) est ignorée.
+ */
+function DueDateField({ value, onSave }: { value: string; onSave: (value: string | null) => void }) {
+  const commit = (input: HTMLInputElement) => {
+    const next = input.value;
+    if (next === value) return;
+    if (next && !isPlausibleDateInput(next)) {
+      input.value = value;
+      return;
+    }
+    onSave(next || null);
+  };
+  return (
+    <input
+      type="date"
+      aria-label="Échéance"
+      defaultValue={value}
+      onBlur={(event) => commit(event.currentTarget)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") commit(event.currentTarget);
+      }}
+      className={cn(inputClass, "tabular w-auto")}
     />
   );
 }
@@ -325,7 +445,15 @@ function InlineInput({ value, placeholder, onSave }: { value: string; placeholde
   );
 }
 
-function DescriptionField({ value, onSave }: { value: string; onSave: (value: string) => void }) {
+function DescriptionField({
+  value,
+  onSave,
+  onDraft,
+}: {
+  value: string;
+  onSave: (value: string) => void;
+  onDraft: (value: string) => void;
+}) {
   const [draft, setDraft] = useState(value);
   return (
     <textarea
@@ -333,26 +461,54 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (value: st
       rows={Math.max(3, draft.split("\n").length)}
       placeholder="Ajouter le détail, le lien vers la maquette, le texte exact demandé par le client…"
       aria-label="Description"
-      onChange={(event) => setDraft(event.target.value)}
+      maxLength={DESCRIPTION_MAX}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onDraft(event.target.value);
+      }}
       onBlur={() => onSave(draft)}
       className="w-full resize-none rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] leading-relaxed text-ink-2 outline-none placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface"
     />
   );
 }
 
-function CommentComposer({ onSubmit }: { onSubmit: (body: string) => Promise<boolean> }) {
-  const [body, setBody] = useState("");
+/** Commentaire en cours de frappe, conservé par tâche le temps de la session (fermeture accidentelle du tiroir). */
+const commentDraftKey = (taskId: string) => `draft-comment:${taskId}`;
+
+function readCommentDraft(taskId: string) {
+  try {
+    return sessionStorage.getItem(commentDraftKey(taskId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeCommentDraft(taskId: string, body: string) {
+  try {
+    if (body) sessionStorage.setItem(commentDraftKey(taskId), body);
+    else sessionStorage.removeItem(commentDraftKey(taskId));
+  } catch {
+    // stockage indisponible (navigation privée) : le brouillon ne survivra pas, sans gravité
+  }
+}
+
+function CommentComposer({ taskId, onSubmit }: { taskId: string; onSubmit: (body: string) => Promise<boolean> }) {
+  const [body, setBody] = useState(() => readCommentDraft(taskId));
   const [pending, startTransition] = useTransition();
+  const update = (next: string) => {
+    setBody(next);
+    writeCommentDraft(taskId, next);
+  };
   const send = () =>
     startTransition(async () => {
-      if (await onSubmit(body)) setBody("");
+      if (await onSubmit(body)) update("");
     });
   return (
     <div className="mt-4 rounded-lg border border-line bg-surface-2 focus-within:border-accent">
       <textarea
         value={body}
         rows={2}
-        onChange={(event) => setBody(event.target.value)}
+        onChange={(event) => update(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
@@ -393,6 +549,35 @@ function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
     <button type="button" onClick={() => setArmed(true)} aria-label="Supprimer la tâche" className="rounded-md p-1.5 text-muted hover:bg-danger-soft hover:text-danger">
       <Trash2 className="size-4" />
     </button>
+  );
+}
+
+function DrawerMessage({ title, onClose, onRetry }: { title: string; onClose: () => void; onRetry?: () => void }) {
+  return (
+    <div className="flex h-full flex-col p-5">
+      <div className="flex justify-end">
+        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken">
+          <X className="size-4" />
+        </button>
+      </div>
+      <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-4 pb-16 text-center">
+        <p className="font-display text-[17px] font-semibold">{title}</p>
+        <div className="flex gap-2">
+          {onRetry && (
+            <button type="button" onClick={onRetry} className="rounded-lg bg-ink px-3.5 py-2 text-[13px] font-semibold text-bg hover:opacity-90">
+              Réessayer
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 hover:border-line-strong hover:text-ink"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
