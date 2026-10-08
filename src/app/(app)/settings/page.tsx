@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import { Avatar } from "@/components/primitives";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 
 import { PasswordForm } from "./password-form";
 import { TeamSection } from "./team-section";
+import { ThemePreference } from "./theme-preference";
 
 export const metadata: Metadata = { title: "Paramètres" };
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
   const members =
     user.role === "ADMIN"
@@ -50,6 +54,17 @@ export default async function SettingsPage() {
             <p className="text-ui text-muted">
               {user.email} · {user.role === "ADMIN" ? "Administrateur" : "Membre"}
             </p>
+          </div>
+        </section>
+
+        <section aria-labelledby="preferences" className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
+          <h2 id="preferences" className="text-title font-semibold tracking-[-0.01em]">Préférences</h2>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-ui font-medium">Thème</p>
+              <p className="text-xs text-muted">« Système » suit le réglage clair ou sombre de l’appareil.</p>
+            </div>
+            <ThemePreference initial={theme} />
           </div>
         </section>
 

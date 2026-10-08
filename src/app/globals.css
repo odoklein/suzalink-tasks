@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* dark: suit la préférence système, sauf si l’utilisateur a forcé un thème (data-theme). */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      @slot;
+    }
+  }
+  :root[data-theme="dark"] & {
+    @slot;
+  }
+}
+
 /* Suzali Tasks — outil interne, lu toute la journée : neutres froids légèrement
    teintés, un accent cobalt, et des tons sémantiques (solide / texte / doux).
    Les paires de texte sont vérifiées par `node scripts/contrast.mjs` (AA, 4,5:1) ;

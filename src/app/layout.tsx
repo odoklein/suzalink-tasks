@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import { Toaster } from "sonner";
+
+import { parseTheme, THEME_COOKIE, themeAttribute } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -35,9 +38,11 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Le thème choisi (Paramètres › Préférences) est rendu par le serveur : pas de flash.
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <html lang="fr" className={`${body.variable} ${display.variable} ${code.variable}`}>
+    <html lang="fr" data-theme={themeAttribute(theme)} className={`${body.variable} ${display.variable} ${code.variable}`}>
       <body>
         {children}
         {/* En bas au centre : ne couvre plus le bouton « Commenter » du tiroir. */}

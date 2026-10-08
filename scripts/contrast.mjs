@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const css = readFileSync(
   fileURLToPath(new URL("../src/app/globals.css", import.meta.url)),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 /** Contenu du premier bloc `{ … }` qui suit `selector`. */
 function block(selector) {
@@ -30,9 +30,12 @@ function vars(body) {
   return out;
 }
 
-const light = vars(block(":root {"));
-const dark = vars(block(':root[data-theme="dark"]'));
-const darkMedia = vars(block(':root:not([data-theme="light"])'));
+// Sélecteurs suivis d’une déclaration de jeton : on ignore la @custom-variant dark, qui
+// reprend les mêmes sélecteurs autour de @slot.
+const light = vars(block("\n:root {\n"));
+const dark = vars(block('\n:root[data-theme="dark"] {\n  --'));
+const darkMedia = vars(block(':root:not([data-theme="light"]) {\n    --'));
+if (Object.keys(dark).length < 20 || Object.keys(darkMedia).length < 20) throw new Error("Blocs sombres introuvables");
 
 // --- couleurs -------------------------------------------------------------
 const hexToRgb = (hex) => {

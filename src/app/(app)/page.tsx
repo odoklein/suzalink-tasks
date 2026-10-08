@@ -168,7 +168,9 @@ export default async function TodayPage() {
             <div
               key={day.toISOString()}
               title={tasks.map((task) => `${task.project.key}-${task.number} ${task.title}`).join("\n") || "Aucune échéance"}
-              className={cn("rounded-md px-2.5 py-2", index === 0 ? "bg-ink text-bg" : "hover:bg-surface-2")}
+              className={cn("rounded-md px-2.5 py-2", index === 0
+                  ? "bg-ink text-bg dark:bg-accent-soft dark:text-accent dark:ring-1 dark:ring-accent/30"
+                  : "hover:bg-surface-2")}
             >
               <p className={cn("text-meta font-medium capitalize", index === 0 ? "text-bg/70" : "text-muted")}>
                 {index === 0 ? "Auj." : format(day, "EEE", { locale: fr })}
