@@ -6,14 +6,15 @@ import { redirect } from "next/navigation";
 import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { attemptLogin, invalidMessage, lockedMessage } from "@/lib/login-attempts";
+import { prismaAttemptStore } from "@/lib/login-store";
 import { isWeakPin } from "@/lib/pin";
 import { createSession, deleteSession } from "@/lib/session";
 
-export type FormState = { error?: string; success?: string } | undefined;
+/** `lockedUntil` (ISO) : compte bloqué jusqu'à cet instant ; le formulaire affiche un compte à rebours. */
+export type FormState = { error?: string; success?: string; lockedUntil?: string } | undefined;
 
 const PIN = /^\d{6}$/;
-const MAX_ATTEMPTS = 5;
-const LOCK_MINUTES = 15;
 // Hash factice : on compare toujours, pour que la réponse prenne le même temps
 // que l'email existe ou non (ne pas révéler quels comptes existent).
 const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO5VbAlyAIgwPRfLJOrLu0ofRdyxGoOHi";
@@ -26,33 +27,19 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
     if (!PIN.test(pin)) return { error: "Entrez les 6 chiffres de votre code." };
 
     const user = await db.user.findUnique({ where: { email } });
-
-    if (user?.lockedUntil && user.lockedUntil > new Date()) {
-      const minutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      return { error: `Trop d’erreurs. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.` };
+    if (!user) {
+      // Même durée et même message que pour un compte existant.
+      await bcrypt.compare(pin, DUMMY_HASH);
+      return { error: invalidMessage(null) };
     }
 
-    const valid = await bcrypt.compare(pin, user?.passwordHash ?? DUMMY_HASH);
-    if (!user || !valid) {
-      if (user) {
-        const failed = user.failedLogins + 1;
-        const locked = failed >= MAX_ATTEMPTS;
-        await db.user.update({
-          where: { id: user.id },
-          data: {
-            failedLogins: locked ? 0 : failed,
-            lockedUntil: locked ? new Date(Date.now() + LOCK_MINUTES * 60000) : null,
-          },
-        });
-        if (locked) return { error: `Trop d’erreurs. Réessayez dans ${LOCK_MINUTES} minutes.` };
-      }
-      // Même message que l'email existe ou non.
-      return { error: "Email ou code incorrect." };
+    // L'essai est réservé atomiquement AVANT bcrypt : des requêtes parallèles ne dépassent plus la limite.
+    const outcome = await attemptLogin(prismaAttemptStore, user.id, () => bcrypt.compare(pin, user.passwordHash));
+    if (outcome.kind === "locked") {
+      return { error: lockedMessage(outcome.until), lockedUntil: outcome.until.toISOString() };
     }
+    if (outcome.kind === "invalid") return { error: invalidMessage(outcome.remaining) };
 
-    if (user.failedLogins > 0 || user.lockedUntil) {
-      await db.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
-    }
     await createSession(user.id);
     redirect("/");
   });

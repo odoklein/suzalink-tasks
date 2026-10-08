@@ -54,9 +54,10 @@ model User {
   role         Role     @default(MEMBER)
   createdAt    DateTime @default(now())
 
-  // Protection contre les essais en série : 5 erreurs → 15 min de blocage
+  // Protection contre les essais en série : 5 erreurs → blocage de 15 min, puis 1 h, puis 24 h
   failedLogins Int       @default(0)
   lockedUntil  DateTime?
+  lockLevel    Int       @default(0) // nombre de blocages consécutifs (remis à 0 à la connexion réussie)
 
   assignedTasks Task[]     @relation("TaskAssignee")
   createdTasks  Task[]     @relation("TaskCreator")

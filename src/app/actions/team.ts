@@ -62,7 +62,7 @@ export async function resetMemberPin(userId: string): Promise<MemberState> {
     const pin = randomPin();
     await db.user.update({
       where: { id: userId },
-      data: { passwordHash: await bcrypt.hash(pin, 12), failedLogins: 0, lockedUntil: null },
+      data: { passwordHash: await bcrypt.hash(pin, 12), failedLogins: 0, lockedUntil: null, lockLevel: 0 },
     });
     return { pin, name: member.name };
   });
