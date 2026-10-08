@@ -198,6 +198,32 @@ model Event {
   @@index([projectId, createdAt])
 }
 
+/// File de travaux, consommée par /api/cron/tick (appelé chaque minute).
+model Job {
+  id        String    @id @default(cuid())
+  kind      String // dispatch_events, daily, digest, intake…
+  payload   Json      @default("{}")
+  runAt     DateTime  @default(now())
+  attempts  Int       @default(0)
+  lockedAt  DateTime?
+  doneAt    DateTime?
+  lastError String?
+  dedupeKey String?   @unique
+  createdAt DateTime  @default(now())
+
+  @@index([doneAt, runAt])
+}
+
+/// Dernier signal reçu par fournisseur (webhooks, cron) : panneau Intégrations.
+model IntegrationStatus {
+  provider       String    @id // cron, netlify, github, vercel, postmark, telegram…
+  lastReceivedAt DateTime?
+  lastOkAt       DateTime?
+  lastError      String?
+  lastErrorAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+}
+
 model Activity {
   id        String   @id @default(cuid())
   message   String

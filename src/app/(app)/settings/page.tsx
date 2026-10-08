@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
 
 import { PasswordForm } from "./password-form";
+import { SettingsLinks } from "./settings-links";
 import { TeamSection } from "./team-section";
 
 export const metadata: Metadata = { title: "Paramètres" };
@@ -70,6 +71,8 @@ export default async function SettingsPage() {
             <TeamSection members={members} currentUserId={user.id} />
           </section>
         )}
+
+        <SettingsLinks isAdmin={user.role === "ADMIN"} />
       </div>
     </div>
   );
