@@ -8,6 +8,7 @@ import type { Person } from "@/lib/activity-copy";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { parseFeedbackTable } from "@/lib/feedback-import";
+import { waitingSinceFor } from "@/lib/metrics";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { diffTask } from "@/lib/task-changes";
 
@@ -65,6 +66,7 @@ async function insertTask(input: NewTask, creatorId: string, options: { logCreat
         creatorId,
         position,
         completedAt: status === "DONE" ? new Date() : null,
+        waitingSince: status === "WAITING_CLIENT" ? new Date() : null,
       },
     });
     const ref = `${project.key}-${task.number}`;
@@ -140,6 +142,7 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
   if (patch.status !== undefined && STATUSES.includes(patch.status) && patch.status !== current.status) {
     data.status = patch.status;
     data.statusChangedAt = new Date();
+    data.waitingSince = waitingSinceFor(current.status, patch.status, new Date(), current.waitingSince);
     data.position = await nextPosition(current.projectId, patch.status);
     data.completedAt = patch.status === "DONE" ? new Date() : null;
   }
@@ -184,7 +187,12 @@ export async function moveTask(taskId: string, status: TaskStatus, position: num
         status,
         position,
         completedAt: status === "DONE" ? (current.completedAt ?? new Date()) : null,
-        ...(status !== current.status ? { statusChangedAt: new Date() } : {}),
+        ...(status !== current.status
+          ? {
+              statusChangedAt: new Date(),
+              waitingSince: waitingSinceFor(current.status, status, new Date(), current.waitingSince),
+            }
+          : {}),
       },
     });
     if (status !== current.status) {

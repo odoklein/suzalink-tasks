@@ -222,6 +222,7 @@ async function main() {
           creatorId: leadId,
           position,
           completedAt: status === "DONE" ? new Date() : null,
+          waitingSince: status === "WAITING_CLIENT" ? new Date() : null,
         },
       });
     }

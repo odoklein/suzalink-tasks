@@ -140,6 +140,7 @@ model Task {
   position        Float      @default(0)
   completedAt     DateTime?
   statusChangedAt DateTime   @default(now()) // depuis quand la tâche est dans son statut (ex. « chez le client depuis 4 j »)
+  waitingSince    DateTime? // posé à l'entrée dans « Chez le client », effacé à la sortie
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
