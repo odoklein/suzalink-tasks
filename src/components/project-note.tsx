@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { ChevronDown, Pencil } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 /** Point d'étape du projet : en une ou deux phrases, où on en est et la prochaine action. */
 export function ProjectNote({ projectId, note, noteAt }: { projectId: string; note: string | null; noteAt: Date | null }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(note ?? "");
   const [saved, setSaved] = useState<string | null>(note);
   const [pending, startTransition] = useTransition();
@@ -43,7 +44,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
 
   if (editing) {
     return (
-      <div className="mt-3 max-w-3xl">
+      <div className="mt-3 max-w-[var(--page-narrow)]">
         <Textarea
           ref={ref}
           value={draft}
@@ -72,35 +73,43 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
     );
   }
 
+  if (!saved) {
+    return (
+      <button
+        type="button"
+        onClick={start}
+        className="mt-3 flex items-center gap-2 rounded-sm text-ui text-muted outline-hidden hover:text-ink focus-visible:shadow-[var(--ring)]"
+      >
+        <Pencil className="size-3.5" /> Ajouter un point d&apos;étape : où on en est, et la prochaine action
+      </button>
+    );
+  }
+
+  // Une ligne dans une barre discrète ; le chevron déplie le texte, un clic sur le texte l’édite.
   return (
-    <button
-      type="button"
-      onClick={start}
-      className={cn(
-        "group mt-3 block w-full max-w-3xl rounded-md px-3 py-2 text-left transition-colors",
-        saved ? "bg-surface-2 hover:bg-sunken" : "border border-dashed border-line-strong text-muted hover:border-accent hover:text-ink",
-      )}
-    >
-      {saved ? (
-        <>
-          <span className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-wider text-muted">
-            Point d&apos;étape
-            {noteAt && (
-              <Tooltip content={formatDateTime(noteAt)}>
-                <span className="font-normal normal-case tracking-normal" suppressHydrationWarning>
-                  · {timeAgo(noteAt)}
-                </span>
-              </Tooltip>
-            )}
-            <Pencil className="ml-auto size-3 opacity-0 transition-opacity group-hover:opacity-100" />
-          </span>
-          <span className="mt-0.5 block text-ui leading-relaxed text-ink-2">{saved}</span>
-        </>
-      ) : (
-        <span className="flex items-center gap-2 text-ui">
-          <Pencil className="size-3.5" /> Ajouter un point d&apos;étape : où on en est, et la prochaine action
+    <div className="group mt-3 flex items-start gap-2 rounded-md bg-surface-2 px-3 py-1.5">
+      <button type="button" onClick={start} className="min-w-0 flex-1 rounded-sm text-left outline-hidden focus-visible:shadow-[var(--ring)]">
+        <span className={cn("block text-ui leading-relaxed text-ink-2", !expanded && "truncate")}>
+          <span className="mr-1.5 text-xs font-semibold text-muted">Point d&apos;étape</span>
+          {saved}
         </span>
+      </button>
+      {noteAt && (
+        <Tooltip content={formatDateTime(noteAt)}>
+          <span className="shrink-0 pt-0.5 text-xs text-muted" suppressHydrationWarning>
+            {timeAgo(noteAt)}
+          </span>
+        </Tooltip>
       )}
-    </button>
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        aria-label={expanded ? "Replier le point d’étape" : "Déplier le point d’étape"}
+        className="shrink-0 rounded-sm p-0.5 text-muted outline-hidden hover:bg-sunken hover:text-ink focus-visible:shadow-[var(--ring)]"
+      >
+        <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
+      </button>
+    </div>
   );
 }
