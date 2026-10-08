@@ -25,6 +25,7 @@ import {
 import { SelectMenu } from "@/components/select-menu";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
+import { promptWaitingFor } from "@/lib/waiting-prompt";
 
 const inputClass =
   "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
@@ -73,6 +74,9 @@ export function TaskDrawer() {
     startTransition(async () => {
       const result = await updateTask(task.id, changes);
       if ("error" in result && result.error) toast.error(result.error);
+      else if (changes.status === "WAITING_CLIENT" && task.status !== "WAITING_CLIENT") {
+        promptWaitingFor({ taskId: task.id, ref: `${task.project.key}-${task.number}` });
+      }
       await load(task.id);
     });
   };

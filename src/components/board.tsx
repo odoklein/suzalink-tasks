@@ -33,6 +33,7 @@ import { TASK_STATUSES } from "@/lib/constants";
 import { computePosition } from "@/lib/position";
 import type { TaskCard as TaskCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { promptWaitingFor } from "@/lib/waiting-prompt";
 
 type Columns = Record<TaskStatus, TaskCardData[]>;
 
@@ -114,9 +115,13 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     list[index] = { ...list[index], position, status: column };
     setColumns((current) => ({ ...current, [column]: list }));
 
+    const before = tasks.find((task) => task.id === active.id);
     startTransition(async () => {
       const result = await moveTask(String(active.id), column, position);
       if ("error" in result && result.error) toast.error(result.error);
+      else if (before && column === "WAITING_CLIENT" && before.status !== "WAITING_CLIENT") {
+        promptWaitingFor({ taskId: before.id, ref: `${projectKey}-${before.number}` });
+      }
     });
   };
 

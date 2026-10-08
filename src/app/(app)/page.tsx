@@ -12,9 +12,11 @@ import { AlarmClock, CalendarDays, Hourglass, Rocket, UserRoundPlus, Users } fro
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ChaseButton } from "@/components/chase-dialog";
 import { NewTaskButton } from "@/components/new-task-button";
 import { Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
 import { TaskRow } from "@/components/task-row";
+import { chaseLabel, chaseState, waitingStart } from "@/lib/chasing";
 import { TASK_STATUSES } from "@/lib/constants";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -23,11 +25,13 @@ import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Aujourd'hui" };
 
-type TaskWithProject = TaskCard & { project: { key: string; name: string; color: string; slug: string } };
+type TaskWithProject = TaskCard & {
+  project: { id: string; key: string; name: string; color: string; slug: string; lastChasedAt: Date | null };
+};
 
 const withProject = {
   ...taskCardSelect,
-  project: { select: { key: true, name: true, color: true, slug: true } },
+  project: { select: { id: true, key: true, name: true, color: true, slug: true, lastChasedAt: true } },
 } as const;
 
 export default async function TodayPage() {
@@ -215,21 +219,28 @@ export default async function TodayPage() {
 
           <aside className="space-y-5">
             <Panel icon={<Hourglass className="size-4 text-st-waiting" />} title="Bloqué côté client" count={waiting.length} empty="Rien n'attend le client.">
-              {[...waitingByProject.values()].map((tasks) => (
+              {[...waitingByProject.values()].map((tasks) => {
+                const chase = chaseState(tasks, tasks[0].project.lastChasedAt, now);
+                const chaseText = chaseLabel(chase, now);
+                return (
                 <div key={tasks[0].project.slug} className="py-2.5 first:pt-0 last:pb-0">
-                  <Link href={`/projects/${tasks[0].project.slug}`} className="flex items-center gap-2 text-[13px] font-medium hover:underline">
+                  <div className="flex items-center gap-2">
+                  <Link href={`/projects/${tasks[0].project.slug}`} className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-medium hover:underline">
                     <ProjectTile color={tasks[0].project.color} label={tasks[0].project.key} size={16} />
-                    {tasks[0].project.name}
-                    {tasks.some((task) => differenceInCalendarDays(now, task.statusChangedAt) >= 5) && (
+                    <span className="truncate">{tasks[0].project.name}</span>
+                    {chase.kind === "due" && (
                       <span className="rounded bg-[color-mix(in_srgb,var(--st-waiting)_16%,transparent)] px-1.5 text-[10px] font-semibold uppercase tracking-wide text-st-waiting">
                         À relancer
                       </span>
                     )}
                     <span className="tabular ml-auto text-[11px] font-normal text-muted">{tasks.length}</span>
                   </Link>
+                  <ChaseButton projectId={tasks[0].project.id} projectName={tasks[0].project.name} compact />
+                  </div>
+                  {chase.kind === "chased" && chaseText && <p className="mt-0.5 pl-6 text-[11px] text-muted">{chaseText}</p>}
                   <ul className="mt-1.5 space-y-1 pl-6">
                     {tasks.slice(0, 4).map((task) => {
-                      const days = differenceInCalendarDays(now, task.statusChangedAt);
+                      const days = differenceInCalendarDays(now, waitingStart(task));
                       return (
                         <li key={task.id} className="flex items-baseline gap-2 text-[12px]">
                           <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
@@ -242,7 +253,8 @@ export default async function TodayPage() {
                     {tasks.length > 4 && <li className="text-[11px] text-faint">+ {tasks.length - 4} autres</li>}
                   </ul>
                 </div>
-              ))}
+                );
+              })}
             </Panel>
 
             <Panel icon={<StatusIcon status="REVIEW" size={16} />} title="À valider" count={review.length} empty="Rien à valider.">

@@ -4,6 +4,7 @@ import { NewTaskDialog } from "@/components/new-task-dialog";
 import { NewProjectDialog } from "@/components/project-dialogs";
 import { MobileBar, Sidebar } from "@/components/sidebar";
 import { TaskDrawer } from "@/components/task-drawer";
+import { WaitingPrompt } from "@/components/waiting-prompt";
 import { getClients, getCurrentUser, getProjectsNav, getTeam } from "@/lib/dal";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CommandPalette />
       <NewProjectDialog />
       <NewTaskDialog />
+      <WaitingPrompt />
     </AppProvider>
   );
 }

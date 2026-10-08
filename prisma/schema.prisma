@@ -79,12 +79,13 @@ model User {
   failedLogins Int       @default(0)
   lockedUntil  DateTime?
 
-  assignedTasks Task[]     @relation("TaskAssignee")
-  createdTasks  Task[]     @relation("TaskCreator")
-  ledProjects   Project[]  @relation("ProjectLead")
-  comments      Comment[]
-  deliveries    Delivery[]
-  activities    Activity[]
+  assignedTasks  Task[]          @relation("TaskAssignee")
+  createdTasks   Task[]          @relation("TaskCreator")
+  ledProjects    Project[]       @relation("ProjectLead")
+  comments       Comment[]
+  deliveries     Delivery[]
+  activities     Activity[]
+  clientMessages ClientMessage[]
 }
 
 model Client {
@@ -111,6 +112,50 @@ model Contact {
 
   clientId String
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  messages ClientMessage[]
+}
+
+enum MessageKind {
+  RECAP
+  FOLLOW_UP
+  QUOTE
+}
+
+/// D'où vient une action ou un message : l'interface, un e-mail, un outil connecté…
+enum Channel {
+  WEB
+  EMAIL
+  WHATSAPP
+  CALL
+  PORTAL
+  API
+  MCP
+  DEPLOY
+  SHEETS
+  WIDGET
+  CHAT
+  SYSTEM
+}
+
+/// Message envoyé au client (récap, relance, devis) : la preuve de ce qui lui a été dit et quand.
+model ClientMessage {
+  id     String      @id @default(cuid())
+  kind   MessageKind
+  body   String
+  sentAt DateTime    @default(now())
+  via    Channel     @default(EMAIL)
+  since  DateTime? // récap : tâches faites depuis ; relance : début de l'attente la plus ancienne
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  toId      String?
+  to        Contact? @relation(fields: [toId], references: [id], onDelete: SetNull)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  tasks     Task[]   @relation("MessageTasks")
+
+  @@index([projectId, sentAt])
 }
 
 model Project {
@@ -139,6 +184,9 @@ model Project {
   tasks       Task[]
   deliveries  Delivery[]
   activities  Activity[]
+
+  lastChasedAt   DateTime? // dernière relance du client sur ce projet
+  clientMessages ClientMessage[]
 }
 
 model Task {
@@ -169,6 +217,12 @@ model Task {
 
   comments   Comment[]
   activities Activity[]
+
+  // Relancer le client (P4-05)
+  waitingFor   String? // « visuels HD », « textes page À propos »
+  followUpAt   DateTime? // date de relance choisie à la main
+  lastChasedAt DateTime?
+  messages     ClientMessage[] @relation("MessageTasks")
 
   @@unique([projectId, number])
   @@unique([projectId, externalKey]) // plusieurs NULL autorisés

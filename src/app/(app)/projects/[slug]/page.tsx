@@ -45,6 +45,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
         take: 60,
         include: { actor: { select: { name: true, color: true } } },
       },
+      clientMessages: { orderBy: { sentAt: "desc" }, take: 30, select: { id: true, body: true } },
     },
   });
   if (!project || project.archived) notFound();

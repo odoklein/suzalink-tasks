@@ -142,6 +142,7 @@ export async function updateTask(taskId: string, patch: TaskPatch) {
     data.status = patch.status;
     data.statusChangedAt = new Date();
     data.waitingSince = waitingSinceFor(current.status, patch.status, new Date(), current.waitingSince);
+    if (patch.status !== "WAITING_CLIENT") Object.assign(data, { waitingFor: null, followUpAt: null });
     data.position = await nextPosition(current.projectId, patch.status);
     data.completedAt = patch.status === "DONE" ? new Date() : null;
   }
@@ -190,6 +191,7 @@ export async function moveTask(taskId: string, status: TaskStatus, position: num
           ? {
               statusChangedAt: new Date(),
               waitingSince: waitingSinceFor(current.status, status, new Date(), current.waitingSince),
+              ...(status !== "WAITING_CLIENT" ? { waitingFor: null, followUpAt: null } : {}),
             }
           : {}),
       },

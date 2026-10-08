@@ -21,6 +21,7 @@ import { SelectMenu } from "@/components/select-menu";
 import { TASK_STATUSES } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { promptWaitingFor } from "@/lib/waiting-prompt";
 
 /** Ligne de tâche : statut modifiable sur place, clic pour ouvrir le détail. */
 export function TaskRow({
@@ -42,6 +43,9 @@ export function TaskRow({
     startTransition(async () => {
       const result = await updateTask(task.id, { status });
       if ("error" in result && result.error) toast.error(result.error);
+      else if (status === "WAITING_CLIENT" && task.status !== "WAITING_CLIENT") {
+        promptWaitingFor({ taskId: task.id, ref: `${projectKey}-${task.number}` });
+      }
     });
 
   return (

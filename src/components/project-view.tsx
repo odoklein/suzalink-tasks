@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClientKind, ProjectStatus } from "@prisma/client";
+import type { ActivityType, ClientKind, ProjectStatus } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 import { ExternalLink, FileSpreadsheet, MessageSquareText, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
+import { ChaseButton } from "@/components/chase-dialog";
 import { CopyEmailButton } from "@/components/copy-email-button";
 import { GhostButton, PrimaryButton } from "@/components/dialog";
 import { ImportDialog } from "@/components/import-dialog";
@@ -18,6 +19,7 @@ import { DeliveryDialog, RecapDialog } from "@/components/project-dialogs";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
+import { chaseLabel, chaseState, waitingStart } from "@/lib/chasing";
 import { looksLikeTable } from "@/lib/feedback-import";
 import type { TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
@@ -54,10 +56,15 @@ type ProjectData = {
   }[];
   activities: {
     id: string;
+    type: ActivityType;
+    data: unknown;
     message: string;
     createdAt: Date;
     actor: { name: string; color: string } | null;
   }[];
+  lastChasedAt: Date | null;
+  /** Messages envoyés au client (relances, récaps), pour les déplier dans l'historique. */
+  clientMessages: { id: string; body: string }[];
 };
 
 const TAB_LABELS: Record<ProjectTab, string> = {
@@ -115,10 +122,12 @@ export function ProjectView({
   const oldestWaiting = project.tasks
     .filter((task) => task.status === "WAITING_CLIENT")
     .reduce<Date | null>((oldest, task) => {
-      const since = new Date(task.statusChangedAt);
+      const since = new Date(waitingStart(task));
       return !oldest || since < oldest ? since : oldest;
     }, null);
   const oldestWaitingDays = oldestWaiting ? Math.max(0, differenceInCalendarDays(new Date(), oldestWaiting)) : 0;
+  const chase = chaseState(project.tasks, project.lastChasedAt, new Date());
+  const chaseText = chaseLabel(chase, new Date());
 
   const selectTab = (next: ProjectTab) => {
     setTab(next);
@@ -189,6 +198,19 @@ export function ProjectView({
                   <span className={cn("ml-1", oldestWaitingDays >= 5 && "font-semibold")}>
                     · la plus ancienne depuis {oldestWaitingDays === 0 ? "aujourd'hui" : `${oldestWaitingDays} j`}
                   </span>
+                  {chaseText && (
+                    <span
+                      className={cn(
+                        "ml-2 rounded px-1.5 py-0.5 text-[11px]",
+                        chase.kind === "due"
+                          ? "bg-[color-mix(in_srgb,var(--st-waiting)_16%,transparent)] font-semibold"
+                          : "text-muted",
+                      )}
+                    >
+                      {chaseText}
+                    </span>
+                  )}
+                  <ChaseButton projectId={project.id} projectName={project.name} compact className="ml-1" />
                 </span>
               )}
               {billable > 0 && <span><strong className="font-semibold">{billable}</strong> hors périmètre (€)</span>}
@@ -250,7 +272,7 @@ export function ProjectView({
           <TaskList projectId={project.id} projectKey={project.key} tasks={project.tasks} sourceFilter={sourceFilter} />
         )}
         {tab === "mises-en-ligne" && <Deliveries deliveries={project.deliveries} onAdd={() => setDialog("delivery")} />}
-        {tab === "activite" && <ActivityFeed activities={project.activities} />}
+        {tab === "activite" && <ActivityFeed activities={project.activities} messages={project.clientMessages} />}
       </div>
 
       {dialog === "import" && (
@@ -316,23 +338,45 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
   );
 }
 
-function ActivityFeed({ activities }: { activities: ProjectData["activities"] }) {
+function ActivityFeed({
+  activities,
+  messages,
+}: {
+  activities: ProjectData["activities"];
+  messages: ProjectData["clientMessages"];
+}) {
   if (activities.length === 0) {
     return <p className="mx-auto w-full max-w-3xl px-6 text-[13px] text-muted">Aucune activité pour l&apos;instant.</p>;
   }
+  const bodies = new Map(messages.map((message) => [message.id, message.body]));
   return (
     <ol className="mx-auto w-full max-w-3xl space-y-3 px-6 pb-10">
-      {activities.map((activity) => (
+      {activities.map((activity) => {
+        const messageId =
+          activity.type === "CLIENT_MESSAGE" && activity.data && typeof activity.data === "object"
+            ? (activity.data as { messageId?: string }).messageId
+            : undefined;
+        const body = messageId ? bodies.get(messageId) : undefined;
+        return (
         <li key={activity.id} className="flex items-start gap-3 text-[13px]">
           {activity.actor ? <Avatar name={activity.actor.name} color={activity.actor.color} size={22} /> : <span className="size-[22px]" />}
-          <p className="min-w-0 flex-1 text-ink-2">
-            <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
-          </p>
+          <div className="min-w-0 flex-1 text-ink-2">
+            <p>
+              <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
+            </p>
+            {body && (
+              <details className="mt-1">
+                <summary className="cursor-pointer text-[12px] text-muted hover:text-ink">Voir le message</summary>
+                <p className="mt-1 whitespace-pre-wrap rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12px] leading-relaxed">{body}</p>
+              </details>
+            )}
+          </div>
           <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)} className="shrink-0 text-[12px] text-faint">
             {timeAgo(activity.createdAt)}
           </time>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

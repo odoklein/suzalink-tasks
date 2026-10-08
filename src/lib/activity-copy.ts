@@ -33,7 +33,7 @@ export type ActivityEvent =
   | { type: "TASK_RESTORED"; ref: string }
   | { type: "IMPORTED"; created: number; updated?: number; source?: string }
   | { type: "DELIVERED"; title: string }
-  | { type: "CLIENT_MESSAGE"; kind: "RECAP" | "FOLLOW_UP" | "QUOTE"; count?: number }
+  | { type: "CLIENT_MESSAGE"; kind: "RECAP" | "FOLLOW_UP" | "QUOTE"; count?: number; messageId?: string }
   | {
       type: "PROJECT_UPDATED";
       change: "created" | "status" | "note";
@@ -164,7 +164,7 @@ export function describeActivity(event: ActivityEvent): DescribedActivity {
       return {
         type: "CLIENT_MESSAGE",
         message: CLIENT_MESSAGE_COPY[event.kind],
-        data: { kind: event.kind, count: event.count ?? null },
+        data: { kind: event.kind, count: event.count ?? null, messageId: event.messageId ?? null },
       };
 
     case "PROJECT_UPDATED": {
