@@ -81,6 +81,9 @@ model User {
   comments      Comment[]
   deliveries    Delivery[]
   activities    Activity[]
+
+  // Intégrations (Phases 6-8) : relations regroupées ici pour faciliter la fusion.
+  loginEvents LoginEvent[]
 }
 
 model Client {
@@ -222,6 +225,23 @@ model IntegrationStatus {
   lastError      String?
   lastErrorAt    DateTime?
   updatedAt      DateTime  @updatedAt
+}
+
+/// Journal des connexions (réussies ou non) : Paramètres › Journal.
+model LoginEvent {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  method    String   @default("PIN") // PIN, GOOGLE
+  ip        String?
+  ua        String?
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model Activity {

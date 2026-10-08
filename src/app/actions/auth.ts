@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { recordLoginEvent } from "@/lib/login-events";
 import { isWeakPin } from "@/lib/pin";
 import { createSession, deleteSession } from "@/lib/session";
 
@@ -26,12 +27,14 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   const user = await db.user.findUnique({ where: { email } });
 
   if (user?.lockedUntil && user.lockedUntil > new Date()) {
+    await recordLoginEvent({ email, success: false, userId: user.id });
     const minutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
     return { error: `Trop d’erreurs. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.` };
   }
 
   const valid = await bcrypt.compare(pin, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !valid) {
+    await recordLoginEvent({ email, success: false, userId: user?.id });
     if (user) {
       const failed = user.failedLogins + 1;
       const locked = failed >= MAX_ATTEMPTS;
@@ -51,6 +54,7 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
   if (user.failedLogins > 0 || user.lockedUntil) {
     await db.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
   }
+  await recordLoginEvent({ email, success: true, userId: user.id });
   await createSession(user.id);
   redirect("/");
 }

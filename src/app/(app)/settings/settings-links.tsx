@@ -11,6 +11,12 @@ const LINKS: SettingsLink[] = [
     description: "Derniers webhooks reçus, état du cron, travaux en échec.",
     adminOnly: true,
   },
+  {
+    href: "/settings/journal",
+    label: "Journal des connexions",
+    description: "Qui s’est connecté, quand, depuis quel appareil ; tentatives échouées.",
+    adminOnly: true,
+  },
 ];
 
 export function SettingsLinks({ isAdmin }: { isAdmin: boolean }) {

@@ -56,6 +56,7 @@ alter table "Activity" enable row level security;
 alter table "Event" enable row level security;
 alter table "Job" enable row level security;
 alter table "IntegrationStatus" enable row level security;
+alter table "LoginEvent" enable row level security;
 ```
 
 Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.
@@ -94,6 +95,20 @@ select cron.schedule(
 ```
 
 Suivi : **Paramètres › Intégrations** (administrateurs) montre le dernier passage du cron, les derniers webhooks reçus et les travaux en échec (bouton « Relancer »). Pour arrêter : `select cron.unschedule('suzali-tick');`.
+
+## Configuration, erreurs, sauvegardes
+
+**Variables d'environnement.** `src/lib/env.ts` les valide au démarrage (`src/instrumentation.ts`) : une variable obligatoire absente ou une intégration à moitié configurée fait échouer le démarrage avec la liste des problèmes. Une intégration dont aucune variable n'est renseignée est simplement désactivée. Liste complète dans `.env.example`.
+
+**Erreurs.** Avec `SENTRY_DSN`, les erreurs serveur partent dans Sentry (étiquettes `via` et `projectKey`, sans cookie ni corps de requête). `HEARTBEAT_URL` (healthchecks.io, Sentry Crons…) reçoit un ping à chaque passage du cron, et `<url>/fail` en cas d'échec.
+
+**Sauvegardes (décision D10 : Supabase Pro).**
+
+1. Passer le projet Supabase en **Pro** : sauvegardes quotidiennes, et plus de mise en pause après inactivité.
+2. Sauvegarde externe chiffrée : `.github/workflows/backup.yml` lance chaque nuit `pg_dump -Fc`, chiffre avec [age](https://age-encryption.org) et envoie le fichier dans un bucket S3 compatible **situé dans l'UE** (Scaleway, OVH, AWS eu-west-3…). Secrets GitHub à créer : `BACKUP_DATABASE_URL` (connexion directe, port 5432, rôle en lecture seule de préférence), `BACKUP_AGE_RECIPIENT` (clé publique `age1…` ; la clé privée reste hors ligne, chez deux personnes), `BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT` (sauf AWS), `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY`. Configurer une règle d'expiration sur le bucket (ex. 35 jours).
+3. **Exercice de restauration chaque trimestre** : `age -d -i cle.txt fichier.dump.age > base.dump`, puis `pg_restore --no-owner --dbname "$URL_DE_TEST" base.dump` dans un projet Supabase de test, et vérifier que l'outil démarre dessus.
+
+**Journal des connexions** : Paramètres › Journal (administrateurs).
 
 ## Structure
 
