@@ -5,7 +5,9 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateProjectNote } from "@/app/actions/projects";
-import { GhostButton, PrimaryButton } from "@/components/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 /** Point d'étape du projet : en une ou deux phrases, où on en est et la prochaine action. */
@@ -42,7 +44,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
   if (editing) {
     return (
       <div className="mt-3 max-w-3xl">
-        <textarea
+        <Textarea
           ref={ref}
           value={draft}
           rows={3}
@@ -60,11 +62,10 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
               setEditing(false);
             }
           }}
-          className="w-full resize-none rounded-md border border-accent bg-surface px-3 py-2 text-ui leading-relaxed outline-none placeholder:text-faint"
         />
         <div className="mt-1.5 flex items-center gap-2">
-          <PrimaryButton type="button" disabled={pending} onClick={save} className="px-3 py-1.5 text-xs">Enregistrer</PrimaryButton>
-          <GhostButton type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs">Annuler</GhostButton>
+          <Button variant="primary" size="sm" loading={pending} onClick={save}>Enregistrer</Button>
+          <Button size="sm" onClick={() => setEditing(false)}>Annuler</Button>
           <span className="ml-auto text-meta text-muted">Ctrl + Entrée pour enregistrer · {draft.length}/600</span>
         </div>
       </div>
@@ -85,9 +86,11 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
           <span className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-wider text-muted">
             Point d&apos;étape
             {noteAt && (
-              <span className="font-normal normal-case tracking-normal" title={formatDateTime(noteAt)} suppressHydrationWarning>
-                · {timeAgo(noteAt)}
-              </span>
+              <Tooltip content={formatDateTime(noteAt)}>
+                <span className="font-normal normal-case tracking-normal" suppressHydrationWarning>
+                  · {timeAgo(noteAt)}
+                </span>
+              </Tooltip>
             )}
             <Pencil className="ml-auto size-3 opacity-0 transition-opacity group-hover:opacity-100" />
           </span>

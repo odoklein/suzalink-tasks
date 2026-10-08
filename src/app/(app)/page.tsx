@@ -14,6 +14,7 @@ import Link from "next/link";
 
 import { NewTaskButton } from "@/components/new-task-button";
 import { Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
+import { Tooltip } from "@/components/ui/tooltip";
 import { TaskRow } from "@/components/task-row";
 import { projectSwatchVars } from "@/lib/color";
 import { TASK_STATUSES } from "@/lib/constants";
@@ -309,9 +310,11 @@ export default async function TodayPage() {
                     <ProjectTile color={delivery.project.color} label={delivery.project.key} size={16} />
                     <div className="min-w-0 text-xs">
                       <p className="truncate font-medium text-ink">{delivery.title}</p>
-                      <p className="text-muted" title={formatDateTime(delivery.deployedAt)}>
-                        {delivery.project.name} · {timeAgo(delivery.deployedAt)}
-                      </p>
+                      <Tooltip content={formatDateTime(delivery.deployedAt)}>
+                        <p className="text-muted">
+                          {delivery.project.name} · {timeAgo(delivery.deployedAt)}
+                        </p>
+                      </Tooltip>
                     </div>
                   </li>
                 ))}

@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { NewProjectButton } from "@/components/new-project-button";
 import { Avatar, DueChip, ProjectTile, StatusIcon } from "@/components/primitives";
+import { Tooltip } from "@/components/ui/tooltip";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -185,10 +186,12 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
           </span>
         )}
         {lastDelivery && (
-          <span className="flex items-center gap-1" title="Dernière mise en ligne">
-            <Rocket className="size-3.5" />
-            {timeAgo(lastDelivery)}
-          </span>
+          <Tooltip content="Dernière mise en ligne">
+            <span className="flex items-center gap-1">
+              <Rocket className="size-3.5" />
+              {timeAgo(lastDelivery)}
+            </span>
+          </Tooltip>
         )}
         {nextDue && <DueChip date={nextDue} />}
         {project.lead && (

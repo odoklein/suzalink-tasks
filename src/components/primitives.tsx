@@ -2,6 +2,7 @@ import type { Priority, TaskStatus } from "@prisma/client";
 
 import { PRIORITY_BY_VALUE, STATUS_BY_VALUE } from "@/lib/constants";
 import { Chip } from "@/components/ui/chip";
+import { Tooltip } from "@/components/ui/tooltip";
 import { projectSwatchVars, softColor, strongColor } from "@/lib/color";
 import { cn, dueTone, formatDue, initials } from "@/lib/utils";
 
@@ -23,8 +24,10 @@ export function Avatar({
 }) {
   const withLabel = size >= 20;
   return (
+    <Tooltip content={name}>
     <span
-      title={name}
+      role="img"
+      aria-label={name}
       style={{
         width: size,
         height: size,
@@ -39,6 +42,7 @@ export function Avatar({
     >
       {withLabel ? initials(name) : null}
     </span>
+    </Tooltip>
   );
 }
 
@@ -219,14 +223,11 @@ export function ZoneChip({ zone }: { zone: string | null }) {
 
 export function BillableBadge() {
   return (
-    <span
-      role="img"
-      aria-label="Hors périmètre, à facturer"
-      title="Hors périmètre (€)"
-      className="inline-flex items-center rounded-xs bg-ink px-1 text-meta font-bold text-bg"
-    >
-      €
-    </span>
+    <Tooltip content="Hors périmètre (€)">
+      <span role="img" aria-label="Hors périmètre, à facturer" className="inline-flex items-center rounded-xs bg-ink px-1 text-meta font-bold text-bg">
+        €
+      </span>
+    </Tooltip>
   );
 }
 

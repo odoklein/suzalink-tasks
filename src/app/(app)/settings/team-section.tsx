@@ -5,7 +5,10 @@ import { useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { addMember, resetMemberPin, type MemberState } from "@/app/actions/team";
-import { fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
+import { fieldClass, labelClass } from "@/components/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { Avatar } from "@/components/primitives";
 
 export type Member = {
@@ -56,24 +59,17 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
               </p>
               <p className="truncate text-xs text-muted">{member.email}</p>
             </div>
-            {member.locked && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-meta font-medium text-danger-text">Bloqué</span>}
+            {member.locked && <Badge tone="danger">Bloqué</Badge>}
             <span className="hidden text-xs text-muted sm:inline">
               {member.openTasks} tâche{member.openTasks > 1 ? "s" : ""}
             </span>
-            <span className="rounded-full bg-sunken px-2 py-0.5 text-meta font-medium text-ink-2">
-              {member.role === "ADMIN" ? "Admin" : "Membre"}
-            </span>
+            <Badge>{member.role === "ADMIN" ? "Admin" : "Membre"}</Badge>
             {member.id !== currentUserId && (
-              <button
-                type="button"
-                disabled={pendingReset}
-                onClick={() => reset(member)}
-                title="Générer un nouveau code (code oublié ou compte bloqué)"
-                className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50"
-              >
-                <KeyRound className="size-3.5" />
-                <span className="hidden sm:inline">Nouveau code</span>
-              </button>
+              <Tooltip content="Générer un nouveau code (code oublié ou compte bloqué)">
+                <Button variant="ghost" size="sm" disabled={pendingReset} onClick={() => reset(member)} icon={<KeyRound className="size-3.5" />}>
+                  <span className="hidden sm:inline">Nouveau code</span>
+                </Button>
+              </Tooltip>
             )}
           </li>
         ))}
@@ -101,7 +97,7 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <PrimaryButton type="submit" disabled={pending}>{pending ? "Création…" : "Créer le compte"}</PrimaryButton>
+          <Button type="submit" variant="primary" loading={pending}>{pending ? "Création…" : "Créer le compte"}</Button>
           <p role="status" aria-live="polite" className="text-xs text-danger-text">{state?.error}</p>
         </div>
         <p className="mt-2 text-xs text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle le changera dans Paramètres.</p>
@@ -128,11 +124,10 @@ function IssuedPin({ issued, onClose }: { issued: Issued; onClose: () => void })
         <p className="tabular mt-0.5 font-mono text-h1 font-semibold tracking-[0.3em]">{issued.pin}</p>
       </div>
       <div className="flex gap-2">
-        <GhostButton type="button" onClick={copy}>
-          {copied ? <Check className="size-4 text-done-text" /> : <Copy className="size-4" />}
+        <Button onClick={copy} icon={copied ? <Check className="size-4 text-done-text" /> : <Copy className="size-4" />}>
           {copied ? "Copié" : "Copier"}
-        </GhostButton>
-        <GhostButton type="button" onClick={onClose}>Fermer</GhostButton>
+        </Button>
+        <Button onClick={onClose}>Fermer</Button>
       </div>
     </div>
   );

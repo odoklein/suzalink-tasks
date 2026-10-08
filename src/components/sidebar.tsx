@@ -6,7 +6,10 @@ import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/actions/auth";
 import { useApp } from "@/components/app-context";
-import { Avatar, Kbd } from "@/components/primitives";
+import { Avatar } from "@/components/primitives";
+import { Button, IconButton } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
+import { Tooltip } from "@/components/ui/tooltip";
 import { projectSwatchVars } from "@/lib/color";
 import { PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import type { ProjectNavItem } from "@/lib/dal";
@@ -23,17 +26,17 @@ export function MobileBar() {
   const { setNavOpen, setNewTaskOpen, setPaletteOpen } = useApp();
   return (
     <header className="flex shrink-0 items-center gap-1 border-b border-line bg-surface-2 px-2 py-2 md:hidden">
-      <button type="button" onClick={() => setNavOpen(true)} aria-label="Ouvrir le menu" className="rounded-sm p-2 text-ink-2 hover:bg-sunken">
-        <Menu className="size-5" />
-      </button>
+      <IconButton label="Ouvrir le menu" onClick={() => setNavOpen(true)}>
+        <Menu className="size-4" />
+      </IconButton>
       <span className="flex size-6 items-center justify-center rounded-sm bg-ink text-xs font-bold text-bg">S</span>
       <span className="text-body font-semibold tracking-[-0.01em]">Suzali Tasks</span>
-      <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Rechercher" className="ml-auto rounded-sm p-2 text-ink-2 hover:bg-sunken">
-        <Search className="size-5" />
-      </button>
-      <button type="button" onClick={() => setNewTaskOpen(true)} aria-label="Nouvelle tâche" className="rounded-sm bg-ink p-2 text-bg">
+      <IconButton label="Rechercher" className="ml-auto" onClick={() => setPaletteOpen(true)}>
+        <Search className="size-4" />
+      </IconButton>
+      <IconButton label="Nouvelle tâche" variant="primary" onClick={() => setNewTaskOpen(true)}>
         <SquarePen className="size-4" />
-      </button>
+      </IconButton>
     </header>
   );
 }
@@ -70,30 +73,30 @@ export function Sidebar() {
         </div>
 
         <div className="space-y-1.5 px-3">
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            icon={<SquarePen className="size-3.5" />}
             onClick={() => {
               close();
               setNewTaskOpen(true);
             }}
-            className="flex w-full items-center gap-2 rounded-md bg-ink px-2.5 py-2 text-ui font-semibold text-bg shadow-card transition-opacity hover:opacity-90"
+            className="w-full justify-start font-semibold shadow-card"
           >
-            <SquarePen className="size-3.5" />
             <span className="flex-1 text-left">Nouvelle tâche</span>
-            <kbd className="rounded-xs bg-bg/15 px-1.5 font-mono text-meta font-medium">C</kbd>
-          </button>
-          <button
-            type="button"
+            <Kbd onInk>C</Kbd>
+          </Button>
+          <Button
+            variant="secondary"
+            icon={<Search className="size-3.5" />}
             onClick={() => {
               close();
               setPaletteOpen(true);
             }}
-            className="flex w-full items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-ui text-muted shadow-card transition-colors hover:border-line-strong hover:text-ink"
+            className="w-full justify-start text-muted shadow-card"
           >
-            <Search className="size-3.5" />
             <span className="flex-1 text-left">Rechercher, créer…</span>
-            <Kbd>Ctrl K</Kbd>
-          </button>
+            <Kbd keys="Mod+K" />
+          </Button>
         </div>
 
         <nav className="mt-4 space-y-0.5 px-3" aria-label="Navigation principale">
@@ -116,17 +119,16 @@ export function Sidebar() {
 
         <div className="mt-6 flex items-center justify-between px-5">
           <p className="text-meta font-semibold uppercase tracking-[0.08em] text-muted">Projets</p>
-          <button
-            type="button"
+          <IconButton
+            label="Nouveau projet"
+            size="sm"
             onClick={() => {
               close();
               setNewProjectOpen(true);
             }}
-            aria-label="Nouveau projet"
-            className="rounded-xs p-0.5 text-muted hover:bg-sunken hover:text-ink"
           >
             <Plus className="size-3.5" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="mt-1.5 min-h-0 flex-1 overflow-y-auto px-3 pb-3 scroll-thin">
@@ -163,9 +165,9 @@ export function Sidebar() {
             <Settings className="size-4" />
           </Link>
           <form action={logout}>
-            <button type="submit" aria-label="Se déconnecter" className="rounded-xs p-1 text-muted hover:bg-sunken hover:text-ink">
+            <IconButton label="Se déconnecter" type="submit" size="sm">
               <LogOut className="size-4" />
-            </button>
+            </IconButton>
           </form>
         </div>
       </aside>
@@ -188,7 +190,9 @@ function ProjectLink({ project, active, onNavigate }: { project: ProjectNavItem;
         <span className="project-swatch size-2.5 shrink-0 rounded-xs" style={projectSwatchVars(project.color)} />
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
         {project.status === "WAITING_CLIENT" && (
-          <span title={PROJECT_STATUS_BY_VALUE.WAITING_CLIENT.label} className="size-1.5 rounded-full bg-waiting" />
+          <Tooltip content={PROJECT_STATUS_BY_VALUE.WAITING_CLIENT.label}>
+            <span className="size-1.5 rounded-full bg-waiting" />
+          </Tooltip>
         )}
         {project._count.tasks > 0 && <span className="tabular text-meta text-muted">{project._count.tasks}</span>}
       </Link>

@@ -1,11 +1,11 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useActionState, useRef, useState, useSyncExternalStore } from "react";
 
 import { login } from "@/app/actions/auth";
-import { fieldClass } from "@/components/dialog";
 import { PinInput } from "@/components/pin-input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const STORAGE_KEY = "suzali:last-email";
 
@@ -46,24 +46,24 @@ export function LoginForm() {
           <p className={labelClass}>Votre email</p>
           <div className="flex items-center justify-between gap-3 rounded-md bg-surface-2 px-3 py-2.5">
             <span className="truncate text-body">{knownEmail}</span>
-            <button type="button" onClick={() => setChanging(true)} className="shrink-0 text-ui font-medium text-accent hover:underline">
+            <Button variant="ghost" size="sm" onClick={() => setChanging(true)} className="shrink-0 text-accent">
               Changer
-            </button>
+            </Button>
           </div>
           <input type="hidden" name="email" value={knownEmail} />
         </div>
       ) : (
         <div>
           <label htmlFor="email" className={labelClass}>Votre email</label>
-          <input
+          <Input
             id="email"
             name="email"
             type="email"
+            size="lg"
             autoComplete="username"
             required
             autoFocus
             placeholder="prenom@suzaliconseil.com"
-            className={`${fieldClass} py-2.5 text-body`}
           />
         </div>
       )}
@@ -94,14 +94,9 @@ export function LoginForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="flex w-full items-center justify-center gap-2 rounded-md bg-ink py-3 text-body font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-60"
-      >
-        {pending && <Loader2 className="size-4 animate-spin" />}
+      <Button type="submit" variant="primary" size="lg" loading={pending} className="w-full font-semibold">
         {pending ? "Connexion…" : "Se connecter"}
-      </button>
+      </Button>
     </form>
   );
 }

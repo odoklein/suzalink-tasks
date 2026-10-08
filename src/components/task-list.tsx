@@ -5,6 +5,9 @@ import { useMemo, useState } from "react";
 
 import { QuickAdd } from "@/components/quick-add";
 import { TaskRow } from "@/components/task-row";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Tooltip } from "@/components/ui/tooltip";
 import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -53,23 +56,20 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
   return (
     <div className="mx-auto w-full max-w-[var(--page-medium)] px-4 sm:px-8 pb-10">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex rounded-md border border-line bg-surface p-0.5 text-xs" role="group" aria-label="Regrouper par">
-          {(["zone", "status"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={groupBy === value}
-              onClick={() => setGroupBy(value)}
-              className={cn("rounded-sm px-2.5 py-1 font-medium", groupBy === value ? "bg-sunken text-ink" : "text-muted hover:text-ink")}
-            >
-              {value === "zone" ? "Par page" : "Par statut"}
-            </button>
-          ))}
-        </div>
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
-          <input type="checkbox" checked={hideDone} onChange={(event) => setHideDone(event.target.checked)} className="accent-[var(--accent)]" />
-          Masquer les tâches faites
-        </label>
+        <SegmentedControl
+          label="Regrouper par"
+          value={groupBy}
+          onChange={setGroupBy}
+          options={[
+            { value: "zone", label: "Par page" },
+            { value: "status", label: "Par statut" },
+          ]}
+        />
+        <Checkbox
+          checked={hideDone}
+          onChange={(event) => setHideDone(event.target.checked)}
+          label={<span className="text-xs text-muted">Masquer les tâches faites</span>}
+        />
       </div>
 
       <QuickAdd projectId={projectId} placeholder="Nouvelle tâche…  @odo !haute #homepage demain $" />
@@ -96,7 +96,9 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
                     {TASK_STATUSES.map((status) => {
                       const count = group.tasks.filter((task) => task.status === status.value).length;
                       return count ? (
-                        <span key={status.value} title={`${STATUS_BY_VALUE[status.value].label} : ${count}`} style={{ flex: count, backgroundColor: status.tone }} />
+                        <Tooltip key={status.value} content={`${STATUS_BY_VALUE[status.value].label} : ${count}`}>
+                          <span style={{ flex: count, backgroundColor: status.tone }} />
+                        </Tooltip>
                       ) : null;
                     })}
                   </span>

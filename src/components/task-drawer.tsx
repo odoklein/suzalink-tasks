@@ -23,11 +23,16 @@ import {
   StatusIcon,
 } from "@/components/primitives";
 import { SelectMenu } from "@/components/select-menu";
+import { Button, IconButton } from "@/components/ui/button";
+import { Switch } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input, Textarea } from "@/components/ui/input";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Skeleton, SkeletonLine } from "@/components/ui/skeleton";
+import { Tooltip } from "@/components/ui/tooltip";
 import { PRIORITIES, PRIORITY_BY_VALUE, STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
-import { cn, formatDateTime, timeAgo } from "@/lib/utils";
-
-const inputClass =
-  "w-full rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-ui text-ink-2 outline-none transition-colors placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface";
+import { toParisDateInput } from "@/lib/time";
+import { formatDateTime, timeAgo } from "@/lib/utils";
 
 export function TaskDrawer() {
   const { openTaskId, closeTask, team } = useApp();
@@ -81,11 +86,11 @@ export function TaskDrawer() {
 
   return (
     <>
-      <div className="animate-fade-in fixed inset-0 z-drawer bg-[rgb(10_12_16/0.18)]" onMouseDown={closeTask} />
+      <div className="animate-fade-in fixed inset-0 z-drawer bg-[var(--scrim)]" onMouseDown={closeTask} />
       <aside
         role="dialog"
         aria-label="Détail de la tâche"
-        className="animate-slide-in fixed inset-y-0 right-0 z-drawer flex w-full max-w-[var(--drawer-w)] flex-col border-l border-line bg-surface shadow-pop"
+        className="animate-slide-in fixed inset-y-0 right-0 z-drawer flex w-full max-w-[var(--drawer-w)] flex-col border-l border-line bg-surface shadow-overlay"
       >
         {!task || loading ? (
           <DrawerSkeleton onClose={closeTask} />
@@ -114,9 +119,9 @@ export function TaskDrawer() {
                     })
                   }
                 />
-                <button type="button" onClick={closeTask} aria-label="Fermer" className="rounded-sm p-1.5 text-muted hover:bg-sunken hover:text-ink">
+                <IconButton label="Fermer" onClick={closeTask}>
                   <X className="size-4" />
-                </button>
+                </IconButton>
               </div>
             </header>
 
@@ -180,12 +185,11 @@ export function TaskDrawer() {
                   />
                 </Prop>
                 <Prop label="Échéance">
-                  <input
-                    type="date"
-                    aria-label="Échéance"
-                    defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ""}
-                    onChange={(event) => patch({ dueDate: event.target.value || null })}
-                    className={cn(inputClass, "tabular w-auto")}
+                  <DatePicker
+                    label="Échéance"
+                    value={task.dueDate ? toParisDateInput(task.dueDate) : null}
+                    onChange={(dueDate) => patch({ dueDate })}
+                    className="border-transparent bg-transparent hover:bg-sunken"
                   />
                 </Prop>
                 <Prop label="Page / zone">
@@ -195,20 +199,17 @@ export function TaskDrawer() {
                   <InlineInput value={task.source ?? ""} placeholder="Retours du 06/10…" onSave={(source) => patch({ source })} />
                 </Prop>
                 <Prop label="Hors périmètre">
-                  <label className="flex cursor-pointer items-center gap-2 px-1.5 py-1 text-ui text-ink-2">
-                    <input
-                      type="checkbox"
-                      checked={task.billable}
-                      onChange={(event) => patch({ billable: event.target.checked })}
-                      className="size-4 accent-[var(--waiting)]"
-                    />
-                    {task.billable ? "À facturer en supplément" : "Non"}
-                  </label>
+                  <Switch
+                    className="px-1.5 py-1"
+                    checked={task.billable}
+                    onChange={(event) => patch({ billable: event.target.checked })}
+                    label={task.billable ? "À facturer en supplément" : "Non"}
+                  />
                 </Prop>
               </dl>
 
               <section className="mt-5 border-t border-line px-5 pt-4">
-                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">Description</h3>
+                <SectionHeader as="h3" title="Description" className="mb-1.5" />
                 <DescriptionField
                   key={task.id}
                   value={task.description ?? ""}
@@ -217,9 +218,7 @@ export function TaskDrawer() {
               </section>
 
               <section className="mt-5 border-t border-line px-5 pb-6 pt-4">
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
-                  Commentaires {task.comments.length > 0 && <span className="tabular">({task.comments.length})</span>}
-                </h3>
+                <SectionHeader as="h3" title="Commentaires" count={task.comments.length || undefined} className="mb-3" />
                 <ol className="space-y-4">
                   {task.comments.map((comment) => (
                     <li key={comment.id} className="flex gap-3">
@@ -247,14 +246,14 @@ export function TaskDrawer() {
 
                 {task.activities.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Historique</h3>
+                    <SectionHeader as="h3" title="Historique" />
                     <ol className="space-y-1.5 border-l border-line pl-3">
                       {task.activities.map((activity) => (
                         <li key={activity.id} className="text-xs text-muted">
                           <span className="text-ink-2">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message} ·{" "}
-                          <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)}>
-                            {timeAgo(activity.createdAt)}
-                          </time>
+                          <Tooltip content={formatDateTime(activity.createdAt)}>
+                            <time dateTime={new Date(activity.createdAt).toISOString()}>{timeAgo(activity.createdAt)}</time>
+                          </Tooltip>
                         </li>
                       ))}
                     </ol>
@@ -313,14 +312,14 @@ function TitleField({ value, onSave }: { value: string; onSave: (value: string) 
 function InlineInput({ value, placeholder, onSave }: { value: string; placeholder: string; onSave: (value: string) => void }) {
   const [draft, setDraft] = useState(value);
   return (
-    <input
+    <Input
+      variant="inline"
       value={draft}
       placeholder={placeholder}
       aria-label={placeholder}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={() => draft !== value && onSave(draft)}
       onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
-      className={inputClass}
     />
   );
 }
@@ -328,14 +327,14 @@ function InlineInput({ value, placeholder, onSave }: { value: string; placeholde
 function DescriptionField({ value, onSave }: { value: string; onSave: (value: string) => void }) {
   const [draft, setDraft] = useState(value);
   return (
-    <textarea
+    <Textarea
+      variant="inline"
       value={draft}
       rows={Math.max(3, draft.split("\n").length)}
       placeholder="Ajouter le détail, le lien vers la maquette, le texte exact demandé par le client…"
       aria-label="Description"
       onChange={(event) => setDraft(event.target.value)}
       onBlur={() => onSave(draft)}
-      className="w-full resize-none rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-ui leading-relaxed text-ink-2 outline-none placeholder:text-faint hover:bg-sunken focus:border-line focus:bg-surface"
     />
   );
 }
@@ -348,7 +347,7 @@ function CommentComposer({ onSubmit }: { onSubmit: (body: string) => Promise<boo
       if (await onSubmit(body)) setBody("");
     });
   return (
-    <div className="mt-4 rounded-md border border-line bg-surface-2 focus-within:border-accent">
+    <div className="mt-4 rounded-md border border-line bg-surface-2 focus-within:border-accent focus-within:shadow-[var(--ring)]">
       <textarea
         value={body}
         rows={2}
@@ -361,18 +360,13 @@ function CommentComposer({ onSubmit }: { onSubmit: (body: string) => Promise<boo
         }}
         placeholder="Écrire un commentaire…"
         aria-label="Nouveau commentaire"
-        className="w-full resize-none bg-transparent px-3 py-2 text-ui outline-none placeholder:text-faint"
+        className="w-full resize-none bg-transparent px-3 py-2 text-ui outline-hidden placeholder:text-faint"
       />
       <div className="flex items-center justify-between px-3 pb-2">
         <span className="text-meta text-muted">Ctrl + Entrée pour envoyer</span>
-        <button
-          type="button"
-          disabled={pending || !body.trim()}
-          onClick={send}
-          className="rounded-sm bg-ink px-2.5 py-1 text-xs font-semibold text-bg disabled:opacity-40"
-        >
+        <Button variant="primary" size="sm" loading={pending} disabled={!body.trim()} onClick={send}>
           Commenter
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -385,14 +379,17 @@ function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
     const timer = setTimeout(() => setArmed(false), 3500);
     return () => clearTimeout(timer);
   }, [armed]);
-  return armed ? (
-    <button type="button" onClick={onConfirm} className="rounded-sm bg-danger px-2 py-1 text-xs font-semibold text-white">
-      Confirmer la suppression
-    </button>
-  ) : (
-    <button type="button" onClick={() => setArmed(true)} aria-label="Supprimer la tâche" className="rounded-sm p-1.5 text-muted hover:bg-danger-soft hover:text-danger-text">
-      <Trash2 className="size-4" />
-    </button>
+  // Un seul bouton : il change de libellé et de ton au premier clic, sans bouger de place.
+  return (
+    <Button
+      variant={armed ? "danger" : "ghost"}
+      size={armed ? "sm" : "icon"}
+      aria-label={armed ? "Confirmer la suppression" : "Supprimer la tâche"}
+      onClick={() => (armed ? onConfirm() : setArmed(true))}
+      className={armed ? "w-44" : "size-7 text-muted hover:bg-danger-soft hover:text-danger-text"}
+    >
+      {armed ? "Confirmer la suppression" : <Trash2 className="size-4" />}
+    </Button>
   );
 }
 
@@ -400,14 +397,14 @@ function DrawerSkeleton({ onClose }: { onClose: () => void }) {
   return (
     <div className="p-5">
       <div className="flex justify-end">
-        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-sm p-1.5 text-muted hover:bg-sunken">
+        <IconButton label="Fermer" onClick={onClose}>
           <X className="size-4" />
-        </button>
+        </IconButton>
       </div>
-      <div className="mt-2 h-7 w-3/4 animate-pulse rounded-sm bg-sunken" />
+      <Skeleton className="mt-2 h-7 w-3/4" />
       <div className="mt-6 space-y-3">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="h-5 animate-pulse rounded-xs bg-sunken" style={{ width: `${55 + ((index * 13) % 35)}%` }} />
+          <SkeletonLine key={index} className="h-5" width={`${55 + ((index * 13) % 35)}%`} />
         ))}
       </div>
     </div>

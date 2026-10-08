@@ -77,7 +77,7 @@ export function Button({
     >
       {icon && (loading ? <Spinner className="size-[1em] shrink-0" /> : icon)}
       {overlaySpinner && <Spinner className="absolute" />}
-      {children != null && <span className={cn("inline-flex items-center gap-[inherit]", overlaySpinner && "invisible")}>{children}</span>}
+      {overlaySpinner ? <span className="invisible inline-flex items-center gap-[inherit]">{children}</span> : children}
     </button>
   );
 }
