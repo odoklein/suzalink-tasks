@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useActionState, useRef } from "react";
 
 import { changePin, type FormState } from "@/app/actions/auth";
-import { labelClass, PrimaryButton } from "@/components/dialog";
+import { labelClass } from "@/components/dialog";
 import { PinInput } from "@/components/pin-input";
+import { Button } from "@/components/ui/button";
 
 type PinState = (FormState & { at?: number }) | undefined;
 
@@ -42,10 +43,10 @@ export function PasswordForm({ firstLogin = false }: { firstLogin?: boolean }) {
           <PinInput key={`confirm-${key}`} name="confirm" label="Confirmation du nouveau code" size="md" />
         </div>
       </div>
-      <p role="status" aria-live="polite" className={`min-h-[1.25rem] text-[13px] ${state?.error ? "text-danger" : "text-st-done"}`}>
+      <p role="status" aria-live="polite" className={`min-h-[1.25rem] text-ui ${state?.error ? "text-danger-text" : "text-done-text"}`}>
         {state?.error ?? state?.success}
       </p>
-      <PrimaryButton type="submit" disabled={pending}>{pending ? "Enregistrement…" : "Changer le code"}</PrimaryButton>
+      <Button type="submit" variant="primary" loading={pending}>{pending ? "Enregistrement…" : "Changer le code"}</Button>
     </form>
   );
 }

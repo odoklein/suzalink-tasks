@@ -1,8 +1,17 @@
 import type { Priority, TaskStatus } from "@prisma/client";
 
 import { PRIORITY_BY_VALUE, STATUS_BY_VALUE } from "@/lib/constants";
+import { Chip } from "@/components/ui/chip";
+import { Tooltip } from "@/components/ui/tooltip";
+import { projectSwatchVars, softColor, strongColor } from "@/lib/color";
 import { cn, dueTone, formatDue, initials } from "@/lib/utils";
+import { waitingDays, waitingLevel } from "@/lib/waiting";
 
+/**
+ * Avatar « doux » : fond = couleur du membre diluée dans la surface, initiales en couleur
+ * renforcée, pour qu’une couleur de personne ne se lise jamais comme un statut.
+ * Sous 20 px, pas d’initiales : une simple forme pleine.
+ */
 export function Avatar({
   name,
   color,
@@ -14,16 +23,55 @@ export function Avatar({
   size?: number;
   className?: string;
 }) {
+  const withLabel = size >= 20;
   return (
+    <Tooltip content={name}>
     <span
-      title={name}
-      style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.42 }}
+      role="img"
+      aria-label={name}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.42,
+        backgroundColor: withLabel ? softColor(color) : color,
+        color: withLabel ? strongColor(color) : undefined,
+      }}
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold leading-none text-white ring-2 ring-surface",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold leading-none",
         className,
       )}
     >
-      {initials(name)}
+      {withLabel ? initials(name) : null}
+    </span>
+    </Tooltip>
+  );
+}
+
+/** Avatars qui se chevauchent ; le liseré de la surface n’existe qu’ici. */
+export function AvatarStack({
+  people,
+  size = 22,
+  max = 4,
+}: {
+  people: { id: string; name: string; color: string }[];
+  size?: number;
+  max?: number;
+}) {
+  const shown = people.slice(0, max);
+  const rest = people.length - shown.length;
+  return (
+    <span className="inline-flex items-center -space-x-1.5">
+      {shown.map((person) => (
+        <Avatar key={person.id} name={person.name} color={person.color} size={size} className="ring-2 ring-surface" />
+      ))}
+      {rest > 0 && (
+        <span
+          style={{ width: size, height: size }}
+          className="inline-flex shrink-0 items-center justify-center rounded-full bg-sunken text-meta font-semibold text-muted ring-2 ring-surface"
+        >
+          +{rest}
+        </span>
+      )}
     </span>
   );
 }
@@ -66,7 +114,7 @@ export function StatusIcon({ status, size = 15 }: { status: TaskStatus; size?: n
     return (
       <svg {...common}>
         <circle cx="8" cy="8" r="6.2" fill="none" stroke={color} strokeWidth="1.6" />
-        <path d="M5.6 4.9h4.8L8 8l2.4 3.1H5.6L8 8Z" fill={color} />
+        <path d="M5.2 4.4h5.6L8 8l2.8 3.6H5.2L8 8Z" fill={color} />
       </svg>
     );
   }
@@ -91,7 +139,7 @@ export function StatusPill({ status }: { status: TaskStatus }) {
     <span
       title={meta.hint}
       className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium"
-      style={{ borderColor: `color-mix(in srgb, ${meta.tone} 35%, transparent)`, color: meta.tone }}
+      style={{ borderColor: `color-mix(in srgb, ${meta.tone} 35%, transparent)`, color: meta.text }}
     >
       <StatusIcon status={status} size={12} />
       {meta.label}
@@ -137,62 +185,96 @@ export function PriorityIcon({ priority, size = 14 }: { priority: Priority; size
   );
 }
 
-export function DueChip({ date, done = false }: { date: Date | string | null; done?: boolean }) {
+/**
+ * Échéance : en retard = danger, aujourd’hui ou demain = « soon » (orange, distinct de
+ * l’ambre « chez le client »), plus tard = discret. La largeur minimale aligne la colonne
+ * des échéances dans les listes ; les cartes du tableau passent min-w-0.
+ */
+export function DueChip({
+  date,
+  done = false,
+  className,
+}: {
+  date: Date | string | null;
+  done?: boolean;
+  className?: string;
+}) {
   if (!date) return null;
   const tone = dueTone(date, done);
   return (
-    <span
-      className={cn(
-        "tabular inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
-        tone === "overdue" && "bg-danger-soft text-danger",
-        tone === "soon" && "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
-        tone === "muted" && "text-muted",
-      )}
-    >
-      <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
+    <Chip
+      tone={tone === "overdue" ? "danger" : "soon"}
+      muted={tone === "muted"}
+      className={cn("tabular min-w-[5.25rem]", className)}
+      icon={
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
         <rect x="2" y="3" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
         <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
+      }
+    >
       {formatDue(date)}
-    </span>
+    </Chip>
   );
+}
+
+/**
+ * Ancienneté chez le client, la signature du produit : 0 à 2 j discret, 3 à 4 j ambre doux,
+ * 5 j et plus ambre plein, en gras, avec l’infobulle « À relancer ».
+ */
+export function AgeChip({ since, className }: { since: Date | string; className?: string }) {
+  const days = waitingDays(since);
+  const level = waitingLevel(days);
+  const chip = (
+    <Chip
+      tone="waiting"
+      variant={level === "chase" ? "solid" : "soft"}
+      muted={level === "calm"}
+      aria-label={days === 0 ? "Chez le client depuis aujourd’hui" : `Chez le client depuis ${days} jour${days > 1 ? "s" : ""}`}
+      className={cn("tabular", level === "chase" && "font-bold", className)}
+      icon={<StatusIcon status="WAITING_CLIENT" size={12} />}
+    >
+      {days === 0 ? "auj." : `${days} j`}
+    </Chip>
+  );
+  return level === "chase" ? <Tooltip content="À relancer">{chip}</Tooltip> : chip;
 }
 
 export function ZoneChip({ zone }: { zone: string | null }) {
   if (!zone) return null;
-  return (
-    <span className="inline-flex max-w-[11rem] items-center truncate rounded-md bg-sunken px-1.5 py-0.5 text-[11px] font-medium text-ink-2">
-      {zone}
-    </span>
-  );
+  return <Chip className="max-w-[11rem] truncate">{zone}</Chip>;
 }
 
 export function BillableBadge() {
   return (
-    <span
-      title="Hors périmètre (€)"
-      className="inline-flex items-center rounded-md border border-st-waiting/40 px-1 text-[11px] font-semibold text-st-waiting"
-    >
-      €
-    </span>
+    <Tooltip content="Hors périmètre (€)">
+      <span role="img" aria-label="Hors périmètre, à facturer" className="inline-flex items-center rounded-xs bg-ink px-1 text-meta font-bold text-bg">
+        €
+      </span>
+    </Tooltip>
   );
 }
 
-export function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="inline-flex min-w-[1.25rem] items-center justify-center rounded border border-line bg-surface-2 px-1 font-mono text-[10px] font-medium text-muted">
-      {children}
-    </kbd>
-  );
-}
+export { Kbd } from "@/components/ui/kbd";
 
+/**
+ * Pastille de projet. La couleur claire/sombre vient de la palette (classe project-swatch,
+ * voir globals.css). Sous 20 px, pas de lettres : une forme pleine ; rayon = 28 % du côté.
+ */
 export function ProjectTile({ color, label, size = 20 }: { color: string; label: string; size?: number }) {
   return (
     <span
-      style={{ backgroundColor: color, width: size, height: size, fontSize: size * 0.4 }}
-      className="inline-flex shrink-0 items-center justify-center rounded-[6px] font-mono font-semibold tracking-tight text-white"
+      aria-hidden="true"
+      style={{
+        ...projectSwatchVars(color),
+        width: size,
+        height: size,
+        fontSize: size * 0.4,
+        borderRadius: Math.round(size * 0.28),
+      }}
+      className="project-swatch inline-flex shrink-0 items-center justify-center font-mono font-semibold tracking-tight"
     >
-      {label.slice(0, 2)}
+      {size >= 20 ? label.slice(0, 2) : null}
     </span>
   );
 }

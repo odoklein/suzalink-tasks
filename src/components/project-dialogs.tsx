@@ -9,8 +9,11 @@ import { buildRecap, createDelivery } from "@/app/actions/deliveries";
 import { createProject } from "@/app/actions/projects";
 import { importFeedback } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
-import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
+import { Dialog, fieldClass, labelClass } from "@/components/dialog";
 import { StatusIcon } from "@/components/primitives";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { PROJECT_COLORS, STATUS_BY_VALUE } from "@/lib/constants";
 import { parseFeedbackTable } from "@/lib/feedback-import";
 import { plural } from "@/lib/plural";
@@ -41,6 +44,14 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
       onClose={onClose}
       wide
       title="Importer un tableau de retours"
+      footer={
+        <>
+          <Button onClick={onClose}>Annuler</Button>
+          <Button variant="primary" loading={pending} disabled={rows.length === 0} onClick={submit}>
+            {pending ? "Import…" : `Créer ${rows.length || ""} tâches`}
+          </Button>
+        </>
+      }
       description="Copiez les cellules depuis Google Sheets ou Excel (en-têtes compris) et collez-les ici. Chaque ligne devient une tâche : la colonne Page donne la zone, la colonne État donne le statut."
     >
       <div className="space-y-3">
@@ -56,34 +67,27 @@ export function ImportDialog({ open, onClose, projectId }: { open: boolean; onCl
             onChange={(event) => setText(event.target.value)}
             rows={6}
             placeholder={"Date\tPage\tRetour\tCommentaire\tÉtat\n05/10\tHomepage\tInsérer la vidéo dans le bloc…\t\tPas fait"}
-            className={cn(fieldClass, "font-mono text-[12px]")}
+            className={cn(fieldClass, "font-mono text-xs")}
           />
         </div>
 
         {rows.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-line">
-            <p className="border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2">
+          <div className="overflow-hidden rounded-md border border-line">
+            <p className="border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink-2">
               {plural(rows.length, "tâche")} à créer
             </p>
             <ul className="max-h-56 overflow-y-auto scroll-thin">
               {rows.map((row, index) => (
-                <li key={index} className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[12px] last:border-b-0">
+                <li key={index} className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-xs last:border-b-0">
                   <StatusIcon status={row.status} size={13} />
                   <span className="w-20 shrink-0 truncate text-muted">{STATUS_BY_VALUE[row.status].short}</span>
-                  {row.zone && <span className="max-w-[8rem] shrink-0 truncate rounded bg-sunken px-1.5 py-0.5 text-[11px]">{row.zone}</span>}
+                  {row.zone && <span className="max-w-[8rem] shrink-0 truncate rounded-xs bg-sunken px-1.5 py-0.5 text-meta">{row.zone}</span>}
                   <span className="min-w-0 flex-1 truncate">{row.title}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
-          <PrimaryButton type="button" disabled={pending || rows.length === 0} onClick={submit}>
-            {pending ? "Import…" : rows.length ? `Créer ${plural(rows.length, "tâche")}` : "Créer les tâches"}
-          </PrimaryButton>
-        </div>
       </div>
     </Dialog>
   );
@@ -133,38 +137,39 @@ export function RecapDialog({
       onClose={onClose}
       wide
       title="Récap client"
+      footer={
+        text ? (
+          <Button variant="primary" icon={copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />} onClick={copy}>
+            {copied ? "Copié" : "Copier le texte"}
+          </Button>
+        ) : undefined
+      }
       description="Un message prêt à envoyer : ce qui est fait, ce qui attend le client, ce qui reste chez nous. Relisez-le avant envoi."
     >
       <div className="space-y-3">
         <div className="flex flex-wrap items-end gap-2">
           <div>
             <label htmlFor="recap-since" className={labelClass}>Tâches faites depuis</label>
-            <input id="recap-since" type="date" value={since} onChange={(event) => setSince(event.target.value)} className={cn(fieldClass, "w-auto")} />
+            <DatePicker id="recap-since" label="Tâches faites depuis" value={since || null} onChange={(value) => setSince(value ?? "")} className="w-44" />
           </div>
           {lastDeliveryAt && (
-            <GhostButton type="button" onClick={() => setSince(toParisDateInput(lastDeliveryAt))}>
+            <Button onClick={() => setSince(toParisDateInput(lastDeliveryAt))}>
               Depuis la dernière mise en ligne
-            </GhostButton>
+            </Button>
           )}
-          <PrimaryButton type="button" disabled={pending} onClick={() => generate(since)}>
+          <Button variant="primary" loading={pending} onClick={() => generate(since)}>
             {pending ? "Génération…" : "Générer"}
-          </PrimaryButton>
+          </Button>
         </div>
 
         {text && (
           <>
             {counts && (
-              <p className="text-[12px] text-muted">
+              <p className="text-xs text-muted">
                 {plural(counts.done, "faite")} · {counts.waiting} chez le client · {counts.remaining} en cours
               </p>
             )}
-            <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-[13px] leading-relaxed")} />
-            <div className="flex justify-end">
-              <PrimaryButton type="button" onClick={copy}>
-                {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
-                {copied ? "Copié" : "Copier le texte"}
-              </PrimaryButton>
-            </div>
+            <textarea value={text} onChange={(event) => setText(event.target.value)} rows={14} aria-label="Texte du récap" className={cn(fieldClass, "text-ui leading-relaxed")} />
           </>
         )}
       </div>
@@ -193,8 +198,17 @@ export function DeliveryDialog({
       onClose={onClose}
       title="Enregistrer une mise en ligne"
       description="Date et heure exactes : c'est la preuve de ce qui a été livré, et quand."
+      footer={
+        <>
+          <Button onClick={onClose}>Annuler</Button>
+          <Button variant="primary" type="submit" form="delivery-form" loading={pending}>
+            {pending ? "Enregistrement…" : "Enregistrer"}
+          </Button>
+        </>
+      }
     >
       <form
+        id="delivery-form"
         className="space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
@@ -233,10 +247,6 @@ export function DeliveryDialog({
           <label htmlFor="delivery-notes" className={labelClass}>Détail (facultatif)</label>
           <textarea id="delivery-notes" name="notes" rows={3} placeholder="Commit, pages concernées, points à vérifier…" className={fieldClass} />
         </div>
-        <div className="flex justify-end gap-2">
-          <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
-          <PrimaryButton type="submit" disabled={pending}>{pending ? "Enregistrement…" : "Enregistrer"}</PrimaryButton>
-        </div>
       </form>
     </Dialog>
   );
@@ -250,11 +260,24 @@ export function NewProjectDialog() {
   // Une création réussie redirige vers le projet : on ferme à ce moment-là.
   useEffect(() => setNewProjectOpen(false), [pathname, setNewProjectOpen]);
   const [color, setColor] = useState(PROJECT_COLORS[5]);
+  const [due, setDue] = useState<string | null>(null);
   const [clientMode, setClientMode] = useState<"existing" | "new">(clients.length ? "existing" : "new");
 
   return (
-    <Dialog open={newProjectOpen} onClose={() => setNewProjectOpen(false)} title="Nouveau projet">
-      <form action={action} className="space-y-3">
+    <Dialog
+      open={newProjectOpen}
+      onClose={() => setNewProjectOpen(false)}
+      title="Nouveau projet"
+      footer={
+        <>
+          <Button onClick={() => setNewProjectOpen(false)}>Annuler</Button>
+          <Button variant="primary" type="submit" form="new-project-form" loading={pending}>
+            {pending ? "Création…" : "Créer le projet"}
+          </Button>
+        </>
+      }
+    >
+      <form id="new-project-form" action={action} className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-[1fr_96px]">
           <div>
             <label htmlFor="project-name" className={labelClass}>Nom</label>
@@ -276,19 +299,13 @@ export function NewProjectDialog() {
 
         <fieldset>
           <legend className={labelClass}>Client ou agence</legend>
-          <div className="mb-2 flex gap-1 text-[12px]">
-            {(["existing", "new"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                disabled={mode === "existing" && clients.length === 0}
-                onClick={() => setClientMode(mode)}
-                className={cn("rounded-md px-2.5 py-1 font-medium disabled:opacity-40", clientMode === mode ? "bg-sunken text-ink" : "text-muted")}
-              >
-                {mode === "existing" ? "Existant" : "Nouveau"}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            className="mb-2"
+            label="Type de saisie du client"
+            value={clientMode}
+            onChange={setClientMode}
+            options={clients.length ? [{ value: "existing", label: "Existant" }, { value: "new", label: "Nouveau" }] : [{ value: "new", label: "Nouveau" }]}
+          />
           {clientMode === "existing" ? (
             <select name="clientId" aria-label="Client" className={fieldClass} defaultValue="">
               <option value="">Aucun (projet interne)</option>
@@ -314,7 +331,7 @@ export function NewProjectDialog() {
           </div>
           <div>
             <label htmlFor="project-due" className={labelClass}>Échéance</label>
-            <input id="project-due" name="dueDate" type="date" className={fieldClass} />
+            <DatePicker id="project-due" name="dueDate" label="Échéance" value={due} onChange={setDue} />
           </div>
         </div>
         <div>
@@ -334,17 +351,13 @@ export function NewProjectDialog() {
                 aria-pressed={color === swatch}
                 onClick={() => setColor(swatch)}
                 style={{ backgroundColor: swatch }}
-                className={cn("size-6 rounded-md transition-transform", color === swatch && "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-surface")}
+                className={cn("size-6 rounded-sm transition-transform", color === swatch && "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-surface")}
               />
             ))}
           </div>
         </div>
 
-        {state?.error && <p className="text-[13px] text-danger">{state.error}</p>}
-        <div className="flex justify-end gap-2 pt-1">
-          <GhostButton type="button" onClick={() => setNewProjectOpen(false)}>Annuler</GhostButton>
-          <PrimaryButton type="submit" disabled={pending}>{pending ? "Création…" : "Créer le projet"}</PrimaryButton>
-        </div>
+        {state?.error && <p className="text-ui text-danger-text">{state.error}</p>}
       </form>
     </Dialog>
   );

@@ -95,7 +95,7 @@ const inParis = { in: tz(TZ) };
 const plain = (date: Date) => new Date(date.getTime());
 
 /** `today` est minuit à Paris ; toutes les dates produites sont des minuits parisiens (en instants UTC). */
-function parseDue(word: string, today: Date): Date | undefined {
+export function parseDue(word: string, today: Date): Date | undefined {
   const w = normalize(word);
   if (w === "aujourd'hui" || w === "aujourdhui" || w === "auj") return today;
   if (w === "demain") return plain(addDays(today, 1, inParis));

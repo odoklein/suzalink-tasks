@@ -1,17 +1,19 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { ChevronDown, Pencil } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateProjectNote } from "@/app/actions/projects";
-import { GhostButton, PrimaryButton } from "@/components/dialog";
-import { NNBSP } from "@/lib/fr";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
 /** Point d'étape du projet : en une ou deux phrases, où on en est et la prochaine action. */
 export function ProjectNote({ projectId, note, noteAt }: { projectId: string; note: string | null; noteAt: Date | null }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState(note ?? "");
   const [saved, setSaved] = useState<string | null>(note);
   const [pending, startTransition] = useTransition();
@@ -47,8 +49,8 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
 
   if (editing) {
     return (
-      <div className="mt-3 max-w-3xl">
-        <textarea
+      <div className="mt-3 max-w-[var(--page-narrow)]">
+        <Textarea
           ref={ref}
           value={draft}
           rows={3}
@@ -66,44 +68,53 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
               setEditing(false);
             }
           }}
-          className="w-full resize-none rounded-lg border border-accent bg-surface px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-faint"
         />
         <div className="mt-1.5 flex items-center gap-2">
-          <PrimaryButton type="button" disabled={pending} onClick={save} className="px-3 py-1.5 text-[12px]">Enregistrer</PrimaryButton>
-          <GhostButton type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-[12px]">Annuler</GhostButton>
-          <span className="ml-auto text-[11px] text-faint">Ctrl + Entrée pour enregistrer · {draft.length}/600</span>
+          <Button variant="primary" size="sm" loading={pending} onClick={save}>Enregistrer</Button>
+          <Button size="sm" onClick={() => setEditing(false)}>Annuler</Button>
+          <span className="ml-auto text-meta text-muted">Ctrl + Entrée pour enregistrer · {draft.length}/600</span>
         </div>
       </div>
     );
   }
 
+  if (!saved) {
+    return (
+      <button
+        type="button"
+        onClick={start}
+        className="mt-3 flex items-center gap-2 rounded-sm text-ui text-muted outline-hidden hover:text-ink focus-visible:shadow-[var(--ring)]"
+      >
+        <Pencil className="size-3.5" /> Ajouter un point d’étape : où on en est, et la prochaine action
+      </button>
+    );
+  }
+
+  // Une ligne dans une barre discrète ; le chevron déplie le texte, un clic sur le texte l’édite.
   return (
-    <button
-      type="button"
-      onClick={start}
-      className={cn(
-        "group mt-3 block w-full max-w-3xl rounded-lg px-3 py-2 text-left transition-colors",
-        saved ? "bg-surface-2 hover:bg-sunken" : "border border-dashed border-line-strong text-muted hover:border-accent hover:text-ink",
-      )}
-    >
-      {saved ? (
-        <>
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
-            Point d’étape
-            {noteAt && (
-              <span className="font-normal normal-case tracking-normal" title={formatDateTime(noteAt)} suppressHydrationWarning>
-                · {timeAgo(noteAt)}
-              </span>
-            )}
-            <Pencil className="ml-auto size-3 opacity-0 transition-opacity group-hover:opacity-100" />
-          </span>
-          <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">{saved}</span>
-        </>
-      ) : (
-        <span className="flex items-center gap-2 text-[13px]">
-          <Pencil className="size-3.5" /> Ajouter un point d’étape{NNBSP}: où on en est, et la prochaine action
+    <div className="group mt-3 flex items-start gap-2 rounded-md bg-surface-2 px-3 py-1.5">
+      <button type="button" onClick={start} className="min-w-0 flex-1 rounded-sm text-left outline-hidden focus-visible:shadow-[var(--ring)]">
+        <span className={cn("block text-ui leading-relaxed text-ink-2", !expanded && "truncate")}>
+          <span className="mr-1.5 text-xs font-semibold text-muted">Point d’étape</span>
+          {saved}
         </span>
+      </button>
+      {noteAt && (
+        <Tooltip content={formatDateTime(noteAt)}>
+          <span className="shrink-0 pt-0.5 text-xs text-muted" suppressHydrationWarning>
+            {timeAgo(noteAt)}
+          </span>
+        </Tooltip>
       )}
-    </button>
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        aria-label={expanded ? "Replier le point d’étape" : "Déplier le point d’étape"}
+        className="shrink-0 rounded-sm p-0.5 text-muted outline-hidden hover:bg-sunken hover:text-ink focus-visible:shadow-[var(--ring)]"
+      >
+        <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
+      </button>
+    </div>
   );
 }

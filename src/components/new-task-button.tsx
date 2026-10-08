@@ -2,16 +2,16 @@
 
 import { SquarePen } from "lucide-react";
 
-import { PrimaryButton } from "@/components/dialog";
 import { useOpenNewTask } from "@/components/new-task-dialog";
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 
 export function NewTaskButton() {
   const openNewTask = useOpenNewTask();
   return (
-    <PrimaryButton type="button" onClick={openNewTask} className="max-md:hidden">
-      <SquarePen className="size-4" />
+    <Button variant="primary" icon={<SquarePen className="size-4" />} onClick={openNewTask} className="max-md:hidden">
       Nouvelle tâche
-      <kbd className="ml-1 rounded bg-bg/15 px-1.5 font-mono text-[10px] font-medium">C</kbd>
-    </PrimaryButton>
+      <Kbd onInk className="ml-1">C</Kbd>
+    </Button>
   );
 }

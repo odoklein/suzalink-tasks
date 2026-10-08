@@ -1,67 +1,213 @@
 @import "tailwindcss";
 
+/* dark: suit la préférence système, sauf si l’utilisateur a forcé un thème (data-theme). */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      @slot;
+    }
+  }
+  :root[data-theme="dark"] & {
+    @slot;
+  }
+}
+
 /* Suzali Tasks — outil interne, lu toute la journée : neutres froids légèrement
-   teintés, un accent cobalt, et des couleurs de statut sémantiques. */
+   teintés, un accent cobalt, et des tons sémantiques (solide / texte / doux).
+   Les paires de texte sont vérifiées par `node scripts/contrast.mjs` (AA, 4,5:1) ;
+   à relancer après toute modification de couleur.
+   Le thème sombre est déclaré deux fois (préférence système + data-theme="dark") :
+   le script vérifie que les deux blocs restent identiques.
+   Dernière exécution (101 paires, 0 échec) : pire texte clair 4,61:1 (muted sur sunken),
+   pire texte sombre 5,11:1 (progress-text sur progress-soft). */
 :root {
-  --bg: #f3f4f1;
+  /* Neutres */
+  --bg: #f4f5f2;
+  --chrome: #eeefeb;
   --surface: #ffffff;
-  --surface-2: #f8f8f6;
-  --sunken: #ecedea;
-  --ink: #15181d;
+  --surface-2: #f9f9f7;
+  --sunken: #ebebe8;
+  --line: #e3e3df;
+  --line-strong: #d1d1cc;
+  --ink: #16181d;
   --ink-2: #3b4048;
-  --muted: #727781;
-  --faint: #a3a7ae;
-  --line: #e3e4df;
-  --line-strong: #d2d4cd;
-  --accent: #2b59f2;
-  --accent-soft: #e6ecff;
+  --muted: #646973;
+  /* faint : icônes, placeholders et états désactivés uniquement, jamais du texte d’information */
+  --faint: #8f9298;
+
+  /* Accent */
+  --accent: #295ee3;
+  --accent-soft: #e4efff;
   --accent-ink: #ffffff;
-  --danger: #d23f2e;
+  /* Bouton principal : encre en clair, accent en sombre (pas de dalle quasi blanche) */
+  --primary: var(--ink);
+  --primary-ink: var(--bg);
+
+  /* Tons : solide (formes, icônes) / texte / fond doux */
+  --todo: #8a8f98;
+  --todo-text: var(--muted);
+  --todo-soft: #efefec;
+  --progress: var(--accent);
+  --progress-text: var(--accent);
+  --progress-soft: var(--accent-soft);
+  --waiting: #da950b;
+  --waiting-text: #8a5a00;
+  --waiting-soft: #fdf1d8;
+  --review: #7855df;
+  --review-text: #6744c5;
+  --review-soft: #efeaff;
+  --done: #169f65;
+  --done-text: #127549;
+  --done-soft: #e1f8eb;
+  --danger: #c93029;
+  --danger-text: #b8321f;
   --danger-soft: #fdecea;
+  --soon: #e0700f;
+  --soon-text: #af4803;
+  --soon-soft: #fff0df;
 
-  --st-todo: #8a8f98;
-  --st-progress: #2b59f2;
-  --st-waiting: #c98206;
-  --st-review: #7656ef;
-  --st-done: #1d9a62;
-
-  --shadow-pop: 0 1px 2px rgb(16 24 40 / 0.06), 0 12px 32px -8px rgb(16 24 40 / 0.18);
+  /* Élévation */
+  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.05);
   --shadow-card: 0 1px 1px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(16 24 40 / 0.06), 0 8px 16px -4px rgb(16 24 40 / 0.1);
+  --shadow-pop: 0 1px 2px rgb(16 24 40 / 0.06), 0 12px 32px -8px rgb(16 24 40 / 0.18);
+  --shadow-overlay: 0 2px 6px rgb(16 24 40 / 0.08), 0 24px 64px -12px rgb(16 24 40 / 0.28);
+  --ring: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft);
+  --scrim: rgb(10 12 16 / 0.36);
+  color-scheme: light;
+
+  /* Mouvement */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 240ms;
+
+  /* Mise en page */
+  --sidebar-w: 248px;
+  --drawer-w: 560px;
+  --page-wide: 1200px;
+  --page-medium: 960px;
+  --page-narrow: 720px;
+
+  /* Pile d’empilement (utilitaires z-* plus bas) */
+  --z-sidebar: 40;
+  --z-drawer: 50;
+  --z-dialog: 60;
+  --z-palette: 70;
+  --z-popover: 75;
+  --z-toast: 80;
+}
+
+:root[data-theme="light"] {
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1013;
-    --surface: #15181d;
-    --surface-2: #1a1e24;
-    --sunken: #0b0d10;
+  :root:not([data-theme="light"]) {
+    --bg: #101216;
+    --chrome: #0a0c0f;
+    --surface: #171a20;
+    --surface-2: #1c2027;
+    --sunken: #0d0f12;
+    --line: #272c34;
+    --line-strong: #373d48;
     --ink: #eceef1;
     --ink-2: #c4c8cf;
-    --muted: #8b919b;
-    --faint: #5d636d;
-    --line: #252a31;
-    --line-strong: #323842;
-    --accent: #6f8cff;
-    --accent-soft: #1c2440;
+    --muted: #9ba1ab;
+    --faint: #6a707b;
+
+    --accent: #7b97ff;
+    --accent-soft: color-mix(in oklch, var(--accent) 16%, var(--surface));
     --accent-ink: #0b0d10;
+  --primary: var(--accent);
+  --primary-ink: var(--accent-ink);
+
+    --todo: #8b919b;
+    --todo-text: var(--muted);
+    --todo-soft: color-mix(in oklch, var(--todo) 16%, var(--surface));
+    --progress: var(--accent);
+    --progress-text: var(--accent);
+    --progress-soft: var(--accent-soft);
+    --waiting: #f0aa2c;
+    --waiting-text: #f2b84e;
+    --waiting-soft: color-mix(in oklch, var(--waiting) 16%, var(--surface));
+    --review: #a38bff;
+    --review-text: #b5a2ff;
+    --review-soft: color-mix(in oklch, var(--review) 16%, var(--surface));
+    --done: #3fc488;
+    --done-text: #52d096;
+    --done-soft: color-mix(in oklch, var(--done) 16%, var(--surface));
     --danger: #ff7a66;
-    --danger-soft: #3a1c18;
+    --danger-text: #ff907f;
+    --danger-soft: color-mix(in oklch, var(--danger) 16%, var(--surface));
+    --soon: #ff9a4d;
+    --soon-text: #ffab69;
+    --soon-soft: color-mix(in oklch, var(--soon) 16%, var(--surface));
 
-    --st-todo: #8b919b;
-    --st-progress: #6f8cff;
-    --st-waiting: #f0aa2c;
-    --st-review: #a38bff;
-    --st-done: #3fc488;
-
-    --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -8px rgb(0 0 0 / 0.6);
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
+    --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
+    --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.35);
+    --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.05), 0 6px 16px -4px rgb(0 0 0 / 0.55);
+    --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.05), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+    --shadow-overlay: 0 0 0 1px rgb(255 255 255 / 0.06), 0 28px 72px -12px rgb(0 0 0 / 0.75);
+    --scrim: rgb(0 0 0 / 0.55);
     color-scheme: dark;
   }
 }
 
+:root[data-theme="dark"] {
+  --bg: #101216;
+  --chrome: #0a0c0f;
+  --surface: #171a20;
+  --surface-2: #1c2027;
+  --sunken: #0d0f12;
+  --line: #272c34;
+  --line-strong: #373d48;
+  --ink: #eceef1;
+  --ink-2: #c4c8cf;
+  --muted: #9ba1ab;
+  --faint: #6a707b;
+
+  --accent: #7b97ff;
+  --accent-soft: color-mix(in oklch, var(--accent) 16%, var(--surface));
+  --accent-ink: #0b0d10;
+  --primary: var(--accent);
+  --primary-ink: var(--accent-ink);
+
+  --todo: #8b919b;
+  --todo-text: var(--muted);
+  --todo-soft: color-mix(in oklch, var(--todo) 16%, var(--surface));
+  --progress: var(--accent);
+  --progress-text: var(--accent);
+  --progress-soft: var(--accent-soft);
+  --waiting: #f0aa2c;
+  --waiting-text: #f2b84e;
+  --waiting-soft: color-mix(in oklch, var(--waiting) 16%, var(--surface));
+  --review: #a38bff;
+  --review-text: #b5a2ff;
+  --review-soft: color-mix(in oklch, var(--review) 16%, var(--surface));
+  --done: #3fc488;
+  --done-text: #52d096;
+  --done-soft: color-mix(in oklch, var(--done) 16%, var(--surface));
+  --danger: #ff7a66;
+  --danger-text: #ff907f;
+  --danger-soft: color-mix(in oklch, var(--danger) 16%, var(--surface));
+  --soon: #ff9a4d;
+  --soon-text: #ffab69;
+  --soon-soft: color-mix(in oklch, var(--soon) 16%, var(--surface));
+
+  --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.05), 0 6px 16px -4px rgb(0 0 0 / 0.55);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.05), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+  --shadow-overlay: 0 0 0 1px rgb(255 255 255 / 0.06), 0 28px 72px -12px rgb(0 0 0 / 0.75);
+  --scrim: rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
 @theme inline {
   --color-bg: var(--bg);
+  --color-chrome: var(--chrome);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-sunken: var(--sunken);
@@ -74,20 +220,94 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+
+  --color-todo: var(--todo);
+  --color-todo-text: var(--todo-text);
+  --color-todo-soft: var(--todo-soft);
+  --color-progress: var(--progress);
+  --color-progress-text: var(--progress-text);
+  --color-progress-soft: var(--progress-soft);
+  --color-waiting: var(--waiting);
+  --color-waiting-text: var(--waiting-text);
+  --color-waiting-soft: var(--waiting-soft);
+  --color-review: var(--review);
+  --color-review-text: var(--review-text);
+  --color-review-soft: var(--review-soft);
+  --color-done: var(--done);
+  --color-done-text: var(--done-text);
+  --color-done-soft: var(--done-soft);
   --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
   --color-danger-soft: var(--danger-soft);
-  --color-st-todo: var(--st-todo);
-  --color-st-progress: var(--st-progress);
-  --color-st-waiting: var(--st-waiting);
-  --color-st-review: var(--st-review);
-  --color-st-done: var(--st-done);
+  --color-soon: var(--soon);
+  --color-soon-text: var(--soon-text);
+  --color-soon-soft: var(--soon-soft);
+
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display-face), var(--font-body), ui-sans-serif, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
 
-  --shadow-pop: var(--shadow-pop);
+  --shadow-xs: var(--shadow-xs);
   --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-pop: var(--shadow-pop);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Échelle typographique : taille / interligne */
+  --text-meta: 11px;
+  --text-meta--line-height: 14px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-ui: 13px;
+  --text-ui--line-height: 18px;
+  --text-body: 14px;
+  --text-body--line-height: 21px;
+  --text-title: 17px;
+  --text-title--line-height: 24px;
+  --text-h2: 22px;
+  --text-h2--line-height: 28px;
+  --text-h1: 28px;
+  --text-h1--line-height: 34px;
+  --text-hero: 34px;
+  --text-hero--line-height: 40px;
+}
+
+/* Pile d’empilement : une seule échelle pour la barre latérale, le tiroir, les
+   dialogues, la palette, les menus flottants et les notifications. */
+@utility z-sidebar {
+  z-index: var(--z-sidebar);
+}
+@utility z-drawer {
+  z-index: var(--z-drawer);
+}
+@utility z-dialog {
+  z-index: var(--z-dialog);
+}
+@utility z-palette {
+  z-index: var(--z-palette);
+}
+@utility z-popover {
+  z-index: var(--z-popover);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+
+@layer base {
+  /* Icônes lucide : trait 1,75 partout (une classe utilitaire peut encore le changer).
+     Tailles : 12 px dans les pastilles, 14 px en ligne avec text-ui, 16 px dans les boutons. */
+  .lucide {
+    stroke-width: 1.75;
+  }
 }
 
 html,
@@ -117,6 +337,44 @@ h3 {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Couleur de projet : variante claire ou sombre (voir PROJECT_PALETTE dans lib/color.ts). */
+.project-swatch {
+  background-color: var(--pc-light);
+  color: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .project-swatch {
+    background-color: var(--pc-dark);
+    color: #0b0d10;
+  }
+}
+:root[data-theme="dark"] .project-swatch {
+  background-color: var(--pc-dark);
+  color: #0b0d10;
+}
+
+/* Squelettes de chargement : reflet doux, immobile si l’utilisateur réduit les animations. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--sunken) 25%, var(--surface-2) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
 
 .tabular {
@@ -170,15 +428,15 @@ h3 {
 }
 
 .animate-slide-in {
-  animation: slide-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: slide-in var(--dur-3) var(--ease-out);
 }
 
 .animate-fade-in {
-  animation: fade-in 0.18s ease-out;
+  animation: fade-in var(--dur-2) ease-out;
 }
 
 .animate-pop-in {
-  animation: pop-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: pop-in var(--dur-2) var(--ease-out);
 }
 
 @keyframes shake {

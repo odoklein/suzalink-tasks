@@ -3,14 +3,13 @@
 import { Plus } from "lucide-react";
 
 import { useApp } from "@/components/app-context";
-import { PrimaryButton } from "@/components/dialog";
+import { Button } from "@/components/ui/button";
 
 export function NewProjectButton() {
   const { setNewProjectOpen } = useApp();
   return (
-    <PrimaryButton type="button" onClick={() => setNewProjectOpen(true)}>
-      <Plus className="size-4" />
+    <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setNewProjectOpen(true)}>
       Nouveau projet
-    </PrimaryButton>
+    </Button>
   );
 }

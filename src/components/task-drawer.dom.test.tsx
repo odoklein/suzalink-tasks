@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -132,22 +132,16 @@ describe("TaskDrawer : états de chargement (P1-09)", () => {
   });
 });
 
-describe("TaskDrawer : échéance (P1-18)", () => {
-  it("n'enregistre qu'au blur, et ignore une année avant 2000", async () => {
+describe("TaskDrawer : échéance (P1-18 / P2-09)", () => {
+  it("met à jour l’échéance via le sélecteur de date", async () => {
     const user = userEvent.setup();
     renderDrawer();
     await user.click(screen.getByText("ouvrir"));
-    const due = (await screen.findByLabelText("Échéance")) as HTMLInputElement;
-
-    fireEvent.change(due, { target: { value: "0202-10-12" } });
-    fireEvent.blur(due);
-    expect(updateTask).not.toHaveBeenCalled();
-    expect(due.value).toBe("");
-
-    fireEvent.change(due, { target: { value: "2026-10-12" } });
-    expect(updateTask).not.toHaveBeenCalled();
-    fireEvent.blur(due);
-    await waitFor(() => expect(updateTask).toHaveBeenCalledWith("t1", { dueDate: "2026-10-12" }));
+    const button = await screen.findByRole("button", { name: "Échéance" });
+    await user.click(button);
+    const pick = await screen.findByRole("button", { name: "Demain" });
+    await user.click(pick);
+    await waitFor(() => expect(updateTask).toHaveBeenCalledWith("t1", { dueDate: expect.any(String) }));
     expect(updateTask).toHaveBeenCalledTimes(1);
   });
 });

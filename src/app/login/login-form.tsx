@@ -1,12 +1,12 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { login, type LoginState as ServerLoginState } from "@/app/actions/auth";
-import { fieldClass } from "@/components/dialog";
 import { PinInput } from "@/components/pin-input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const STORAGE_KEY = "suzali:last-email";
 
@@ -48,7 +48,7 @@ function formatCountdown(ms: number) {
   return `${seconds} s`;
 }
 
-const labelClass = "mb-2 block text-[14px] font-medium text-ink";
+const labelClass = "mb-2 block text-body font-medium text-ink";
 
 export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
@@ -83,26 +83,26 @@ export function LoginForm({ next }: { next: string }) {
       {knownEmail ? (
         <div>
           <p className={labelClass}>Votre email</p>
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2.5">
-            <span className="truncate text-[15px]">{knownEmail}</span>
-            <button type="button" onClick={() => setChanging(true)} className="shrink-0 text-[13px] font-medium text-accent hover:underline">
+          <div className="flex items-center justify-between gap-3 rounded-md bg-surface-2 px-3 py-2.5">
+            <span className="truncate text-body">{knownEmail}</span>
+            <Button variant="ghost" size="sm" onClick={() => setChanging(true)} className="shrink-0 text-accent">
               Changer
-            </button>
+            </Button>
           </div>
           <input type="hidden" name="email" value={knownEmail} />
         </div>
       ) : (
         <div>
           <label htmlFor="email" className={labelClass}>Votre email</label>
-          <input
+          <Input
             id="email"
             name="email"
             type="email"
+            size="lg"
             autoComplete="username"
             required
             autoFocus
             placeholder="prenom@suzaliconseil.com"
-            className={`${fieldClass} py-2.5 text-[15px]`}
           />
         </div>
       )}
@@ -128,25 +128,27 @@ export function LoginForm({ next }: { next: string }) {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-danger-soft px-3 py-2.5 text-[14px] text-danger">
+        <div className="rounded-md bg-danger-soft px-3 py-2.5 text-body text-danger-text">
           <p role="alert">{error}</p>
           {locked && (
             // Compte à rebours visuel seulement : le message ci-dessus est déjà annoncé une fois.
-            <p aria-hidden className="tabular mt-1 text-[13px]">
+            <p aria-hidden className="tabular mt-1 text-xs">
               Nouvel essai possible dans {formatCountdown(remaining)}
             </p>
           )}
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
+        variant="primary"
+        size="lg"
+        loading={pending || Boolean(state?.next)}
         disabled={pending || locked || Boolean(state?.next)}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink py-3 text-[15px] font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="w-full font-semibold"
       >
-        {(pending || state?.next) && <Loader2 className="size-4 animate-spin" />}
         {pending || state?.next ? "Connexion…" : "Se connecter"}
-      </button>
+      </Button>
     </form>
   );
 }

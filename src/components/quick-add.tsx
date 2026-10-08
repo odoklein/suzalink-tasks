@@ -1,24 +1,57 @@
 "use client";
 
-import type { TaskStatus } from "@prisma/client";
+import type { Priority, TaskStatus } from "@prisma/client";
 import { Plus } from "lucide-react";
-import { useId, useMemo, useRef, useState, useTransition } from "react";
+import { useId, useMemo, useRef, useState, useTransition, type CSSProperties } from "react";
 import { toast } from "sonner";
 
 import { quickAddTask } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
+import { softColor, strongColor } from "@/lib/color";
 import { rememberLastProject } from "@/lib/last-project";
-import { parseQuickAdd } from "@/lib/quick-add";
+import { parseQuickAdd, type QuickAddResult } from "@/lib/quick-add";
 import { cn } from "@/lib/utils";
 
-const TOKEN_TONE: Record<string, string> = {
-  assignee: "bg-accent-soft text-accent",
-  priority: "bg-danger-soft text-danger",
-  zone: "bg-sunken text-ink-2",
-  due: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
-  billable: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
-  ambiguous: "bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)] text-st-waiting",
+/**
+ * Une couleur = un sens : urgence en danger/orange (comme DueChip), échéance en accent,
+ * hors périmètre en encre (comme BillableBadge), personne en couleur douce du membre.
+ */
+const PRIORITY_TONE: Record<Priority, string> = {
+  URGENT: "bg-danger-soft text-danger-text",
+  HIGH: "bg-soon-soft text-soon-text",
+  MEDIUM: "bg-sunken text-ink-2",
+  LOW: "bg-sunken text-muted",
+  NONE: "bg-sunken text-muted",
 };
+
+function tokenStyle(
+  token: QuickAddResult["tokens"][number],
+  parsed: QuickAddResult,
+  team: { id: string; color: string }[],
+): { className: string; style?: CSSProperties } {
+  switch (token.kind) {
+    case "priority":
+      return { className: PRIORITY_TONE[parsed.priority ?? "NONE"] };
+    case "due":
+      return { className: "bg-accent-soft text-accent" };
+    case "billable":
+      return { className: "bg-ink text-bg" };
+    case "ambiguous":
+      return { className: "bg-soon-soft text-soon-text" };
+    case "assignee": {
+      const color = team.find((member) => member.id === parsed.assigneeId)?.color;
+      return {
+        className: "bg-[var(--chip-bg)] text-[var(--chip-fg)]",
+        style: {
+          "--chip-bg": softColor(color),
+          "--chip-fg": strongColor(color),
+        } as CSSProperties,
+      };
+    }
+    default:
+      return { className: "bg-sunken text-ink-2" };
+  }
+}
 
 /** Saisie rapide avec aperçu en direct des éléments reconnus. */
 export function QuickAdd({
@@ -73,7 +106,7 @@ export function QuickAdd({
   return (
     <div
       className={cn(
-        "rounded-lg border border-line bg-surface transition-colors focus-within:border-accent",
+        "rounded-md border border-line bg-surface transition-colors focus-within:border-accent",
         compact ? "px-2 py-1.5" : "px-3 py-2",
       )}
     >
@@ -102,7 +135,7 @@ export function QuickAdd({
           onBlur={() => !value && onDone?.()}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 bg-transparent text-ui outline-none placeholder:text-faint"
         />
       </div>
       {error && (
@@ -112,11 +145,14 @@ export function QuickAdd({
       )}
       {parsed.tokens.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1 pl-5">
-          {parsed.tokens.map((token, index) => (
-            <span key={`${token.kind}-${index}`} className={cn("rounded px-1.5 py-0.5 text-[11px] font-medium", TOKEN_TONE[token.kind])}>
-              {token.label}
-            </span>
-          ))}
+          {parsed.tokens.map((token, index) => {
+            const { className, style } = tokenStyle(token, parsed, team);
+            return (
+              <span key={`${token.kind}-${index}`} style={style} className={cn("rounded-xs px-1.5 py-0.5 text-meta font-medium", className)}>
+                {token.label}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

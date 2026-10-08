@@ -5,6 +5,9 @@ import { useMemo, useState } from "react";
 
 import { QuickAdd } from "@/components/quick-add";
 import { TaskRow } from "@/components/task-row";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Tooltip } from "@/components/ui/tooltip";
 import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -51,25 +54,22 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
     });
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 pb-10">
+    <div className="mx-auto w-full max-w-[var(--page-medium)] px-4 sm:px-8 pb-10">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex rounded-lg border border-line bg-surface p-0.5 text-[12px]" role="group" aria-label="Regrouper par">
-          {(["zone", "status"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={groupBy === value}
-              onClick={() => setGroupBy(value)}
-              className={cn("rounded-md px-2.5 py-1 font-medium", groupBy === value ? "bg-sunken text-ink" : "text-muted hover:text-ink")}
-            >
-              {value === "zone" ? "Par page" : "Par statut"}
-            </button>
-          ))}
-        </div>
-        <label className="flex cursor-pointer items-center gap-2 text-[12px] text-muted">
-          <input type="checkbox" checked={hideDone} onChange={(event) => setHideDone(event.target.checked)} className="accent-[var(--accent)]" />
-          Masquer les tâches faites
-        </label>
+        <SegmentedControl
+          label="Regrouper par"
+          value={groupBy}
+          onChange={setGroupBy}
+          options={[
+            { value: "zone", label: "Par page" },
+            { value: "status", label: "Par statut" },
+          ]}
+        />
+        <Checkbox
+          checked={hideDone}
+          onChange={(event) => setHideDone(event.target.checked)}
+          label={<span className="text-xs text-muted">Masquer les tâches faites</span>}
+        />
       </div>
 
       <QuickAdd projectId={projectId} placeholder="Nouvelle tâche…  @odo !haute #homepage demain $" />
@@ -79,7 +79,7 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
           const isCollapsed = collapsed.has(group.key);
           const doneCount = group.tasks.filter((task) => task.status === "DONE").length;
           return (
-            <section key={group.key} className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+            <section key={group.key} className="overflow-hidden rounded-lg border border-line bg-surface shadow-card">
               <button
                 type="button"
                 onClick={() => toggle(group.key)}
@@ -87,8 +87,8 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
                 className="flex w-full items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-left"
               >
                 <ChevronRight className={cn("size-3.5 text-muted transition-transform", !isCollapsed && "rotate-90")} />
-                <h3 className="text-[13px] font-semibold">{group.label}</h3>
-                <span className="tabular text-[12px] text-muted">
+                <h3 className="text-ui font-semibold">{group.label}</h3>
+                <span className="tabular text-xs text-muted">
                   {groupBy === "zone" ? `${doneCount}/${group.tasks.length} faites` : group.tasks.length}
                 </span>
                 {groupBy === "zone" && (
@@ -96,7 +96,9 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
                     {TASK_STATUSES.map((status) => {
                       const count = group.tasks.filter((task) => task.status === status.value).length;
                       return count ? (
-                        <span key={status.value} title={`${STATUS_BY_VALUE[status.value].label} : ${count}`} style={{ flex: count, backgroundColor: status.tone }} />
+                        <Tooltip key={status.value} content={`${STATUS_BY_VALUE[status.value].label} : ${count}`}>
+                          <span style={{ flex: count, backgroundColor: status.tone }} />
+                        </Tooltip>
                       ) : null;
                     })}
                   </span>
@@ -113,7 +115,7 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
           );
         })}
         {groups.length === 0 && (
-          <p className="rounded-xl border border-dashed border-line-strong px-4 py-10 text-center text-[13px] text-muted">
+          <p className="rounded-lg border border-dashed border-line-strong px-4 py-10 text-center text-ui text-muted">
             Aucune tâche. Ajoutez-en une ci-dessus, ou importez un tableau de retours client.
           </p>
         )}

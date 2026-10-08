@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { updateTask } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
 import {
+  AgeChip,
   Avatar,
   BillableBadge,
   DueChip,
@@ -60,14 +61,14 @@ export function TaskRow({
       />
       <button
         type="button"
-        onClick={() => openTask(task.id)}
+        onClick={() => openTask(task.id, `${projectKey}-${task.number}`)}
         className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left"
       >
-        <span className="w-12 shrink-0 font-mono text-[11px] text-faint">
+        <span className="w-12 shrink-0 font-mono text-meta text-muted">
           {projectKey}-{task.number}
         </span>
         {project && <ProjectTile color={project.color} label={projectKey} size={16} />}
-        <span className={cn("min-w-0 flex-1 truncate text-[13px]", done && "text-muted line-through decoration-faint")}>
+        <span className={cn("min-w-0 flex-1 truncate text-ui", done && "text-muted line-through decoration-faint")}>
           {task.title}
         </span>
         {task.billable && <BillableBadge />}
@@ -77,11 +78,12 @@ export function TaskRow({
           </span>
         )}
         {task._count.comments > 0 && (
-          <span className="tabular flex items-center gap-0.5 text-[11px] text-muted">
+          <span className="tabular flex items-center gap-0.5 text-meta text-muted">
             <MessageSquare className="size-3" />
             {task._count.comments}
           </span>
         )}
+        {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}
         <DueChip date={task.dueDate} done={done} />
         <PriorityIcon priority={task.priority} />
         {task.assignee ? (

@@ -3,15 +3,21 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 
+import { Button, IconButton } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Fenêtre modale simple : Échap ou clic à l'extérieur pour fermer. */
+/**
+ * Fenêtre modale simple : Échap ou clic à l'extérieur pour fermer. `footer` : zone d'actions
+ * fixe en bas (Annuler / Valider), alignée à droite ; pour un formulaire, relier le bouton de
+ * validation avec l'attribut `form`.
+ */
 export function Dialog({
   open,
   onClose,
   title,
   description,
   children,
+  footer,
   wide = false,
 }: {
   open: boolean;
@@ -19,6 +25,7 @@ export function Dialog({
   title: string;
   description?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   wide?: boolean;
 }) {
   useEffect(() => {
@@ -31,57 +38,43 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-[60] flex items-start justify-center bg-[rgb(10_12_16/0.42)] px-4 pt-[10vh] backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className="animate-fade-in fixed inset-0 z-dialog flex items-start justify-center bg-[var(--scrim)] px-4 pt-[10vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onMouseDown={(event) => event.stopPropagation()}
         className={cn(
-          "animate-pop-in max-h-[80vh] w-full overflow-y-auto rounded-xl border border-line bg-surface shadow-pop scroll-thin",
+          "animate-pop-in flex max-h-[80vh] w-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-overlay",
           wide ? "max-w-2xl" : "max-w-lg",
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div>
-            <h2 className="font-display text-[17px] font-semibold tracking-tight">{title}</h2>
-            {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
+            <h2 className="text-title font-semibold tracking-[-0.01em]">{title}</h2>
+            {description && <p className="mt-0.5 text-ui text-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-md p-1 text-muted hover:bg-sunken hover:text-ink">
+          <IconButton label="Fermer" onClick={onClose}>
             <X className="size-4" />
-          </button>
+          </IconButton>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 scroll-thin">{children}</div>
+        {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">{footer}</div>}
       </div>
     </div>
   );
 }
 
 export const fieldClass =
-  "w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-[14px] outline-none transition-colors placeholder:text-faint focus:border-accent focus:bg-surface";
+  "w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-body outline-hidden transition-colors placeholder:text-faint focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring)] pointer-coarse:text-[16px]";
 
-export const labelClass = "mb-1.5 block text-[12px] font-medium text-ink-2";
+export const labelClass = "mb-1.5 block text-xs font-medium text-ink-2";
 
-export function PrimaryButton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-3.5 py-2 text-[13px] font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-50",
-        className,
-      )}
-    />
-  );
+/** Alias historiques de Button (variantes primary et secondary). */
+export function PrimaryButton(props: React.ComponentProps<typeof Button>) {
+  return <Button variant="primary" {...props} />;
 }
 
-export function GhostButton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50",
-        className,
-      )}
-    />
-  );
+export function GhostButton(props: React.ComponentProps<typeof Button>) {
+  return <Button variant="secondary" {...props} />;
 }

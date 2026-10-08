@@ -180,15 +180,13 @@ export function SelectMenu<T extends string>({
           else setOpen(true);
           setActive(Math.max(0, options.findIndex((option) => option.value === value)));
         }}
-        className="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[13px] text-ink-2 transition-colors hover:bg-sunken"
+        className="flex min-w-0 items-center gap-2 rounded-sm px-1.5 py-1 text-left text-ui text-ink-2 transition-colors hover:bg-sunken"
       >
         {trigger}
       </button>
 
       {open &&
         createPortal(
-          // z-index : couche « popover » (au-dessus du tiroir, des dialogues et de la palette).
-          // `--z-popover` viendra des jetons de P2-01 ; 80 en attendant.
           <div
             ref={menuRef}
             data-select-menu={listId}
@@ -198,7 +196,7 @@ export function SelectMenu<T extends string>({
               bottom: placement?.bottom,
               visibility: placement ? "visible" : "hidden",
             }}
-            className="animate-pop-in fixed z-[var(--z-popover,80)] w-56 overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-pop"
+            className="animate-pop-in fixed z-popover w-56 overflow-hidden rounded-md border border-line bg-surface p-1 shadow-pop"
             onClick={(event) => event.stopPropagation()}
           >
           {searchable && (
@@ -211,7 +209,7 @@ export function SelectMenu<T extends string>({
               }}
               placeholder="Filtrer…"
               aria-label={`Filtrer : ${label}`}
-              className="mb-1 w-full rounded-md bg-surface-2 px-2 py-1.5 text-[13px] outline-none placeholder:text-faint"
+              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-none placeholder:text-faint"
             />
           )}
           <ul
@@ -230,17 +228,17 @@ export function SelectMenu<T extends string>({
                 onMouseEnter={() => setActive(index)}
                 onClick={() => choose(option)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px]",
+                  "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-ui",
                   index === active && "bg-sunken",
                 )}
               >
                 {option.icon}
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                {option.hint && <span className="text-[11px] text-faint">{option.hint}</span>}
+                {option.hint && <span className="text-meta text-muted">{option.hint}</span>}
                 {option.value === value && <Check className="size-3.5 text-accent" />}
               </li>
             ))}
-            {filtered.length === 0 && <li className="px-2 py-2 text-[13px] text-muted">Aucun résultat</li>}
+            {filtered.length === 0 && <li className="px-2 py-2 text-ui text-muted">Aucun résultat</li>}
           </ul>
           {!searchable && (
             // Focus sur la liste pour que les flèches fonctionnent sans champ de recherche

@@ -10,6 +10,7 @@ const router = vi.hoisted(() => ({ push: vi.fn(), pathname: "/" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: router.push }),
   usePathname: () => router.pathname,
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("@/app/actions/tasks", () => ({ quickAddTask: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
@@ -70,7 +71,7 @@ describe("CommandPalette (P1-15)", () => {
     renderPalette();
     await userEvent.type(screen.getByRole("combobox"), "+Corriger le footer");
     expect(screen.getByText("Créer « Corriger le footer » dans")).toBeTruthy();
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["BGBières Georges", "CPCrésus Paie"]);
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Bières Georges", "Crésus Paie"]);
 
     vi.mocked(quickAddTask).mockResolvedValue({ ok: true, ref: "BG-15", id: "t15" });
     await userEvent.keyboard("{Enter}");
