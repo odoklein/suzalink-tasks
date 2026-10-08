@@ -18,7 +18,7 @@ export default async function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">
       <div className="w-full max-w-[400px]">
         <div className="flex flex-col items-center text-center">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-ink font-display text-[20px] font-bold text-bg">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-ink text-[20px] font-bold text-bg">
             S
           </span>
           <h1 className="mt-5 font-display text-[26px] font-semibold tracking-tight">Suzali Tasks</h1>

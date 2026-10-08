@@ -44,7 +44,7 @@ export function Dialog({
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div>
-            <h2 className="font-display text-[17px] font-semibold tracking-tight">{title}</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
             {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-md p-1 text-muted hover:bg-sunken hover:text-ink">

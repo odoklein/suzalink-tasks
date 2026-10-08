@@ -25,8 +25,8 @@ export function MobileBar() {
       <button type="button" onClick={() => setNavOpen(true)} aria-label="Ouvrir le menu" className="rounded-md p-2 text-ink-2 hover:bg-sunken">
         <Menu className="size-5" />
       </button>
-      <span className="flex size-6 items-center justify-center rounded-md bg-ink font-display text-[12px] font-bold text-bg">S</span>
-      <span className="font-display text-[14px] font-semibold tracking-tight">Suzali Tasks</span>
+      <span className="flex size-6 items-center justify-center rounded-md bg-ink text-[12px] font-bold text-bg">S</span>
+      <span className="text-[14px] font-semibold tracking-[-0.01em]">Suzali Tasks</span>
       <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Rechercher" className="ml-auto rounded-md p-2 text-ink-2 hover:bg-sunken">
         <Search className="size-5" />
       </button>
@@ -61,9 +61,9 @@ export function Sidebar() {
         )}
       >
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-ink font-display text-[13px] font-bold text-bg">S</span>
+          <span className="flex size-7 items-center justify-center rounded-lg bg-ink text-[13px] font-bold text-bg">S</span>
           <div className="leading-tight">
-            <p className="font-display text-[14px] font-semibold tracking-tight">Suzali Tasks</p>
+            <p className="text-[14px] font-semibold tracking-[-0.01em]">Suzali Tasks</p>
             <p className="text-[11px] text-muted">Suzali Conseil</p>
           </div>
         </div>

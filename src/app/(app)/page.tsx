@@ -172,7 +172,7 @@ export default async function TodayPage() {
                 {index === 0 ? "Auj." : format(day, "EEE", { locale: fr })}
               </p>
               <div className="mt-0.5 flex items-baseline justify-between gap-2">
-                <span className="tabular font-display text-[18px] font-semibold">{format(day, "d")}</span>
+                <span className="tabular text-[18px] font-semibold">{format(day, "d")}</span>
                 {tasks.length > 0 && (
                   <span className={cn("tabular rounded-full px-1.5 text-[11px] font-semibold", index === 0 ? "bg-bg/15" : "bg-accent-soft text-accent")}>
                     {tasks.length}
@@ -196,7 +196,7 @@ export default async function TodayPage() {
             <Group title="Plus tard ou sans échéance" tasks={later} />
             {mine.length === 0 && (
               <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-10 text-center">
-                <p className="font-display text-[18px] font-semibold">Rien ne vous est attribué</p>
+                <p className="text-[18px] font-semibold tracking-[-0.01em]">Rien ne vous est attribué</p>
                 <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted">
                   {unassignedCount > 0
                     ? "Des tâches attendent un responsable juste en dessous : ouvrez-en une pour vous l'attribuer."

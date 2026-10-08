@@ -305,7 +305,7 @@ function TitleField({ value, onSave }: { value: string; onSave: (value: string) 
           (event.target as HTMLTextAreaElement).blur();
         }
       }}
-      className="w-full resize-none bg-transparent font-display text-[21px] font-semibold leading-snug tracking-tight outline-none"
+      className="w-full resize-none bg-transparent text-[21px] font-semibold leading-snug tracking-[-0.01em] outline-none"
     />
   );
 }

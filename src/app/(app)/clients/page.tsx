@@ -39,7 +39,7 @@ export default async function ClientsPage() {
           {clients.map((client) => (
             <li key={client.id} className="rounded-xl border border-line bg-surface p-5 shadow-card">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="font-display text-[17px] font-semibold tracking-tight">{client.name}</h2>
+                <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{client.name}</h2>
                 <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-ink-2">
                   {client.kind === "AGENCY" ? "Agence partenaire" : "Client direct"}
                 </span>

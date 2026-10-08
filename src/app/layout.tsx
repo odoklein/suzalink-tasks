@@ -5,12 +5,22 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+// Bricolage Grotesque : uniquement à partir de 22 px (h1 de page, héros d’Aujourd’hui,
+// valeurs des statistiques, titres d’états vides, connexion). Les titres de cartes, de
+// dialogues et de panneaux restent en Instrument Sans 17 px semi-gras.
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
+  axes: ["opsz", "wdth"],
   variable: "--font-display-face",
   display: "swap",
 });
-const code = JetBrains_Mono({ subsets: ["latin"], variable: "--font-code", display: "swap" });
+// JetBrains Mono : identifiants de tâche, PIN et clés uniquement, jamais les dates.
+const code = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-code",
+  display: "swap",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   title: { default: "Suzali Tasks", template: "%s · Suzali Tasks" },

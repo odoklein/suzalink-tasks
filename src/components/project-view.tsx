@@ -210,7 +210,7 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
     return (
       <div className="mx-auto w-full max-w-3xl px-6">
         <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
-          <p className="font-display text-[17px] font-semibold">Aucune mise en ligne enregistrée</p>
+          <p className="text-[17px] font-semibold tracking-[-0.01em]">Aucune mise en ligne enregistrée</p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-muted">
             Enregistrez chaque mise en ligne avec son heure exacte : c&apos;est la preuve de ce qui a été livré, et quand.
           </p>
@@ -228,7 +228,7 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
     <ol className="mx-auto w-full max-w-3xl px-6 pb-10">
       {deliveries.map((delivery, index) => (
         <li key={delivery.id} className="relative grid grid-cols-[132px_1fr] gap-5 pb-6">
-          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right font-mono text-[12px] text-muted">
+          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right text-[12px] text-muted">
             {formatDateTime(delivery.deployedAt)}
           </time>
           <div className="relative border-l border-line pl-5">
