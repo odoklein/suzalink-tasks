@@ -1,14 +1,18 @@
 "use server";
 
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { revalidatePath } from "next/cache";
 
 import { STATUS_BY_VALUE } from "@/lib/constants";
 import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { fromParisDateTimeInput, formatParis } from "@/lib/time";
 
+/**
+ * `input.deployedAt` est la valeur brute d'un `<input type="datetime-local">` (« 2026-10-08T14:30 »),
+ * c'est-à-dire une heure murale de Paris : le serveur (UTC) la convertit lui-même avec
+ * `fromParisDateTimeInput`, le résultat ne dépend donc pas du fuseau du navigateur ni du serveur.
+ */
 export async function createDelivery(
   projectId: string,
   input: { title: string; notes?: string; url?: string; deployedAt?: string },
@@ -17,6 +21,8 @@ export async function createDelivery(
     const { userId } = await verifySession();
     const title = input.title.trim();
     if (!title) return { error: "Décrivez ce qui a été mis en ligne." };
+    const deployedAt = input.deployedAt ? fromParisDateTimeInput(input.deployedAt) : new Date();
+    if (Number.isNaN(deployedAt.getTime())) return { error: "Date de mise en ligne invalide." };
 
     await db.delivery.create({
       data: {
@@ -25,7 +31,7 @@ export async function createDelivery(
         title,
         notes: input.notes?.trim() || null,
         url: input.url?.trim() || null,
-        deployedAt: input.deployedAt ? new Date(input.deployedAt) : new Date(),
+        deployedAt,
       },
     });
     await db.activity.create({
@@ -52,7 +58,12 @@ export async function buildRecap(projectId: string, sinceIso?: string) {
     });
     if (!project) return { error: "Projet introuvable." };
 
-    const since = sinceIso ? new Date(sinceIso) : undefined;
+    // « yyyy-MM-dd » d'un champ date : minuit à Paris (et non minuit UTC).
+    const since = sinceIso
+      ? /^\d{4}-\d{2}-\d{2}$/.test(sinceIso)
+        ? fromParisDateTimeInput(`${sinceIso}T00:00`)
+        : new Date(sinceIso)
+      : undefined;
     const done = project.tasks.filter(
       (task) => task.status === "DONE" && (!since || (task.completedAt && task.completedAt >= since)),
     );
@@ -77,7 +88,7 @@ export async function buildRecap(projectId: string, sinceIso?: string) {
       `Bonjour,`,
       ``,
       lastDelivery
-        ? `Voici le point sur ${project.name}. Dernière mise en ligne le ${format(lastDelivery.deployedAt, "d MMMM 'à' HH'h'mm", { locale: fr })}${project.siteUrl ? ` : ${project.siteUrl}` : ""}.`
+        ? `Voici le point sur ${project.name}. Dernière mise en ligne le ${formatParis(lastDelivery.deployedAt, "d MMMM 'à' HH'h'mm")}${project.siteUrl ? ` : ${project.siteUrl}` : ""}.`
         : `Voici le point sur ${project.name}.`,
       `Pensez à faire un rafraîchissement forcé (Ctrl+F5) pour voir la dernière version.`,
     ];

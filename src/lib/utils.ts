@@ -9,6 +9,8 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 
+import { formatParis } from "@/lib/time";
+
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
@@ -63,14 +65,13 @@ export function dueTone(date: Date | string | null, done = false) {
   return "muted" as const;
 }
 
+/** « 8 oct. 2026 à 14h30 », toujours en heure de Paris (identique sur le serveur et dans le navigateur). */
 export function formatDateTime(date: Date | string) {
-  return format(typeof date === "string" ? new Date(date) : date, "d MMM yyyy 'à' HH'h'mm", {
-    locale: fr,
-  });
+  return formatParis(date, "d MMM yyyy 'à' HH'h'mm");
 }
 
 export function formatShortDate(date: Date | string) {
-  return format(typeof date === "string" ? new Date(date) : date, "dd/MM", { locale: fr });
+  return formatParis(date, "dd/MM");
 }
 
 export function timeAgo(date: Date | string) {

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
 import { GhostButton, PrimaryButton } from "@/components/dialog";
+import { LocalTime } from "@/components/local-time";
 import { Avatar, ProjectTile } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
 import { DeliveryDialog, ImportDialog, RecapDialog } from "@/components/project-dialogs";
@@ -17,7 +18,7 @@ import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
-import { cn, formatDateTime, timeAgo } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export type ProjectTab = "tableau" | "liste" | "mises-en-ligne" | "activite";
 
@@ -232,9 +233,7 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
     <ol className="mx-auto w-full max-w-3xl px-6 pb-10">
       {deliveries.map((delivery, index) => (
         <li key={delivery.id} className="relative grid grid-cols-[132px_1fr] gap-5 pb-6">
-          <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right font-mono text-[12px] text-muted">
-            {formatDateTime(delivery.deployedAt)}
-          </time>
+          <LocalTime date={delivery.deployedAt} className="tabular pt-0.5 text-right font-mono text-[12px] text-muted" />
           <div className="relative border-l border-line pl-5">
             <span className={cn("absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-bg", index === 0 ? "bg-st-done" : "bg-line-strong")} />
             <p className="text-[14px] font-medium">{delivery.title}</p>
@@ -270,9 +269,7 @@ function ActivityFeed({ activities }: { activities: ProjectData["activities"] })
           <p className="min-w-0 flex-1 text-ink-2">
             <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
           </p>
-          <time dateTime={new Date(activity.createdAt).toISOString()} title={formatDateTime(activity.createdAt)} className="shrink-0 text-[12px] text-faint">
-            {timeAgo(activity.createdAt)}
-          </time>
+          <LocalTime date={activity.createdAt} relative className="shrink-0 text-[12px] text-faint" />
         </li>
       ))}
     </ol>

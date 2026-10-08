@@ -13,11 +13,12 @@ import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/co
 import { StatusIcon } from "@/components/primitives";
 import { PROJECT_COLORS, STATUS_BY_VALUE } from "@/lib/constants";
 import { parseFeedbackTable } from "@/lib/feedback-import";
+import { formatParis, toParisDateInput, toParisDateTimeInput } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 export function ImportDialog({ open, onClose, projectId }: { open: boolean; onClose: () => void; projectId: string }) {
   const [text, setText] = useState("");
-  const [source, setSource] = useState(() => `Retours du ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`);
+  const [source, setSource] = useState(() => `Retours du ${formatParis(new Date(), "dd/MM")}`);
   const [pending, startTransition] = useTransition();
   const rows = useMemo(() => parseFeedbackTable(text), [text]);
 
@@ -140,7 +141,7 @@ export function RecapDialog({
             <input id="recap-since" type="date" value={since} onChange={(event) => setSince(event.target.value)} className={cn(fieldClass, "w-auto")} />
           </div>
           {lastDeliveryAt && (
-            <GhostButton type="button" onClick={() => setSince(lastDeliveryAt.slice(0, 10))}>
+            <GhostButton type="button" onClick={() => setSince(toParisDateInput(lastDeliveryAt))}>
               Depuis la dernière mise en ligne
             </GhostButton>
           )}
@@ -181,8 +182,8 @@ export function DeliveryDialog({
   projectId: string;
   siteUrl: string | null;
 }) {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  // Heure de Paris, comme l'équipe : le serveur relit cette valeur en heure de Paris (voir createDelivery).
+  const local = toParisDateTimeInput(new Date());
   const [pending, startTransition] = useTransition();
 
   return (
