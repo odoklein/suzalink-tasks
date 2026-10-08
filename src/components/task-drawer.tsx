@@ -36,6 +36,8 @@ import { rememberTask } from "@/lib/recent-tasks";
 import { taskPath } from "@/lib/task-ref";
 import { toParisDateInput } from "@/lib/time";
 import { formatDateTime, timeAgo } from "@/lib/utils";
+import { parseEuros } from "@/lib/extras";
+import { promptWaitingFor } from "@/lib/waiting-prompt";
 import { DESCRIPTION_MAX, TITLE_MAX } from "@/lib/validate";
 
 /**
@@ -107,6 +109,9 @@ export function TaskDrawer() {
       startTransition(async () => {
         const result = await updateTask(target.id, changes);
         if (!result.ok) toast.error(result.error);
+        else if (changes.status === "WAITING_CLIENT" && target.status !== "WAITING_CLIENT") {
+          promptWaitingFor({ taskId: target.id, ref: `${target.project.key}-${target.number}` });
+        }
         if (!detached) await load(target.id, true);
       });
     },
@@ -299,6 +304,27 @@ export function TaskDrawer() {
                     label={task.billable ? "À facturer en supplément" : "Non"}
                   />
                 </Prop>
+                {task.billable && (
+                  <>
+                    <Prop label="Montant estimé">
+                      <InlineInput
+                        value={task.estimatedAmountCents !== null ? String(task.estimatedAmountCents / 100).replace(".", ",") : ""}
+                        placeholder="150 (€ HT)"
+                        onSave={(value) => {
+                          const cents = parseEuros(value);
+                          if (value.trim() && cents === null) {
+                            toast.error("Montant illisible : écrivez par exemple 150 ou 150,50.");
+                            return;
+                          }
+                          patch({ estimatedAmountCents: cents });
+                        }}
+                      />
+                    </Prop>
+                    <Prop label="Note de facturation">
+                      <InlineInput value={task.billingNote ?? ""} placeholder="Demandé par Luna le 06/10…" onSave={(billingNote) => patch({ billingNote })} />
+                    </Prop>
+                  </>
+                )}
               </dl>
 
               <section className="mt-5 border-t border-line px-5 pt-4">

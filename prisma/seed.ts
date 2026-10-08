@@ -8,6 +8,8 @@
 import { PrismaClient, type Priority, type TaskStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import { seedTemplates } from "./scripts/seed-templates";
+
 const db = new PrismaClient();
 
 // Adresses à ajuster si besoin : chacun se connecte avec la sienne.
@@ -222,6 +224,7 @@ async function main() {
           creatorId: leadId,
           position,
           completedAt: status === "DONE" ? new Date() : null,
+          waitingSince: status === "WAITING_CLIENT" ? new Date() : null,
         },
       });
     }
@@ -242,6 +245,8 @@ async function main() {
     await db.activity.create({ data: { projectId: created.id, actorId: leadId, message: "a créé le projet" } });
     console.log(`✓ ${project.name} : ${project.tasks.length} tâches, ${project.deliveries?.length ?? 0} mises en ligne`);
   }
+
+  await seedTemplates(db, true);
 
   console.log(`\nComptes : ${TEAM.map((m) => m.email).join(", ")}`);
 }

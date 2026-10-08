@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarCheck2, ChevronRight, FolderKanban, LogOut, Menu, Plus, Search, Settings, SquarePen } from "lucide-react";
+import { Building2, CalendarCheck2, Euro, ChevronRight, FolderKanban, LogOut, Menu, Plus, Search, Settings, SquarePen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -20,6 +20,7 @@ const NAV = [
   { href: "/", label: "Aujourd'hui", icon: CalendarCheck2 },
   { href: "/projects", label: "Projets", icon: FolderKanban },
   { href: "/clients", label: "Clients", icon: Building2 },
+  { href: "/facturation", label: "Facturation", icon: Euro },
 ];
 
 /** Barre du haut sur téléphone : la barre latérale s'ouvre en tiroir. */

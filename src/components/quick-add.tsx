@@ -62,6 +62,7 @@ export function QuickAdd({
   compact = false,
   autoFocus = false,
   onDone,
+  roundId,
 }: {
   projectId: string;
   /** Si fourni, mémorisé comme dernier projet utilisé après une création. */
@@ -71,6 +72,8 @@ export function QuickAdd({
   compact?: boolean;
   autoFocus?: boolean;
   onDone?: () => void;
+  /** Ajoute la tâche à ce lot de retours ouvert (P4-06). */
+  roundId?: string;
 }) {
   const { team, openTask } = useApp();
   const [value, setValue] = useState("");
@@ -92,7 +95,7 @@ export function QuickAdd({
     setValue("");
     setError(null);
     startTransition(async () => {
-      const result = await quickAddTask(projectId, text, status, snapshot.assigneeId);
+      const result = await quickAddTask(projectId, text, status, { roundId, resolvedAssigneeId: snapshot.assigneeId });
       if (!result.ok) {
         toast.error(result.error);
         setValue((current) => current || text);

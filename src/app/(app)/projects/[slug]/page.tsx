@@ -7,7 +7,7 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { taskCardSelect } from "@/lib/types";
 
-const TABS: ProjectTab[] = ["tableau", "liste", "mises-en-ligne", "activite"];
+const TABS: ProjectTab[] = ["tableau", "liste", "retours", "avenants", "mises-en-ligne", "activite"];
 
 /** Un seul chargement par requête, partagé par generateMetadata et la page (cache React). */
 const loadProject = cache(async (slug: string) => {
@@ -15,17 +15,60 @@ const loadProject = cache(async (slug: string) => {
   return db.project.findUnique({
     where: { slug },
     include: {
-      client: { select: { name: true, kind: true, contacts: true } },
+      client: {
+        select: {
+          name: true,
+          kind: true,
+          contacts: true,
+          contactRecords: {
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+            select: { id: true, name: true, role: true, email: true },
+          },
+        },
+      },
       lead: { select: { name: true, color: true } },
       tasks: { select: taskCardSelect, orderBy: { position: "asc" } },
       deliveries: {
+        where: { deletedAt: null },
         orderBy: { deployedAt: "desc" },
-        include: { author: { select: { name: true, color: true } } },
+        include: {
+          author: { select: { name: true, color: true } },
+          tasks: { select: { task: { select: { id: true, number: true, title: true, zone: true } } } },
+        },
       },
       activities: {
         orderBy: { createdAt: "desc" },
         take: 60,
         include: { actor: { select: { name: true, color: true } } },
+      },
+      clientMessages: { orderBy: { sentAt: "desc" }, take: 30, select: { id: true, body: true, kind: true, sentAt: true } },
+      extras: {
+        orderBy: { number: "desc" },
+        select: {
+          id: true,
+          number: true,
+          title: true,
+          amountCents: true,
+          status: true,
+          quotedAt: true,
+          approvedAt: true,
+          approvedBy: true,
+          invoicedAt: true,
+          invoiceRef: true,
+          paidAt: true,
+        },
+      },
+      rounds: {
+        orderBy: { receivedAt: "desc" },
+        select: {
+          id: true,
+          label: true,
+          receivedAt: true,
+          status: true,
+          rawText: true,
+          fromContact: { select: { name: true } },
+          closedBy: { select: { title: true, deployedAt: true } },
+        },
       },
     },
   });
@@ -41,12 +84,12 @@ export async function generateMetadata(props: PageProps<"/projects/[slug]">): Pr
 export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
   await verifySession();
   const { slug } = await props.params;
-  const { vue } = await props.searchParams;
+  const { vue, source } = await props.searchParams;
 
   const project = await loadProject(slug);
   if (!project || project.archived) notFound();
 
   const tab = TABS.includes(vue as ProjectTab) ? (vue as ProjectTab) : "tableau";
 
-  return <ProjectView project={project} initialTab={tab} />;
+  return <ProjectView project={project} initialTab={tab} sourceFilter={typeof source === "string" ? source : null} />;
 }

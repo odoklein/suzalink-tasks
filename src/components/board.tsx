@@ -35,6 +35,7 @@ import { computePosition } from "@/lib/position";
 import { oldestWaitingDays } from "@/lib/waiting";
 import type { TaskCard as TaskCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { promptWaitingFor } from "@/lib/waiting-prompt";
 
 type Columns = Record<TaskStatus, TaskCardData[]>;
 
@@ -140,6 +141,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     list[index] = { ...list[index], position, status: column };
     setColumns((current) => ({ ...current, [column]: list }));
 
+    const taskBefore = tasks.find((task) => task.id === active.id);
     setInflight((count) => count + 1);
     startTransition(async () => {
       try {
@@ -147,6 +149,8 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
         if (!result.ok) {
           toast.error(result.error);
           setColumns(before); // la carte revient là où elle était
+        } else if (taskBefore && column === "WAITING_CLIENT" && taskBefore.status !== "WAITING_CLIENT") {
+          promptWaitingFor({ taskId: taskBefore.id, ref: `${projectKey}-${taskBefore.number}` });
         }
       } finally {
         setInflight((count) => count - 1);

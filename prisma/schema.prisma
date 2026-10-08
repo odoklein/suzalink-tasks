@@ -37,6 +37,27 @@ enum TaskStatus {
   DONE
 }
 
+/// Type d'événement du journal d'activité : le texte français est généré à
+/// l'écriture (src/lib/activity-copy.ts), le type et les valeurs restent
+/// exploitables (rapports, délais « chez le client », litiges).
+enum ActivityType {
+  NOTE
+  TASK_CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  BILLABLE_CHANGED
+  DUE_CHANGED
+  PRIORITY_CHANGED
+  TITLE_CHANGED
+  COMMENTED
+  TASK_DELETED
+  TASK_RESTORED
+  IMPORTED
+  DELIVERED
+  CLIENT_MESSAGE
+  PROJECT_UPDATED
+}
+
 enum Priority {
   NONE
   LOW
@@ -64,23 +85,112 @@ model User {
   active         Boolean @default(true) // compte désactivé : plus de connexion, sessions refusées
   mustChangePin  Boolean @default(false) // code donné par un admin : à remplacer à la première connexion
 
-  assignedTasks Task[]     @relation("TaskAssignee")
-  createdTasks  Task[]     @relation("TaskCreator")
-  ledProjects   Project[]  @relation("ProjectLead")
-  comments      Comment[]
-  deliveries    Delivery[]
-  activities    Activity[]
+  assignedTasks  Task[]          @relation("TaskAssignee")
+  createdTasks   Task[]          @relation("TaskCreator")
+  ledProjects    Project[]       @relation("ProjectLead")
+  comments       Comment[]
+  deliveries     Delivery[]
+  activities     Activity[]
+  clientMessages ClientMessage[]
 }
 
 model Client {
   id        String     @id @default(cuid())
   name      String
   kind      ClientKind @default(DIRECT)
-  contacts  String? // « Luna Cervi (cheffe de projet), Clémentine Burdet-Micolle »
+  contacts  String? // ancien champ libre, conservé : « Luna Cervi (cheffe de projet), Clémentine Burdet-Micolle »
   notes     String?
   createdAt DateTime   @default(now())
 
-  projects Project[]
+  projects       Project[]
+  contactRecords Contact[]
+}
+
+/// Interlocuteur d'un client ou d'une agence (remplace le champ libre Client.contacts).
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  role      String? // « cheffe de projet »
+  email     String?  @unique
+  phone     String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  messages ClientMessage[]
+  rounds   FeedbackRound[]
+}
+
+enum RoundStatus {
+  OPEN
+  DELIVERED
+  CLOSED
+}
+
+/// Lot de retours client (un tableau collé, un e-mail…) : la preuve de ce qui a été demandé et quand.
+model FeedbackRound {
+  id         String      @id @default(cuid())
+  label      String
+  receivedAt DateTime    @default(now())
+  channel    Channel     @default(SHEETS)
+  sheetUrl   String?
+  rawText    String? // collage d'origine, conservé tel quel
+  status     RoundStatus @default(OPEN)
+  createdAt  DateTime    @default(now())
+
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromContactId String?
+  fromContact   Contact?  @relation(fields: [fromContactId], references: [id], onDelete: SetNull)
+  closedById    String?
+  closedBy      Delivery? @relation(fields: [closedById], references: [id], onDelete: SetNull)
+  tasks         Task[]
+
+  @@index([projectId, receivedAt])
+}
+
+enum MessageKind {
+  RECAP
+  FOLLOW_UP
+  QUOTE
+}
+
+/// D'où vient une action ou un message : l'interface, un e-mail, un outil connecté…
+enum Channel {
+  WEB
+  EMAIL
+  WHATSAPP
+  CALL
+  PORTAL
+  API
+  MCP
+  DEPLOY
+  SHEETS
+  WIDGET
+  CHAT
+  SYSTEM
+}
+
+/// Message envoyé au client (récap, relance, devis) : la preuve de ce qui lui a été dit et quand.
+model ClientMessage {
+  id     String      @id @default(cuid())
+  kind   MessageKind
+  body   String
+  sentAt DateTime    @default(now())
+  via    Channel     @default(EMAIL)
+  since  DateTime? // récap : tâches faites depuis ; relance : début de l'attente la plus ancienne
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  toId      String?
+  to        Contact? @relation(fields: [toId], references: [id], onDelete: SetNull)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  tasks     Task[]   @relation("MessageTasks")
+
+  @@index([projectId, sentAt])
 }
 
 model Project {
@@ -109,6 +219,110 @@ model Project {
   tasks       Task[]
   deliveries  Delivery[]
   activities  Activity[]
+
+  lastChasedAt   DateTime? // dernière relance du client sur ce projet
+  clientMessages ClientMessage[]
+  rounds         FeedbackRound[]
+
+  // P4-09 : type, modèle de départ, pages et jalons
+  type       ProjectType @default(OTHER)
+  startDate  DateTime?
+  zones      Zone[]
+  milestones Milestone[]
+  extras     Extra[]
+}
+
+enum ExtraStatus {
+  DRAFT
+  QUOTED
+  APPROVED
+  REJECTED
+  INVOICED
+  PAID
+}
+
+/// Avenant : modifications hors périmètre chiffrées, devisées puis facturées.
+/// La facture elle-même est émise ailleurs : `invoiceRef` n'est qu'une référence (jamais de numérotation ici).
+model Extra {
+  id          String      @id @default(cuid())
+  number      Int
+  title       String
+  amountCents Int?
+  status      ExtraStatus @default(DRAFT)
+  quotedAt    DateTime?
+  approvedAt  DateTime?
+  approvedBy  String?
+  invoicedAt  DateTime?
+  invoiceRef  String?
+  paidAt      DateTime?
+  createdAt   DateTime    @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([projectId, number])
+  @@index([status])
+}
+
+enum ProjectType {
+  VITRINE
+  ECOMMERCE
+  REFONTE
+  MAINTENANCE
+  SOCIAL
+  OTHER
+}
+
+/// Page ou section d'un projet (« Homepage », « Fiche produit ») : référentiel des zones des tâches.
+model Zone {
+  id        String  @id @default(cuid())
+  name      String
+  url       String?
+  position  Float   @default(0)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([projectId, name])
+}
+
+/// Jalon de projet (« Maquettes validées », « Mise en ligne »).
+model Milestone {
+  id          String    @id @default(cuid())
+  name        String
+  dueDate     DateTime?
+  completedAt DateTime?
+  position    Float     @default(0)
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId, position])
+}
+
+/// Modèle de projet : jalons, pages et tâches de départ (échéances relatives au démarrage).
+model ProjectTemplate {
+  id         String         @id @default(cuid())
+  name       String         @unique
+  type       ProjectType    @default(OTHER)
+  milestones String[]
+  zones      String[]
+  tasks      TemplateTask[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model TemplateTask {
+  id          String          @id @default(cuid())
+  title       String
+  zone        String?
+  milestone   String?
+  estimateMin Int?
+  offsetDays  Int? // échéance = démarrage + N jours
+  position    Float           @default(0)
+  templateId  String
+  template    ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 model Task {
@@ -125,6 +339,8 @@ model Task {
   position        Float      @default(0)
   completedAt     DateTime?
   statusChangedAt DateTime   @default(now()) // depuis quand la tâche est dans son statut (ex. « chez le client depuis 4 j »)
+  waitingSince    DateTime? // posé à l'entrée dans « Chez le client », effacé à la sortie
+  externalKey     String? // clé de déduplication d'un retour importé : sha1(page|retour) normalisés (src/lib/import-key.ts)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -138,7 +354,31 @@ model Task {
   comments   Comment[]
   activities Activity[]
 
+  // Relancer le client (P4-05)
+  waitingFor   String? // « visuels HD », « textes page À propos »
+  followUpAt   DateTime? // date de relance choisie à la main
+  lastChasedAt DateTime?
+  messages     ClientMessage[] @relation("MessageTasks")
+
+  deliveries DeliveryTask[]
+
+  // P4-09 : référentiels (Task.zone reste le libellé pendant la transition)
+  zoneId      String?
+  zoneRef     Zone?      @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  // P4-10 : hors périmètre chiffré, regroupé en avenants
+  billingNote          String?
+  estimatedAmountCents Int?
+  extraId              String?
+  extra                Extra?  @relation(fields: [extraId], references: [id], onDelete: SetNull)
+
+  roundId String? // lot de retours d'origine (P4-06)
+  round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
+
   @@unique([projectId, number])
+  @@unique([projectId, externalKey]) // plusieurs NULL autorisés
   @@index([projectId, status, position])
   @@index([assigneeId, status])
 }
@@ -167,12 +407,41 @@ model Delivery {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   authorId  String?
   author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  closedRounds FeedbackRound[]
+
+  // P4-07 : contenu et origine de la mise en ligne
+  tasks       DeliveryTask[]
+  source      Channel        @default(WEB)
+  externalId  String?        @unique // identifiant chez l'hébergeur (déploiement Netlify, Vercel…)
+  commitSha   String?
+  context     String? // production, preview…
+  confirmedAt DateTime?
+  deletedAt   DateTime? // suppression annulable
+
+  @@index([projectId, deployedAt])
+}
+
+/// Tâches livrées par une mise en ligne.
+model DeliveryTask {
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([deliveryId, taskId])
+  @@index([taskId])
 }
 
 model Activity {
   id        String   @id @default(cuid())
   message   String
   createdAt DateTime @default(now())
+
+  type       ActivityType @default(NOTE)
+  fromStatus TaskStatus?
+  toStatus   TaskStatus?
+  data       Json? // { from, to } : attribution, échéance, hors périmètre, priorité, titre
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -183,4 +452,6 @@ model Activity {
   actor     User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([projectId, createdAt])
+  @@index([taskId, createdAt])
+  @@index([type, createdAt])
 }

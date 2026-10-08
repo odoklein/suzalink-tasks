@@ -1,9 +1,9 @@
 import { LogOut } from "lucide-react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import Link from "next/link";
 
 import { logoutEverywhere } from "@/app/actions/auth";
-
 import { Avatar } from "@/components/primitives";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -102,6 +102,16 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
               Se déconnecter de tous les appareils
             </button>
           </form>
+        </section>
+
+        <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-title font-semibold tracking-[-0.01em]">Modèles de projet</h2>
+          <p className="mt-1 text-ui text-muted">
+            Jalons, pages et tâches de départ proposés à la création d’un projet (site vitrine, e-commerce…).
+          </p>
+          <Link href="/settings/templates" className="mt-3 inline-block text-ui font-medium text-accent hover:underline">
+            Gérer les modèles
+          </Link>
         </section>
 
         {user.role === "ADMIN" && (

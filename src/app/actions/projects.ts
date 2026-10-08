@@ -1,14 +1,18 @@
 "use server";
 
-import type { ClientKind, Prisma, ProjectStatus } from "@prisma/client";
+import type { ClientKind, Prisma, ProjectStatus, ProjectType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { PROJECT_COLORS } from "@/lib/constants";
 import { safe } from "@/lib/action";
+import { logActivity } from "@/lib/activity";
+import { applyTemplate } from "@/lib/apply-template";
+import { PROJECT_COLORS } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { fromParisDateInput } from "@/lib/time";
+import { plural } from "@/lib/plural";
+import { PROJECT_TYPES } from "@/lib/templates";
+import { fromParisDateInput, fromParisDateTimeInput, startOfDayParis } from "@/lib/time";
 import { projectKey, slugify } from "@/lib/utils";
 import { DESCRIPTION_MAX, parseHttpUrl, parseProjectKey } from "@/lib/validate";
 
@@ -38,6 +42,13 @@ export async function createProject(_state: ProjectFormState, formData: FormData
     const dueDate = due ? fromParisDateInput(due) : null;
     if (dueDate && Number.isNaN(dueDate.getTime())) return { error: "Échéance invalide." };
 
+    const templateId = String(formData.get("templateId") ?? "") || null;
+    const typeValue = String(formData.get("type") ?? "");
+    const type: ProjectType = PROJECT_TYPES.some((t) => t.value === typeValue) ? (typeValue as ProjectType) : "OTHER";
+    const startValue = String(formData.get("startDate") ?? "");
+    const start = startValue ? fromParisDateTimeInput(`${startValue}T00:00`) : startOfDayParis(new Date());
+    if (Number.isNaN(start.getTime())) return { error: "Date de démarrage invalide." };
+
     const newClient = String(formData.get("newClient") ?? "").trim();
     const color = String(formData.get("color") ?? "") || PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)];
 
@@ -63,9 +74,21 @@ export async function createProject(_state: ProjectFormState, formData: FormData
           description: String(formData.get("description") ?? "").trim().slice(0, DESCRIPTION_MAX) || null,
           dueDate,
           leadId: userId,
+          type,
+          startDate: start,
         },
       });
-      await tx.activity.create({ data: { projectId: created.id, actorId: userId, message: "a créé le projet" } });
+      await logActivity(tx, { projectId: created.id, actorId: userId, event: { type: "PROJECT_UPDATED", change: "created" } });
+      if (templateId) {
+        const applied = await applyTemplate(tx, { projectId: created.id, templateId, start, creatorId: userId });
+        if (applied) {
+          await logActivity(tx, {
+            projectId: created.id,
+            actorId: userId,
+            event: { type: "NOTE", message: `a appliqué le modèle « ${applied.name} » (${plural(applied.count, "tâche")})` },
+          });
+        }
+      }
       return created;
     });
     revalidatePath("/", "layout");
@@ -76,8 +99,16 @@ export async function createProject(_state: ProjectFormState, formData: FormData
 export async function updateProjectStatus(projectId: string, status: ProjectStatus) {
   return safe(async () => {
     const { userId } = await verifySession();
-    await db.project.update({ where: { id: projectId }, data: { status } });
-    await db.activity.create({ data: { projectId, actorId: userId, message: "a changé le statut du projet" } });
+    await db.$transaction(async (tx) => {
+      const before = await tx.project.findUnique({ where: { id: projectId }, select: { status: true } });
+      if (!before || before.status === status) return;
+      await tx.project.update({ where: { id: projectId }, data: { status } });
+      await logActivity(tx, {
+        projectId,
+        actorId: userId,
+        event: { type: "PROJECT_UPDATED", change: "status", from: before.status, to: status },
+      });
+    });
     revalidatePath("/", "layout");
     return { ok: true as const };
   });
@@ -88,11 +119,13 @@ export async function updateProjectNote(projectId: string, note: string) {
   return safe(async () => {
     const { userId } = await verifySession();
     const text = note.trim().slice(0, 600);
-    await db.project.update({
-      where: { id: projectId },
-      data: { statusNote: text || null, statusNoteAt: text ? new Date() : null },
+    await db.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id: projectId },
+        data: { statusNote: text || null, statusNoteAt: text ? new Date() : null },
+      });
+      if (text) await logActivity(tx, { projectId, actorId: userId, event: { type: "PROJECT_UPDATED", change: "note" } });
     });
-    if (text) await db.activity.create({ data: { projectId, actorId: userId, message: "a mis à jour le point d’étape" } });
     revalidatePath("/", "layout");
     return { ok: true as const };
   });

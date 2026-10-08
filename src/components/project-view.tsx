@@ -1,17 +1,24 @@
 "use client";
 
-import type { ClientKind, ProjectStatus } from "@prisma/client";
+import type { ActivityType, ClientKind, MessageKind, ProjectStatus } from "@prisma/client";
 import { ChevronDown, ExternalLink, FileSpreadsheet, MessageSquareText, MoreHorizontal, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { deleteDelivery, restoreDelivery } from "@/app/actions/deliveries";
 import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
+import { ChaseButton } from "@/components/chase-dialog";
+import { CopyEmailButton } from "@/components/copy-email-button";
+import { DeliveryDialog, type EditableDelivery } from "@/components/delivery-dialog";
+import { ExtrasView, type ExtraData } from "@/components/extras-view";
+import { ImportDialog } from "@/components/import-dialog";
 import { NewTaskButton } from "@/components/new-task-button";
 import { Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
-import { DeliveryDialog, ImportDialog, RecapDialog } from "@/components/project-dialogs";
+import { RecapDialog } from "@/components/recap-dialog";
+import { RoundsView, type RoundData } from "@/components/rounds-view";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { ActionMenu } from "@/components/ui/action-menu";
@@ -21,14 +28,16 @@ import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TabPanel, Tabs, useTabIds } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/tooltip";
+import { chaseLabel, chaseState, waitingStart } from "@/lib/chasing";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
-import type { TaskCard } from "@/lib/types";
+import { looksLikeTable } from "@/lib/feedback-import";
+import { plural } from "@/lib/plural";
 import { PROJECT_ACTION_EVENT, type ProjectAction } from "@/lib/project-actions";
-import { oldestWaitingDays as oldestWaitingOf } from "@/lib/waiting";
 import { formatParis } from "@/lib/time";
+import type { TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
-export type ProjectTab = "tableau" | "liste" | "mises-en-ligne" | "activite";
+export type ProjectTab = "tableau" | "liste" | "retours" | "avenants" | "mises-en-ligne" | "activite";
 
 type ProjectData = {
   id: string;
@@ -42,7 +51,13 @@ type ProjectData = {
   statusNote: string | null;
   statusNoteAt: Date | null;
   dueDate: Date | null;
-  client: { name: string; kind: ClientKind; contacts: string | null } | null;
+  client: {
+    name: string;
+    kind: ClientKind;
+    contacts: string | null;
+    /** Contact principal (le premier, déjà trié côté serveur). */
+    contactRecords: { id: string; name: string; role: string | null; email: string | null }[];
+  } | null;
   lead: { name: string; color: string } | null;
   tasks: TaskCard[];
   deliveries: {
@@ -52,13 +67,21 @@ type ProjectData = {
     url: string | null;
     deployedAt: Date;
     author: { name: string; color: string } | null;
+    tasks: { task: { id: string; number: number; title: string; zone: string | null } }[];
   }[];
   activities: {
     id: string;
+    type: ActivityType;
+    data: unknown;
     message: string;
     createdAt: Date;
     actor: { name: string; color: string } | null;
   }[];
+  lastChasedAt: Date | null;
+  /** Messages envoyés au client (relances, récaps), pour les déplier dans l'historique. */
+  clientMessages: { id: string; body: string; kind: MessageKind; sentAt: Date }[];
+  rounds: RoundData[];
+  extras: ExtraData[];
 };
 
 const STATUS_TONE: Record<ProjectStatus, Tone> = {
@@ -71,15 +94,28 @@ const STATUS_TONE: Record<ProjectStatus, Tone> = {
 const TAB_LABELS: Record<ProjectTab, string> = {
   tableau: "Tableau",
   liste: "Liste",
+  retours: "Retours",
+  avenants: "Avenants",
   "mises-en-ligne": "Mises en ligne",
   activite: "Activité",
 };
 
-export function ProjectView({ project, initialTab }: { project: ProjectData; initialTab: ProjectTab }) {
+export function ProjectView({
+  project,
+  initialTab,
+  sourceFilter = null,
+}: {
+  project: ProjectData;
+  initialTab: ProjectTab;
+  /** Source d'import à isoler dans la liste (atterrissage après un import). */
+  sourceFilter?: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [tab, setTab] = useState<ProjectTab>(initialTab);
   const [dialog, setDialog] = useState<"import" | "recap" | "delivery" | null>(null);
+  const [editingDelivery, setEditingDelivery] = useState<EditableDelivery | null>(null);
+  const [importText, setImportText] = useState("");
   const [, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -94,11 +130,48 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
   }, []);
   const tabIds = useTabIds();
 
+  // L'URL gouverne la vue : un lien (ou l'atterrissage après un import) change d'onglet.
+  const [seenInitialTab, setSeenInitialTab] = useState(initialTab);
+  if (seenInitialTab !== initialTab) {
+    setSeenInitialTab(initialTab);
+    setTab(initialTab);
+  }
+
+  // Coller un tableau n'importe où sur la page ouvre l'import, déjà rempli.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (dialog) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable], [role=dialog]")) return;
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (!looksLikeTable(text)) return;
+      event.preventDefault();
+      setImportText(text);
+      setDialog("import");
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [dialog]);
+
   const open = project.tasks.filter((task) => task.status !== "DONE").length;
   const waiting = project.tasks.filter((task) => task.status === "WAITING_CLIENT").length;
   const billable = project.tasks.filter((task) => task.billable).length;
   const status = PROJECT_STATUS_BY_VALUE[project.status];
-  const oldestWaitingDays = oldestWaitingOf(project.tasks);
+  const primary = project.client?.contactRecords[0] ?? null;
+
+  const [now] = useState(() => new Date());
+  const oldestWaiting = project.tasks
+    .filter((task) => task.status === "WAITING_CLIENT")
+    .reduce<Date | null>((oldest, task) => {
+      const since = new Date(waitingStart(task));
+      return !oldest || since < oldest ? since : oldest;
+    }, null);
+  const oldestWaitingDays = oldestWaiting
+    ? Math.max(0, Math.floor((now.getTime() - oldestWaiting.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  const chase = chaseState(project.tasks, project.lastChasedAt, now);
+  const chaseText = chaseLabel(chase, now);
 
   const actions = [
     { label: "Importer des retours", icon: <FileSpreadsheet />, onSelect: () => setDialog("import") },
@@ -110,6 +183,9 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
     setTab(next);
     router.replace(next === "tableau" ? pathname : `${pathname}?vue=${next}`, { scroll: false });
   };
+
+  const openRoundsCount = project.rounds.filter((round) => round.status === "OPEN").length;
+  const openExtrasCount = project.extras.filter((extra) => extra.status !== "PAID").length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -157,9 +233,18 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
                 <Tooltip content={project.client.contacts}>
                   <span>
                     {project.client.name}
-                    {project.client.kind === "AGENCY" && " (agence)"}
+                    {project.client.kind === "AGENCY" && <span className="text-muted"> (agence)</span>}
                   </span>
                 </Tooltip>
+              )}
+              {primary ? (
+                <span className="inline-flex items-center gap-1">
+                  · {primary.name}
+                  {primary.role && <span className="text-muted"> ({primary.role})</span>}
+                  {primary.email && <CopyEmailButton email={primary.email} />}
+                </span>
+              ) : (
+                project.client?.contacts && <span>· {project.client.contacts}</span>
               )}
               {project.endClient && <span>· {project.endClient}</span>}
               {project.dueDate && (
@@ -217,21 +302,38 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
             tabs={(Object.keys(TAB_LABELS) as ProjectTab[]).map((key) => ({
               value: key,
               label: TAB_LABELS[key],
-              count: key === "tableau" ? open : key === "mises-en-ligne" && project.deliveries.length > 0 ? project.deliveries.length : undefined,
+              count:
+                key === "tableau"
+                  ? open
+                  : key === "retours" && openRoundsCount > 0
+                    ? openRoundsCount
+                    : key === "avenants" && openExtrasCount > 0
+                      ? openExtrasCount
+                      : key === "mises-en-ligne" && project.deliveries.length > 0
+                        ? project.deliveries.length
+                        : undefined,
             }))}
           />
           <div className="hidden shrink-0 items-center gap-2 pb-2 sm:flex">
             {waiting > 0 && (
-              <Tooltip content={`${waiting} chez le client, la plus ancienne depuis ${oldestWaitingDays} j`}>
-                <Badge
-                  tone="waiting"
-                  variant={oldestWaitingDays >= 5 ? "solid" : "soft"}
-                  icon={<StatusIcon status="WAITING_CLIENT" size={12} />}
-                  className="tabular"
-                >
-                  {waiting} · {oldestWaitingDays} j
-                </Badge>
-              </Tooltip>
+              <div className="flex items-center gap-1.5">
+                <Tooltip content={`${waiting} chez le client, la plus ancienne depuis ${oldestWaitingDays} j`}>
+                  <Badge
+                    tone="waiting"
+                    variant={oldestWaitingDays >= 5 ? "solid" : "soft"}
+                    icon={<StatusIcon status="WAITING_CLIENT" size={12} />}
+                    className="tabular"
+                  >
+                    {waiting} · {oldestWaitingDays} j
+                  </Badge>
+                </Tooltip>
+                {chaseText && (
+                  <span className="text-meta text-waiting-text font-medium">
+                    {chaseText}
+                  </span>
+                )}
+                <ChaseButton projectId={project.id} projectName={project.name} compact />
+              </div>
             )}
             {billable > 0 && (
               <Tooltip content={`${billable} hors périmètre (€)`}>
@@ -256,24 +358,110 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
         className={cn("flex min-h-0 flex-1 flex-col pt-5", tab !== "tableau" && "overflow-y-auto scroll-thin")}
       >
         {tab === "tableau" && <Board projectId={project.id} projectKey={project.key} tasks={project.tasks} />}
-        {tab === "liste" && <TaskList projectId={project.id} projectKey={project.key} tasks={project.tasks} />}
-        {tab === "mises-en-ligne" && <Deliveries deliveries={project.deliveries} onAdd={() => setDialog("delivery")} />}
-        {tab === "activite" && <ActivityFeed activities={project.activities} />}
+        {tab === "liste" && (
+          <TaskList projectId={project.id} projectKey={project.key} tasks={project.tasks} sourceFilter={sourceFilter} />
+        )}
+        {tab === "retours" && (
+          <RoundsView
+            projectId={project.id}
+            rounds={project.rounds}
+            tasks={project.tasks}
+            deliveries={project.deliveries}
+            onImport={() => {
+              setImportText("");
+              setDialog("import");
+            }}
+          />
+        )}
+        {tab === "avenants" && (
+          <ExtrasView
+            projectId={project.id}
+            projectKey={project.key}
+            extras={project.extras}
+            tasks={project.tasks}
+          />
+        )}
+        {tab === "mises-en-ligne" && (
+          <Deliveries
+            deliveries={project.deliveries}
+            projectKey={project.key}
+            onAdd={() => {
+              setEditingDelivery(null);
+              setDialog("delivery");
+            }}
+            onEdit={(delivery) => {
+              setEditingDelivery({
+                id: delivery.id,
+                title: delivery.title,
+                notes: delivery.notes,
+                url: delivery.url,
+                deployedAt: new Date(delivery.deployedAt),
+                taskIds: delivery.tasks.map(({ task }) => task.id),
+              });
+              setDialog("delivery");
+            }}
+          />
+        )}
+        {tab === "activite" && <ActivityFeed activities={project.activities} messages={project.clientMessages} />}
       </TabPanel>
 
-      <ImportDialog open={dialog === "import"} onClose={() => setDialog(null)} projectId={project.id} />
-      <RecapDialog
-        open={dialog === "recap"}
-        onClose={() => setDialog(null)}
-        projectId={project.id}
-        lastDeliveryAt={project.deliveries[0] ? new Date(project.deliveries[0].deployedAt).toISOString() : null}
-      />
-      <DeliveryDialog open={dialog === "delivery"} onClose={() => setDialog(null)} projectId={project.id} siteUrl={project.siteUrl} />
+      {dialog === "import" && (
+        <ImportDialog
+          onClose={() => setDialog(null)}
+          projectId={project.id}
+          initialText={importText}
+          contacts={project.client?.contactRecords ?? []}
+        />
+      )}
+      {dialog === "recap" && <RecapDialog onClose={() => setDialog(null)} projectId={project.id} />}
+      {dialog === "delivery" && (
+        <DeliveryDialog
+          onClose={() => setDialog(null)}
+          onSaved={() =>
+            toast.success("Mise en ligne enregistrée", {
+              action: { label: "Préparer le récap client →", onClick: () => setDialog("recap") },
+              duration: 8000,
+            })
+          }
+          projectId={project.id}
+          projectKey={project.key}
+          siteUrl={project.siteUrl}
+          tasks={project.tasks}
+          rounds={project.rounds}
+          previousDeliveryAt={project.deliveries[0] ? new Date(project.deliveries[0].deployedAt) : null}
+          editing={editingDelivery ?? undefined}
+        />
+      )}
     </div>
   );
 }
 
-function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries"]; onAdd: () => void }) {
+function Deliveries({
+  deliveries,
+  projectKey,
+  onAdd,
+  onEdit,
+}: {
+  deliveries: ProjectData["deliveries"];
+  projectKey: string;
+  onAdd: () => void;
+  onEdit: (delivery: ProjectData["deliveries"][number]) => void;
+}) {
+  const remove = async (delivery: ProjectData["deliveries"][number]) => {
+    const result = await deleteDelivery(delivery.id);
+    if (!result.ok) return;
+    toast.success(`Mise en ligne « ${delivery.title} » supprimée`, {
+      duration: 8000,
+      action: {
+        label: "Annuler",
+        onClick: async () => {
+          await restoreDelivery(delivery.id);
+          toast.success("Mise en ligne restaurée");
+        },
+      },
+    });
+  };
+
   if (deliveries.length === 0) {
     return (
       <div className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8">
@@ -293,6 +481,7 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
       </div>
     );
   }
+
   return (
     <ol className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 pb-10">
       {deliveries.map((delivery, index) => (
@@ -318,7 +507,27 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
                   Voir <ExternalLink className="size-3" />
                 </a>
               )}
+              <button type="button" onClick={() => onEdit(delivery)} className="hover:text-ink hover:underline">
+                Modifier
+              </button>
+              <button type="button" onClick={() => remove(delivery)} className="hover:text-danger hover:underline">
+                Supprimer
+              </button>
             </p>
+            {delivery.tasks.length > 0 && (
+              <details className="mt-2 text-[12px]">
+                <summary className="cursor-pointer text-muted hover:text-ink">{plural(delivery.tasks.length, "tâche livrée", "tâches livrées")}</summary>
+                <ul className="mt-1 space-y-0.5">
+                  {delivery.tasks.map(({ task }) => (
+                    <li key={task.id} className="flex items-baseline gap-2 text-ink-2">
+                      <span className="font-mono text-[11px] text-muted">{projectKey}-{task.number}</span>
+                      {task.zone && <span className="text-muted">{task.zone} ·</span>}
+                      <span className="min-w-0 truncate">{task.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         </li>
       ))}
@@ -326,25 +535,47 @@ function Deliveries({ deliveries, onAdd }: { deliveries: ProjectData["deliveries
   );
 }
 
-function ActivityFeed({ activities }: { activities: ProjectData["activities"] }) {
+function ActivityFeed({
+  activities,
+  messages,
+}: {
+  activities: ProjectData["activities"];
+  messages: ProjectData["clientMessages"];
+}) {
   if (activities.length === 0) {
     return <p className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 text-ui text-muted">Aucune activité pour l&apos;instant.</p>;
   }
+  const bodies = new Map(messages.map((message) => [message.id, message.body]));
   return (
     <ol className="mx-auto w-full max-w-[var(--page-narrow)] space-y-3 px-4 sm:px-8 pb-10">
-      {activities.map((activity) => (
-        <li key={activity.id} className="flex items-start gap-3 text-ui">
-          {activity.actor ? <Avatar name={activity.actor.name} color={activity.actor.color} size={22} /> : <span className="size-[22px]" />}
-          <p className="min-w-0 flex-1 text-ink-2">
-            <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
-          </p>
-          <Tooltip content={formatDateTime(activity.createdAt)}>
-            <time dateTime={new Date(activity.createdAt).toISOString()} className="shrink-0 text-xs text-muted">
-              {timeAgo(activity.createdAt)}
-            </time>
-          </Tooltip>
-        </li>
-      ))}
+      {activities.map((activity) => {
+        const messageId =
+          activity.type === "CLIENT_MESSAGE" && activity.data && typeof activity.data === "object"
+            ? (activity.data as { messageId?: string }).messageId
+            : undefined;
+        const body = messageId ? bodies.get(messageId) : undefined;
+        return (
+          <li key={activity.id} className="flex items-start gap-3 text-ui">
+            {activity.actor ? <Avatar name={activity.actor.name} color={activity.actor.color} size={22} /> : <span className="size-[22px]" />}
+            <div className="min-w-0 flex-1 text-ink-2">
+              <p>
+                <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
+              </p>
+              {body && (
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-xs text-muted hover:text-ink">Voir le message</summary>
+                  <p className="mt-1 whitespace-pre-wrap rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs leading-relaxed">{body}</p>
+                </details>
+              )}
+            </div>
+            <Tooltip content={formatDateTime(activity.createdAt)}>
+              <time dateTime={new Date(activity.createdAt).toISOString()} className="shrink-0 text-xs text-muted">
+                {timeAgo(activity.createdAt)}
+              </time>
+            </Tooltip>
+          </li>
+        );
+      })}
     </ol>
   );
 }
