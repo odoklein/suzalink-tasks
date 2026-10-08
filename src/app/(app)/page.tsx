@@ -15,6 +15,7 @@ import Link from "next/link";
 import { NewTaskButton } from "@/components/new-task-button";
 import { Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
 import { TaskRow } from "@/components/task-row";
+import { projectSwatchVars } from "@/lib/color";
 import { TASK_STATUSES } from "@/lib/constants";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -181,7 +182,7 @@ export default async function TodayPage() {
               </div>
               <div className="mt-1.5 flex h-1 gap-0.5">
                 {tasks.slice(0, 5).map((task) => (
-                  <span key={task.id} className="flex-1 rounded-full" style={{ backgroundColor: task.project.color }} />
+                  <span key={task.id} className="project-swatch flex-1 rounded-full" style={projectSwatchVars(task.project.color)} />
                 ))}
               </div>
             </div>

@@ -1,8 +1,14 @@
 import type { Priority, TaskStatus } from "@prisma/client";
 
 import { PRIORITY_BY_VALUE, STATUS_BY_VALUE } from "@/lib/constants";
+import { projectSwatchVars, softColor, strongColor } from "@/lib/color";
 import { cn, dueTone, formatDue, initials } from "@/lib/utils";
 
+/**
+ * Avatar « doux » : fond = couleur du membre diluée dans la surface, initiales en couleur
+ * renforcée, pour qu’une couleur de personne ne se lise jamais comme un statut.
+ * Sous 20 px, pas d’initiales : une simple forme pleine.
+ */
 export function Avatar({
   name,
   color,
@@ -14,16 +20,52 @@ export function Avatar({
   size?: number;
   className?: string;
 }) {
+  const withLabel = size >= 20;
   return (
     <span
       title={name}
-      style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.42 }}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.42,
+        backgroundColor: withLabel ? softColor(color) : color,
+        color: withLabel ? strongColor(color) : undefined,
+      }}
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold leading-none text-white ring-2 ring-surface",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold leading-none",
         className,
       )}
     >
-      {initials(name)}
+      {withLabel ? initials(name) : null}
+    </span>
+  );
+}
+
+/** Avatars qui se chevauchent ; le liseré de la surface n’existe qu’ici. */
+export function AvatarStack({
+  people,
+  size = 22,
+  max = 4,
+}: {
+  people: { id: string; name: string; color: string }[];
+  size?: number;
+  max?: number;
+}) {
+  const shown = people.slice(0, max);
+  const rest = people.length - shown.length;
+  return (
+    <span className="inline-flex items-center -space-x-1.5">
+      {shown.map((person) => (
+        <Avatar key={person.id} name={person.name} color={person.color} size={size} className="ring-2 ring-surface" />
+      ))}
+      {rest > 0 && (
+        <span
+          style={{ width: size, height: size }}
+          className="inline-flex shrink-0 items-center justify-center rounded-full bg-sunken text-meta font-semibold text-muted ring-2 ring-surface"
+        >
+          +{rest}
+        </span>
+      )}
     </span>
   );
 }
@@ -201,13 +243,24 @@ export function Kbd({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Pastille de projet. La couleur claire/sombre vient de la palette (classe project-swatch,
+ * voir globals.css). Sous 20 px, pas de lettres : une forme pleine ; rayon = 28 % du côté.
+ */
 export function ProjectTile({ color, label, size = 20 }: { color: string; label: string; size?: number }) {
   return (
     <span
-      style={{ backgroundColor: color, width: size, height: size, fontSize: size * 0.4 }}
-      className="inline-flex shrink-0 items-center justify-center rounded-sm font-mono font-semibold tracking-tight text-white"
+      aria-hidden="true"
+      style={{
+        ...projectSwatchVars(color),
+        width: size,
+        height: size,
+        fontSize: size * 0.4,
+        borderRadius: Math.round(size * 0.28),
+      }}
+      className="project-swatch inline-flex shrink-0 items-center justify-center font-mono font-semibold tracking-tight"
     >
-      {label.slice(0, 2)}
+      {size >= 20 ? label.slice(0, 2) : null}
     </span>
   );
 }

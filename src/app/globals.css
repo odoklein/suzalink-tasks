@@ -310,6 +310,22 @@ h3 {
   outline-offset: 2px;
 }
 
+/* Couleur de projet : variante claire ou sombre (voir PROJECT_PALETTE dans lib/color.ts). */
+.project-swatch {
+  background-color: var(--pc-light);
+  color: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .project-swatch {
+    background-color: var(--pc-dark);
+    color: #0b0d10;
+  }
+}
+:root[data-theme="dark"] .project-swatch {
+  background-color: var(--pc-dark);
+  color: #0b0d10;
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }

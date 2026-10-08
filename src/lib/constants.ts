@@ -1,5 +1,7 @@
 import type { Priority, ProjectStatus, TaskStatus } from "@prisma/client";
 
+import { PROJECT_PALETTE } from "@/lib/color";
+
 export const TASK_STATUSES: {
   value: TaskStatus;
   label: string;
@@ -42,15 +44,5 @@ export const PROJECT_STATUS_BY_VALUE = Object.fromEntries(
   PROJECT_STATUSES.map((status) => [status.value, status]),
 ) as Record<ProjectStatus, (typeof PROJECT_STATUSES)[number]>;
 
-/** Couleurs proposées pour les projets. */
-export const PROJECT_COLORS = [
-  "#E5533D",
-  "#E8913A",
-  "#C9A227",
-  "#2E9E6B",
-  "#1F8A9E",
-  "#3B6CF6",
-  "#6A5AE0",
-  "#B04FA8",
-  "#55606E",
-];
+/** Couleurs proposées pour les projets (variante claire ; la sombre vient de PROJECT_PALETTE). */
+export const PROJECT_COLORS: string[] = PROJECT_PALETTE.map((entry) => entry.light);

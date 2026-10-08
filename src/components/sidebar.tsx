@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { logout } from "@/app/actions/auth";
 import { useApp } from "@/components/app-context";
 import { Avatar, Kbd } from "@/components/primitives";
+import { projectSwatchVars } from "@/lib/color";
 import { PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import type { ProjectNavItem } from "@/lib/dal";
 import { cn } from "@/lib/utils";
@@ -184,7 +185,7 @@ function ProjectLink({ project, active, onNavigate }: { project: ProjectNavItem;
           active ? "bg-surface font-medium text-ink shadow-card" : "text-ink-2 hover:bg-sunken",
         )}
       >
-        <span className="size-2.5 shrink-0 rounded-xs" style={{ backgroundColor: project.color }} />
+        <span className="project-swatch size-2.5 shrink-0 rounded-xs" style={projectSwatchVars(project.color)} />
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
         {project.status === "WAITING_CLIENT" && (
           <span title={PROJECT_STATUS_BY_VALUE.WAITING_CLIENT.label} className="size-1.5 rounded-full bg-waiting" />
