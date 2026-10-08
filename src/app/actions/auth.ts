@@ -8,18 +8,24 @@ import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { attemptLogin, invalidMessage, lockedMessage } from "@/lib/login-attempts";
 import { prismaAttemptStore } from "@/lib/login-store";
+import { safeNextPath } from "@/lib/next-path";
 import { isWeakPin } from "@/lib/pin";
 import { createSession, deleteSession } from "@/lib/session";
 
-/** `lockedUntil` (ISO) : compte bloqué jusqu'à cet instant ; le formulaire affiche un compte à rebours. */
-export type FormState = { error?: string; success?: string; lockedUntil?: string } | undefined;
+export type FormState = { error?: string; success?: string } | undefined;
+
+/**
+ * `lockedUntil` (ISO) : compte bloqué jusqu'à cet instant ; le formulaire affiche un compte à rebours.
+ * `next` : connexion réussie, chemin (validé) où aller. Le formulaire retient alors l'email et navigue.
+ */
+export type LoginState = { error?: string; lockedUntil?: string; next?: string } | undefined;
 
 const PIN = /^\d{6}$/;
 // Hash factice : on compare toujours, pour que la réponse prenne le même temps
 // que l'email existe ou non (ne pas révéler quels comptes existent).
 const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO5VbAlyAIgwPRfLJOrLu0ofRdyxGoOHi";
 
-export async function login(_state: FormState, formData: FormData): Promise<FormState> {
+export async function login(_state: LoginState, formData: FormData): Promise<LoginState> {
   return safe(async () => {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const pin = String(formData.get("pin") ?? "");
@@ -41,7 +47,8 @@ export async function login(_state: FormState, formData: FormData): Promise<Form
     if (outcome.kind === "invalid") return { error: invalidMessage(outcome.remaining) };
 
     await createSession(user.id, user.sessionVersion);
-    redirect("/");
+    // Pas de redirect() ici : le client doit d'abord savoir que la connexion a réussi pour retenir l'email.
+    return { next: safeNextPath(formData.get("next")) };
   });
 }
 

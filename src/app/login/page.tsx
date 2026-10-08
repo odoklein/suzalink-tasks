@@ -2,16 +2,19 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { readSession } from "@/lib/dal";
+import { safeNextPath } from "@/lib/next-path";
 
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
 
-export default async function LoginPage() {
+export default async function LoginPage(props: PageProps<"/login">) {
+  const { next: rawNext } = await props.searchParams;
+  const next = safeNextPath(Array.isArray(rawNext) ? rawNext[0] : rawNext);
   // Déjà connecté avec une session valide : direction l'accueil.
   // (Un cookie invalide ou révoqué reste ici, sans boucle de redirection.)
   const session = await readSession();
-  if (session) redirect("/");
+  if (session) redirect(next);
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-12">
@@ -25,7 +28,7 @@ export default async function LoginPage() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-line bg-surface p-6 shadow-card sm:p-7">
-          <LoginForm />
+          <LoginForm next={next} />
         </div>
 
         <p className="mt-6 text-center text-[13px] text-muted">

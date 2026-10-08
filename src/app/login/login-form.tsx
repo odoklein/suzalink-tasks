@@ -1,9 +1,10 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { login } from "@/app/actions/auth";
+import { login, type LoginState as ServerLoginState } from "@/app/actions/auth";
 import { fieldClass } from "@/components/dialog";
 import { PinInput } from "@/components/pin-input";
 
@@ -18,7 +19,7 @@ function readRemembered() {
   }
 }
 
-type LoginState = { error?: string; lockedUntil?: string; at?: number } | undefined;
+type LoginState = (NonNullable<ServerLoginState> & { at?: number }) | undefined;
 
 /** Millisecondes restantes avant `until` (0 si passé), rafraîchi chaque seconde. */
 function useRemaining(until: string | undefined) {
@@ -49,18 +50,24 @@ function formatCountdown(ms: number) {
 
 const labelClass = "mb-2 block text-[14px] font-medium text-ink";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next: string }) {
+  const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const remembered = useSyncExternalStore(() => () => {}, readRemembered, () => "");
   const [changing, setChanging] = useState(false);
   const [state, action, pending] = useActionState<LoginState, FormData>(async (previous, formData) => {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
-    try {
-      if (email) localStorage.setItem(STORAGE_KEY, email);
-    } catch {
-      // navigation privée : on continue sans retenir l'email
-    }
     const result = await login(previous, formData);
+    if (result?.next) {
+      // On ne retient l'email qu'après une connexion réussie (pas une faute de frappe).
+      try {
+        if (email) localStorage.setItem(STORAGE_KEY, email);
+      } catch {
+        // navigation privée : on continue sans retenir l'email
+      }
+      router.replace(result.next);
+      return result;
+    }
     return result ? { ...result, at: Date.now() } : result;
   }, undefined);
 
@@ -72,6 +79,7 @@ export function LoginForm() {
 
   return (
     <form ref={form} action={action} className="space-y-5">
+      <input type="hidden" name="next" value={next} />
       {knownEmail ? (
         <div>
           <p className={labelClass}>Votre email</p>
@@ -133,11 +141,11 @@ export function LoginForm() {
 
       <button
         type="submit"
-        disabled={pending || locked}
+        disabled={pending || locked || Boolean(state?.next)}
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink py-3 text-[15px] font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-60"
       >
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        {pending ? "Connexion…" : "Se connecter"}
+        {(pending || state?.next) && <Loader2 className="size-4 animate-spin" />}
+        {pending || state?.next ? "Connexion…" : "Se connecter"}
       </button>
     </form>
   );
