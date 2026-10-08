@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { QuickAdd } from "@/components/quick-add";
@@ -12,12 +13,29 @@ import { cn } from "@/lib/utils";
 type GroupBy = "zone" | "status";
 
 /** Liste groupée par page (comme les tableaux de retours client) ou par statut. */
-export function TaskList({ projectId, projectKey, tasks }: { projectId: string; projectKey: string; tasks: TaskCard[] }) {
+export function TaskList({
+  projectId,
+  projectKey,
+  tasks,
+  sourceFilter = null,
+}: {
+  projectId: string;
+  projectKey: string;
+  tasks: TaskCard[];
+  /** Source d'import à isoler (atterrissage après un import). */
+  sourceFilter?: string | null;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [groupBy, setGroupBy] = useState<GroupBy>("zone");
   const [hideDone, setHideDone] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [dismissedSource, setDismissedSource] = useState<string | null>(null);
+  if (!sourceFilter && dismissedSource !== null) setDismissedSource(null);
+  const activeSource = sourceFilter && dismissedSource !== sourceFilter ? sourceFilter : null;
 
-  const visible = hideDone ? tasks.filter((task) => task.status !== "DONE") : tasks;
+  const bySource = activeSource ? tasks.filter((task) => task.source === activeSource) : tasks;
+  const visible = hideDone ? bySource.filter((task) => task.status !== "DONE") : bySource;
 
   const groups = useMemo(() => {
     if (groupBy === "status") {
@@ -71,6 +89,24 @@ export function TaskList({ projectId, projectKey, tasks }: { projectId: string; 
           Masquer les tâches faites
         </label>
       </div>
+
+      {activeSource && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12px] text-ink-2">
+          <span>
+            Source «&#8239;{activeSource}&#8239;» · {bySource.length} {bySource.length > 1 ? "tâches" : "tâche"}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setDismissedSource(activeSource);
+              router.replace(`${pathname}?vue=liste`, { scroll: false });
+            }}
+            className="font-medium text-accent hover:underline"
+          >
+            Afficher toutes les tâches
+          </button>
+        </p>
+      )}
 
       <QuickAdd projectId={projectId} placeholder="Nouvelle tâche…  @odo !haute #homepage demain $" />
 

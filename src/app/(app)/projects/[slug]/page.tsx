@@ -17,7 +17,7 @@ export async function generateMetadata(props: PageProps<"/projects/[slug]">): Pr
 export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
   await verifySession();
   const { slug } = await props.params;
-  const { vue } = await props.searchParams;
+  const { vue, source } = await props.searchParams;
 
   const project = await db.project.findUnique({
     where: { slug },
@@ -40,5 +40,5 @@ export default async function ProjectPage(props: PageProps<"/projects/[slug]">) 
 
   const tab = TABS.includes(vue as ProjectTab) ? (vue as ProjectTab) : "tableau";
 
-  return <ProjectView project={project} initialTab={tab} />;
+  return <ProjectView project={project} initialTab={tab} sourceFilter={typeof source === "string" ? source : null} />;
 }

@@ -4,18 +4,20 @@ import type { ClientKind, ProjectStatus } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
 import { ExternalLink, FileSpreadsheet, MessageSquareText, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateProjectStatus } from "@/app/actions/projects";
 import { Board } from "@/components/board";
 import { GhostButton, PrimaryButton } from "@/components/dialog";
+import { ImportDialog } from "@/components/import-dialog";
 import { Avatar, ProjectTile } from "@/components/primitives";
 import { ProjectNote } from "@/components/project-note";
-import { DeliveryDialog, ImportDialog, RecapDialog } from "@/components/project-dialogs";
+import { DeliveryDialog, RecapDialog } from "@/components/project-dialogs";
 import { SelectMenu } from "@/components/select-menu";
 import { TaskList } from "@/components/task-list";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
+import { looksLikeTable } from "@/lib/feedback-import";
 import type { TaskCard } from "@/lib/types";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
 
@@ -58,12 +60,45 @@ const TAB_LABELS: Record<ProjectTab, string> = {
   activite: "Activité",
 };
 
-export function ProjectView({ project, initialTab }: { project: ProjectData; initialTab: ProjectTab }) {
+export function ProjectView({
+  project,
+  initialTab,
+  sourceFilter = null,
+}: {
+  project: ProjectData;
+  initialTab: ProjectTab;
+  /** Source d'import à isoler dans la liste (atterrissage après un import). */
+  sourceFilter?: string | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [tab, setTab] = useState<ProjectTab>(initialTab);
   const [dialog, setDialog] = useState<"import" | "recap" | "delivery" | null>(null);
+  const [importText, setImportText] = useState("");
   const [, startTransition] = useTransition();
+
+  // L'URL gouverne la vue : un lien (ou l'atterrissage après un import) change d'onglet.
+  const [seenInitialTab, setSeenInitialTab] = useState(initialTab);
+  if (seenInitialTab !== initialTab) {
+    setSeenInitialTab(initialTab);
+    setTab(initialTab);
+  }
+
+  // Coller un tableau n'importe où sur la page ouvre l'import, déjà rempli.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      if (dialog) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable], [role=dialog]")) return;
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (!looksLikeTable(text)) return;
+      event.preventDefault();
+      setImportText(text);
+      setDialog("import");
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [dialog]);
 
   const open = project.tasks.filter((task) => task.status !== "DONE").length;
   const waiting = project.tasks.filter((task) => task.status === "WAITING_CLIENT").length;
@@ -150,7 +185,13 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <GhostButton type="button" onClick={() => setDialog("import")}>
+            <GhostButton
+              type="button"
+              onClick={() => {
+                setImportText("");
+                setDialog("import");
+              }}
+            >
               <FileSpreadsheet className="size-4" />
               Importer des retours
             </GhostButton>
@@ -188,12 +229,16 @@ export function ProjectView({ project, initialTab }: { project: ProjectData; ini
 
       <div className={cn("flex min-h-0 flex-1 flex-col pt-5", tab !== "tableau" && "overflow-y-auto scroll-thin")}>
         {tab === "tableau" && <Board projectId={project.id} projectKey={project.key} tasks={project.tasks} />}
-        {tab === "liste" && <TaskList projectId={project.id} projectKey={project.key} tasks={project.tasks} />}
+        {tab === "liste" && (
+          <TaskList projectId={project.id} projectKey={project.key} tasks={project.tasks} sourceFilter={sourceFilter} />
+        )}
         {tab === "mises-en-ligne" && <Deliveries deliveries={project.deliveries} onAdd={() => setDialog("delivery")} />}
         {tab === "activite" && <ActivityFeed activities={project.activities} />}
       </div>
 
-      <ImportDialog open={dialog === "import"} onClose={() => setDialog(null)} projectId={project.id} />
+      {dialog === "import" && (
+        <ImportDialog onClose={() => setDialog(null)} projectId={project.id} initialText={importText} />
+      )}
       <RecapDialog
         open={dialog === "recap"}
         onClose={() => setDialog(null)}

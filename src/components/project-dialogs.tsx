@@ -2,90 +2,15 @@
 
 import { Check, ClipboardCopy } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { buildRecap, createDelivery } from "@/app/actions/deliveries";
 import { createProject } from "@/app/actions/projects";
-import { importFeedback } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
-import { StatusIcon } from "@/components/primitives";
-import { PROJECT_COLORS, STATUS_BY_VALUE } from "@/lib/constants";
-import { parseFeedbackTable } from "@/lib/feedback-import";
+import { PROJECT_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-
-export function ImportDialog({ open, onClose, projectId }: { open: boolean; onClose: () => void; projectId: string }) {
-  const [text, setText] = useState("");
-  const [source, setSource] = useState(() => `Retours du ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`);
-  const [pending, startTransition] = useTransition();
-  const rows = useMemo(() => parseFeedbackTable(text), [text]);
-
-  const submit = () =>
-    startTransition(async () => {
-      const result = await importFeedback(projectId, text, source);
-      if ("error" in result && result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(`${result.count} retours importés`);
-      setText("");
-      onClose();
-    });
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      wide
-      title="Importer un tableau de retours"
-      description="Copiez les cellules depuis Google Sheets ou Excel (en-têtes compris) et collez-les ici. Chaque ligne devient une tâche : la colonne Page donne la zone, la colonne État donne le statut."
-    >
-      <div className="space-y-3">
-        <div>
-          <label htmlFor="import-source" className={labelClass}>Source</label>
-          <input id="import-source" value={source} onChange={(event) => setSource(event.target.value)} className={fieldClass} />
-        </div>
-        <div>
-          <label htmlFor="import-text" className={labelClass}>Tableau collé</label>
-          <textarea
-            id="import-text"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            rows={6}
-            placeholder={"Date\tPage\tRetour\tCommentaire\tÉtat\n05/10\tHomepage\tInsérer la vidéo dans le bloc…\t\tPas fait"}
-            className={cn(fieldClass, "font-mono text-[12px]")}
-          />
-        </div>
-
-        {rows.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-line">
-            <p className="border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2">
-              {rows.length} tâche{rows.length > 1 ? "s" : ""} à créer
-            </p>
-            <ul className="max-h-56 overflow-y-auto scroll-thin">
-              {rows.map((row, index) => (
-                <li key={index} className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[12px] last:border-b-0">
-                  <StatusIcon status={row.status} size={13} />
-                  <span className="w-20 shrink-0 truncate text-muted">{STATUS_BY_VALUE[row.status].short}</span>
-                  {row.zone && <span className="max-w-[8rem] shrink-0 truncate rounded bg-sunken px-1.5 py-0.5 text-[11px]">{row.zone}</span>}
-                  <span className="min-w-0 flex-1 truncate">{row.title}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
-          <PrimaryButton type="button" disabled={pending || rows.length === 0} onClick={submit}>
-            {pending ? "Import…" : `Créer ${rows.length || ""} tâches`}
-          </PrimaryButton>
-        </div>
-      </div>
-    </Dialog>
-  );
-}
 
 export function RecapDialog({
   open,

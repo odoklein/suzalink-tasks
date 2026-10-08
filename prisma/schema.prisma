@@ -141,6 +141,7 @@ model Task {
   completedAt     DateTime?
   statusChangedAt DateTime   @default(now()) // depuis quand la tâche est dans son statut (ex. « chez le client depuis 4 j »)
   waitingSince    DateTime? // posé à l'entrée dans « Chez le client », effacé à la sortie
+  externalKey     String? // clé de déduplication d'un retour importé : sha1(page|retour) normalisés (src/lib/import-key.ts)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -155,6 +156,7 @@ model Task {
   activities Activity[]
 
   @@unique([projectId, number])
+  @@unique([projectId, externalKey]) // plusieurs NULL autorisés
   @@index([projectId, status, position])
   @@index([assigneeId, status])
 }

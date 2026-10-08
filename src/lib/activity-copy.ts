@@ -140,12 +140,15 @@ export function describeActivity(event: ActivityEvent): DescribedActivity {
       return { type: "TASK_RESTORED", message: `a restauré ${event.ref}`, data: { ref: event.ref } };
 
     case "IMPORTED": {
-      const parts = [`a importé ${plural(event.created, "retour")}`];
-      if (event.updated) parts.push(`mis à jour ${plural(event.updated, "tâche existante", "tâches existantes")}`);
+      const updated = event.updated ? plural(event.updated, "tâche existante", "tâches existantes") : "";
       const source = event.source ? ` (${event.source})` : "";
+      const text =
+        event.created > 0
+          ? `a importé ${plural(event.created, "retour")}${updated ? `, mis à jour ${updated}` : ""}`
+          : `a mis à jour ${updated || "0 tâche"} depuis un import`;
       return {
         type: "IMPORTED",
-        message: `${parts.join(", ")}${source}`,
+        message: `${text}${source}`,
         data: { created: event.created, updated: event.updated ?? 0, source: event.source ?? null },
       };
     }

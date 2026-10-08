@@ -1,13 +1,14 @@
 "use server";
 
-import type { Priority, TaskStatus } from "@prisma/client";
+import { Prisma, type Priority, type TaskStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { logActivities, logActivity } from "@/lib/activity";
 import type { Person } from "@/lib/activity-copy";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { parseFeedbackTable } from "@/lib/feedback-import";
+import type { ColumnMapping } from "@/lib/feedback-import";
+import { ImportError, matchImportRows, runImport, type ImportInput } from "@/lib/import-feedback";
 import { waitingSinceFor } from "@/lib/metrics";
 import { parseQuickAdd } from "@/lib/quick-add";
 import { diffTask } from "@/lib/task-changes";
@@ -41,7 +42,7 @@ type NewTask = {
   dueDate?: Date | null;
 };
 
-async function insertTask(input: NewTask, creatorId: string, options: { logCreation?: boolean } = {}) {
+async function insertTask(input: NewTask, creatorId: string) {
   const status = input.status ?? "TODO";
   const position = await nextPosition(input.projectId, status);
   return db.$transaction(async (tx) => {
@@ -70,14 +71,12 @@ async function insertTask(input: NewTask, creatorId: string, options: { logCreat
       },
     });
     const ref = `${project.key}-${task.number}`;
-    if (options.logCreation !== false) {
-      await logActivity(tx, {
-        projectId: input.projectId,
-        taskId: task.id,
-        actorId: creatorId,
-        event: { type: "TASK_CREATED", ref, title: task.title },
-      });
-    }
+    await logActivity(tx, {
+      projectId: input.projectId,
+      taskId: task.id,
+      actorId: creatorId,
+      event: { type: "TASK_CREATED", ref, title: task.title },
+    });
     return { task, ref };
   });
 }
@@ -272,33 +271,34 @@ export async function addComment(taskId: string, body: string) {
   return { ok: true as const };
 }
 
-/** Importe un tableau de retours client collé depuis un tableur. */
-export async function importFeedback(projectId: string, text: string, sourceLabel: string) {
-  const { userId } = await verifySession();
-  const rows = parseFeedbackTable(text);
-  if (rows.length === 0) {
-    return { error: "Aucune ligne reconnue. Copiez les cellules du tableau, en-têtes compris." };
-  }
 
-  for (const row of rows) {
-    await insertTask(
-      {
-        projectId,
-        title: row.title,
-        description: row.description,
-        zone: row.zone,
-        status: row.status,
-        source: sourceLabel.trim() || (row.date ? `Retours du ${row.date}` : "Retours client"),
-      },
-      userId,
-      { logCreation: false },
-    );
+/**
+ * Aperçu d'un import : pour chaque ligne collée, la tâche existante portant la
+ * même clé de déduplication (null si la ligne est nouvelle).
+ */
+export async function previewImport(projectId: string, text: string, mapping?: ColumnMapping) {
+  await verifySession();
+  const { items } = await matchImportRows(projectId, text, mapping);
+  return { ok: true as const, items };
+}
+
+/**
+ * Importe un tableau de retours client collé depuis un tableur : crée les
+ * nouvelles lignes, met à jour l'état de celles déjà importées, ignore le reste,
+ * le tout en une transaction.
+ */
+export async function importFeedback(projectId: string, input: ImportInput) {
+  const { userId } = await verifySession();
+  try {
+    const result = await runImport(projectId, userId, input);
+    refresh();
+    return { ok: true as const, ...result };
+  } catch (error) {
+    if (error instanceof ImportError) return { error: error.message };
+    // Deux imports simultanés des mêmes lignes : l'unicité (projet, clé) protège des doublons.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "Ces retours viennent d’être importés. Actualisez la page pour les voir." };
+    }
+    throw error;
   }
-  await logActivity(db, {
-    projectId,
-    actorId: userId,
-    event: { type: "IMPORTED", created: rows.length, source: sourceLabel.trim() || "retours client" },
-  });
-  refresh();
-  return { ok: true as const, count: rows.length };
 }
