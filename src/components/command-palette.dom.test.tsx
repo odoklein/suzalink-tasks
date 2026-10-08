@@ -72,7 +72,7 @@ describe("CommandPalette (P1-15)", () => {
     expect(screen.getByText("Créer « Corriger le footer » dans")).toBeTruthy();
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["BGBières Georges", "CPCrésus Paie"]);
 
-    vi.mocked(quickAddTask).mockResolvedValue({ ok: true, ref: "BG-15" });
+    vi.mocked(quickAddTask).mockResolvedValue({ ok: true, ref: "BG-15", id: "t15" });
     await userEvent.keyboard("{Enter}");
     expect(quickAddTask).toHaveBeenCalledWith("p2", "Corriger le footer");
     expect(localStorage.getItem("last-project")).toBe("bieres-georges");

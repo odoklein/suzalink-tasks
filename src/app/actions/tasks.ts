@@ -93,7 +93,7 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
         : parsed.assigneeId;
     if (!parsed.title) return { error: "Donnez un titre à la tâche." };
 
-    const { ref } = await insertTask(
+    const { task, ref } = await insertTask(
       {
         projectId,
         title: parsed.title,
@@ -108,7 +108,7 @@ export async function quickAddTask(projectId: string, input: string, status?: Ta
     );
     await log(projectId, userId, `a créé ${ref} « ${parsed.title} »`);
     refresh();
-    return { ok: true as const, ref };
+    return { ok: true as const, ref, id: task.id };
   });
 }
 
