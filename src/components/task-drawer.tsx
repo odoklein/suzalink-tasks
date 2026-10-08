@@ -16,6 +16,7 @@ import {
 } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
 import {
+  AgeChip,
   Avatar,
   EmptyAvatar,
   PriorityIcon,
@@ -109,6 +110,7 @@ export function TaskDrawer() {
               <span className="font-mono text-xs text-muted">
                 {task.project.key}-{task.number}
               </span>
+              {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}
               <div className="ml-auto flex items-center gap-1">
                 <DeleteButton
                   onConfirm={() =>

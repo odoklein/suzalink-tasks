@@ -31,6 +31,7 @@ import { QuickAdd } from "@/components/quick-add";
 import { TaskCard } from "@/components/task-card";
 import { TASK_STATUSES } from "@/lib/constants";
 import { computePosition } from "@/lib/position";
+import { oldestWaitingDays } from "@/lib/waiting";
 import type { TaskCard as TaskCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -168,6 +169,7 @@ function Column({
   dragging: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const oldest = status === "WAITING_CLIENT" ? oldestWaitingDays(tasks) : 0;
   const [adding, setAdding] = useState(false);
 
   return (
@@ -182,7 +184,12 @@ function Column({
       <header className="flex items-center gap-2 px-3 pb-2 pt-3">
         <StatusIcon status={status} />
         <h3 className="text-ui font-semibold">{label}</h3>
-        <span className="tabular text-xs text-muted">{tasks.length}</span>
+        <span className="tabular text-xs text-muted">
+          {tasks.length}
+          {status === "WAITING_CLIENT" && tasks.length > 0 && (
+            <span className={cn(oldest >= 5 && "font-semibold text-waiting-text")}> · la plus ancienne : {oldest} j</span>
+          )}
+        </span>
         <button
           type="button"
           onClick={() => setAdding(true)}

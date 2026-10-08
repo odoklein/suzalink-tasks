@@ -5,6 +5,7 @@ import { Chip } from "@/components/ui/chip";
 import { Tooltip } from "@/components/ui/tooltip";
 import { projectSwatchVars, softColor, strongColor } from "@/lib/color";
 import { cn, dueTone, formatDue, initials } from "@/lib/utils";
+import { waitingDays, waitingLevel } from "@/lib/waiting";
 
 /**
  * Avatar « doux » : fond = couleur du membre diluée dans la surface, initiales en couleur
@@ -214,6 +215,28 @@ export function DueChip({
       {formatDue(date)}
     </Chip>
   );
+}
+
+/**
+ * Ancienneté chez le client, la signature du produit : 0 à 2 j discret, 3 à 4 j ambre doux,
+ * 5 j et plus ambre plein, en gras, avec l’infobulle « À relancer ».
+ */
+export function AgeChip({ since, className }: { since: Date | string; className?: string }) {
+  const days = waitingDays(since);
+  const level = waitingLevel(days);
+  const chip = (
+    <Chip
+      tone="waiting"
+      variant={level === "chase" ? "solid" : "soft"}
+      muted={level === "calm"}
+      aria-label={days === 0 ? "Chez le client depuis aujourd’hui" : `Chez le client depuis ${days} jour${days > 1 ? "s" : ""}`}
+      className={cn("tabular", level === "chase" && "font-bold", className)}
+      icon={<StatusIcon status="WAITING_CLIENT" size={11} />}
+    >
+      {days === 0 ? "auj." : `${days} j`}
+    </Chip>
+  );
+  return level === "chase" ? <Tooltip content="À relancer">{chip}</Tooltip> : chip;
 }
 
 export function ZoneChip({ zone }: { zone: string | null }) {

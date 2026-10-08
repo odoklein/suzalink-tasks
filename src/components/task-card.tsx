@@ -4,6 +4,7 @@ import { MessageSquare } from "lucide-react";
 
 import { useApp } from "@/components/app-context";
 import {
+  AgeChip,
   Avatar,
   BillableBadge,
   DueChip,
@@ -53,6 +54,7 @@ export function TaskCard({
         {task.title}
       </p>
       <div className="mt-2.5 flex items-center gap-1.5">
+        {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}
         <ZoneChip zone={task.zone} />
         <DueChip date={task.dueDate} done={done} className="min-w-0" />
         <span className="ml-auto flex items-center gap-2">

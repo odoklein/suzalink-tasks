@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { updateTask } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
 import {
+  AgeChip,
   Avatar,
   BillableBadge,
   DueChip,
@@ -82,6 +83,7 @@ export function TaskRow({
             {task._count.comments}
           </span>
         )}
+        {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}
         <DueChip date={task.dueDate} done={done} />
         <PriorityIcon priority={task.priority} />
         {task.assignee ? (

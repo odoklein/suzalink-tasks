@@ -13,7 +13,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NewTaskButton } from "@/components/new-task-button";
-import { Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
+import { AgeChip, Avatar, ProjectTile, StatusIcon } from "@/components/primitives";
 import { Tooltip } from "@/components/ui/tooltip";
 import { TaskRow } from "@/components/task-row";
 import { projectSwatchVars } from "@/lib/color";
@@ -230,17 +230,12 @@ export default async function TodayPage() {
                     <span className="tabular ml-auto text-meta font-normal text-muted">{tasks.length}</span>
                   </Link>
                   <ul className="mt-1.5 space-y-1 pl-6">
-                    {tasks.slice(0, 4).map((task) => {
-                      const days = differenceInCalendarDays(now, task.statusChangedAt);
-                      return (
-                        <li key={task.id} className="flex items-baseline gap-2 text-xs">
-                          <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
-                          <span className={cn("tabular shrink-0", days >= 5 ? "font-semibold text-waiting-text" : "text-muted")}>
-                            {days === 0 ? "auj." : `${days} j`}
-                          </span>
-                        </li>
-                      );
-                    })}
+                    {tasks.slice(0, 4).map((task) => (
+                      <li key={task.id} className="flex items-center gap-2 text-xs">
+                        <span className="min-w-0 flex-1 truncate text-ink-2">{task.title}</span>
+                        <AgeChip since={task.statusChangedAt} className="shrink-0" />
+                      </li>
+                    ))}
                     {tasks.length > 4 && <li className="text-meta text-muted">+ {tasks.length - 4} autres</li>}
                   </ul>
                 </div>
