@@ -6,7 +6,8 @@ import { toast } from "sonner";
 
 import { createDelivery, updateDelivery } from "@/app/actions/deliveries";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
-import { StatusIcon } from "@/components/primitives";
+import { StatusIcon, ZoneChip } from "@/components/primitives";
+import { Checkbox } from "@/components/ui/checkbox";
 import { deliveryCandidates, roundsToClose, suggestDeliveryTitle } from "@/lib/deliveries";
 import { plural } from "@/lib/plural";
 import { toParisDateTimeInput } from "@/lib/time";
@@ -112,7 +113,7 @@ export function DeliveryDialog({
       onClose={onClose}
       wide
       title={editing ? "Modifier la mise en ligne" : "Enregistrer une mise en ligne"}
-      description="Date et heure exactes, et ce qui a été livré : c’est la preuve de ce qui a été mis en ligne, et quand."
+      description="Date et heure exactes, et ce qui a été livré : c’est la preuve de ce qui a été mis en ligne, et quand."
     >
       <form className="space-y-3" onSubmit={submit}>
         <div>
@@ -145,26 +146,33 @@ export function DeliveryDialog({
         {candidates.length > 0 && (
           <fieldset className="overflow-hidden rounded-lg border border-line">
             <legend className="sr-only">Tâches livrées</legend>
-            <label className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink-2">
-              <input
-                type="checkbox"
-                checked={allIncluded}
-                onChange={() => setIncluded(allIncluded ? new Set() : new Set(candidates.map((task) => task.id)))}
-                className="accent-[var(--accent)]"
-              />
-              Inclure {plural(candidates.length, "tâche")}
-              <span className="ml-auto font-normal text-muted">{included.size} cochée{included.size > 1 ? "s" : ""}</span>
-            </label>
-            <ul className="max-h-48 overflow-y-auto scroll-thin">
+            <Checkbox
+              checked={allIncluded}
+              onChange={() => setIncluded(allIncluded ? new Set() : new Set(candidates.map((task) => task.id)))}
+              className="flex w-full border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink-2"
+              label={
+                <>
+                  Inclure {plural(candidates.length, "tâche")}
+                  <span className="ml-auto font-normal text-muted">{included.size} cochée{included.size > 1 ? "s" : ""}</span>
+                </>
+              }
+            />
+            <ul className="max-h-48 overflow-y-auto overscroll-contain scroll-thin">
               {candidates.map((task) => (
                 <li key={task.id}>
-                  <label className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-xs last:border-b-0">
-                    <input type="checkbox" checked={included.has(task.id)} onChange={() => toggle(task.id)} className="accent-[var(--accent)]" />
-                    <StatusIcon status={task.status} size={13} />
-                    <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
-                    {task.zone && <span className="max-w-[8rem] shrink-0 truncate rounded bg-sunken px-1.5 py-0.5 text-meta">{task.zone}</span>}
-                    <span className="min-w-0 flex-1 truncate">{task.title}</span>
-                  </label>
+                  <Checkbox
+                    checked={included.has(task.id)}
+                    onChange={() => toggle(task.id)}
+                    className="flex w-full border-b border-line px-3 py-1.5 text-xs last:border-b-0"
+                    label={
+                      <>
+                        <StatusIcon status={task.status} size={13} />
+                        <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
+                        <ZoneChip zone={task.zone} />
+                        <span className="min-w-0 flex-1 truncate">{task.title}</span>
+                      </>
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -172,10 +180,11 @@ export function DeliveryDialog({
         )}
 
         {reviewIncluded.length > 0 && (
-          <label className="flex items-center gap-2 text-ui text-ink-2">
-            <input type="checkbox" checked={promote} onChange={(event) => setPromote(event.target.checked)} className="accent-[var(--accent)]" />
-            Passer {reviewIncluded.length > 1 ? `les ${reviewIncluded.length}` : "la"} “À valider” en Fait
-          </label>
+          <Checkbox
+            checked={promote}
+            onChange={(event) => setPromote(event.target.checked)}
+            label={`Passer ${reviewIncluded.length > 1 ? `les ${reviewIncluded.length}` : "la"} « À valider » en Fait`}
+          />
         )}
 
         {roundOptions.length > 0 && (
@@ -184,16 +193,17 @@ export function DeliveryDialog({
             {roundOptions.map((option) => {
               const round = rounds.find((r) => r.id === option.id);
               return (
-                <label key={option.id} className="flex items-center gap-2 text-ui text-ink-2">
-                  <input
-                    type="checkbox"
-                    checked={closeRound(option.id, option.complete)}
-                    onChange={(event) => setRoundChoice((current) => ({ ...current, [option.id]: event.target.checked }))}
-                    className="accent-[var(--accent)]"
-                  />
-                  Clôturer «&#8239;{round?.label}&#8239;»
-                  {!option.complete && <span className="text-xs text-muted">(des tâches restent ouvertes)</span>}
-                </label>
+                <Checkbox
+                  key={option.id}
+                  checked={closeRound(option.id, option.complete)}
+                  onChange={(event) => setRoundChoice((current) => ({ ...current, [option.id]: event.target.checked }))}
+                  label={
+                    <>
+                      Clôturer «&#8239;{round?.label}&#8239;»
+                      {!option.complete && <span className="text-xs text-muted">(des tâches restent ouvertes)</span>}
+                    </>
+                  }
+                />
               );
             })}
           </fieldset>

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { getChaseDraft, logFollowUp } from "@/app/actions/chasing";
 import { Dialog, fieldClass, GhostButton, PrimaryButton } from "@/components/dialog";
+import { Button } from "@/components/ui/button";
 import { mailtoLink } from "@/lib/chasing";
 import { cn } from "@/lib/utils";
 
@@ -31,21 +32,16 @@ export function ChaseButton({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
+      <Button
+        size={compact ? "sm" : "md"}
+        variant={compact ? "ghost" : "secondary"}
+        icon={<Send className={compact ? "size-3" : "size-4"} aria-hidden />}
         onClick={() => setOpen(true)}
         aria-label={compact ? `Relancer le client · ${projectName}` : undefined}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-md font-medium transition-colors",
-          compact
-            ? "px-1.5 py-0.5 text-meta text-waiting-text hover:bg-waiting-soft"
-            : "border border-line bg-surface px-3 py-2 text-ui text-ink-2 hover:border-line-strong hover:text-ink",
-          className,
-        )}
+        className={cn(compact && "text-waiting-text hover:bg-waiting-soft hover:text-waiting-text", className)}
       >
-        <Send className={compact ? "size-3" : "size-4"} aria-hidden />
         Relancer
-      </button>
+      </Button>
       {open && <ChaseDialog projectId={projectId} projectName={projectName} onClose={() => setOpen(false)} />}
     </>
   );
@@ -82,7 +78,7 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
           toast.error(result.error);
           return resolve(false);
         }
-        toast.success("Relance enregistrée : prochaine dans 5 jours");
+        toast.success("Relance enregistrée : prochaine dans 5 jours");
         onClose();
         resolve(true);
       }),
@@ -92,7 +88,7 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
     try {
       await navigator.clipboard.writeText(body);
     } catch {
-      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
+      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
       return;
     }
     await record();
@@ -102,7 +98,7 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
     if (!draft) return;
     const link = mailtoLink(draft.to?.email, draft.subject, body);
     if (!link) {
-      toast.error("Message trop long pour la messagerie : il a été copié, collez-le dans un nouvel e-mail.");
+      toast.error("Message trop long pour la messagerie : il a été copié, collez-le dans un nouvel e-mail.");
       await copy();
       return;
     }
@@ -119,7 +115,7 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
       description="Un message poli qui liste ce que nous attendons. Copier ou ouvrir dans la messagerie enregistre la relance dans l’historique."
     >
       {error ? (
-        <p role="alert" className="text-ui text-danger">{error}</p>
+        <p role="alert" className="text-ui text-danger-text">{error}</p>
       ) : !draft ? (
         <p className="text-ui text-muted" aria-busy="true">Préparation du message…</p>
       ) : (
@@ -127,7 +123,7 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
           <p className="text-xs text-muted">
             {draft.to
               ? <>À{" "}: <span className="text-ink-2">{draft.to.name}</span>{draft.to.email ? ` <${draft.to.email}>` : " (pas d’adresse email)"}</>
-              : "Aucun contact principal : ajoutez-en un sur la page Clients pour personnaliser la salutation."}
+              : "Aucun contact principal : ajoutez-en un sur la page Clients pour personnaliser la salutation."}
             {" · "}Objet{" "}: <span className="text-ink-2">{draft.subject}</span>
           </p>
           <textarea

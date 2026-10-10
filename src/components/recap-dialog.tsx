@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { getRecapFacts, logRecapSent } from "@/app/actions/deliveries";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { mailtoLink } from "@/lib/chasing";
 import { buildRecapText, recapTextToHtml, type RecapFacts, type RecapOptions } from "@/lib/recap";
 import { fromParisDateTimeInput, toParisDateInput } from "@/lib/time";
@@ -102,7 +103,7 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
         await navigator.clipboard.writeText(text);
       }
     } catch {
-      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
+      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
       return;
     }
     record("WEB");
@@ -112,7 +113,7 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
     if (!generated) return;
     const link = mailtoLink(loaded?.to?.email, generated.subject, text);
     if (!link) {
-      toast.error("Récap trop long pour la messagerie : il a été copié, collez-le dans un nouvel e-mail.");
+      toast.error("Récap trop long pour la messagerie : il a été copié, collez-le dans un nouvel e-mail.");
       await copy(false);
       return;
     }
@@ -132,11 +133,11 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
       description={
         agency
           ? "Version agence : technique, avec les références des tâches. Relisez-le avant envoi."
-          : "Version client direct : langage simple, sans statut interne. Relisez-le avant envoi."
+          : "Version client direct : langage simple, sans statut interne. Relisez-le avant envoi."
       }
     >
       {error ? (
-        <p role="alert" className="text-ui text-danger">{error}</p>
+        <p role="alert" className="text-ui text-danger-text">{error}</p>
       ) : !loaded ? (
         <p className="text-ui text-muted" aria-busy="true">Préparation du récap…</p>
       ) : (
@@ -152,34 +153,22 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
                 className={cn(fieldClass, "w-auto")}
               />
             </div>
-            <label className="flex items-center gap-2 text-ui text-ink-2">
-              <input
-                type="checkbox"
-                checked={options.includeBillable}
-                onChange={(event) => change(() => setOptions((o) => ({ ...o, includeBillable: event.target.checked })))}
-                className="accent-[var(--accent)]"
-              />
-              Modifications supplémentaires
-            </label>
-            <label className="flex items-center gap-2 text-ui text-ink-2">
-              <input
-                type="checkbox"
-                checked={options.includeWaiting}
-                onChange={(event) => change(() => setOptions((o) => ({ ...o, includeWaiting: event.target.checked })))}
-                className="accent-[var(--accent)]"
-              />
-              En attente de votre côté
-            </label>
+            <Checkbox
+              checked={options.includeBillable}
+              onChange={(event) => change(() => setOptions((o) => ({ ...o, includeBillable: event.target.checked })))}
+              label="Modifications supplémentaires"
+            />
+            <Checkbox
+              checked={options.includeWaiting}
+              onChange={(event) => change(() => setOptions((o) => ({ ...o, includeWaiting: event.target.checked })))}
+              label="En attente de votre côté"
+            />
             {agency && (
-              <label className="flex items-center gap-2 text-ui text-ink-2">
-                <input
-                  type="checkbox"
-                  checked={options.whiteLabel}
-                  onChange={(event) => change(() => setOptions((o) => ({ ...o, whiteLabel: event.target.checked })))}
-                  className="accent-[var(--accent)]"
-                />
-                Marque blanche
-              </label>
+              <Checkbox
+                checked={options.whiteLabel}
+                onChange={(event) => change(() => setOptions((o) => ({ ...o, whiteLabel: event.target.checked })))}
+                label="Marque blanche"
+              />
             )}
           </div>
 

@@ -5,7 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateProjectNote } from "@/app/actions/projects";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn, formatDateTime, timeAgo } from "@/lib/utils";
@@ -56,7 +56,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
           rows={3}
           maxLength={600}
           aria-label="Point d’étape"
-          placeholder="Où en est le projet ? Qu'attend-on, de qui, et quelle est la prochaine action ?"
+          placeholder="Où en est le projet ? Qu’attend-on, de qui, et quelle est la prochaine action ?"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -85,7 +85,7 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
         onClick={start}
         className="mt-3 flex items-center gap-2 rounded-sm text-ui text-muted outline-hidden hover:text-ink focus-visible:shadow-[var(--ring)]"
       >
-        <Pencil className="size-3.5" /> Ajouter un point d’étape : où on en est, et la prochaine action
+        <Pencil className="size-3.5" /> Ajouter un point d’étape : où on en est, et la prochaine action
       </button>
     );
   }
@@ -93,12 +93,14 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
   // Une ligne dans une barre discrète ; le chevron déplie le texte, un clic sur le texte l’édite.
   return (
     <div className="group mt-3 flex items-start gap-2 rounded-md bg-surface-2 px-3 py-1.5">
-      <button type="button" onClick={start} className="min-w-0 flex-1 rounded-sm text-left outline-hidden focus-visible:shadow-[var(--ring)]">
-        <span className={cn("block text-ui leading-relaxed text-ink-2", !expanded && "truncate")}>
-          <span className="mr-1.5 text-xs font-semibold text-muted">Point d’étape</span>
-          {saved}
-        </span>
-      </button>
+      <Tooltip content="Modifier le point d’étape">
+        <button type="button" onClick={start} className="min-w-0 flex-1 rounded-sm text-left outline-hidden focus-visible:shadow-[var(--ring)]">
+          <span className={cn("block text-ui leading-relaxed text-ink-2", !expanded && "truncate")}>
+            <span className="mr-1.5 text-xs font-semibold text-muted">Point d’étape</span>
+            {saved}
+          </span>
+        </button>
+      </Tooltip>
       {noteAt && (
         <Tooltip content={formatDateTime(noteAt)}>
           <span className="shrink-0 pt-0.5 text-xs text-muted" suppressHydrationWarning>
@@ -106,15 +108,14 @@ export function ProjectNote({ projectId, note, noteAt }: { projectId: string; no
           </span>
         </Tooltip>
       )}
-      <button
-        type="button"
-        onClick={() => setExpanded((value) => !value)}
+      <IconButton
+        label={expanded ? "Replier le point d’étape" : "Déplier le point d’étape"}
+        size="sm"
         aria-expanded={expanded}
-        aria-label={expanded ? "Replier le point d’étape" : "Déplier le point d’étape"}
-        className="shrink-0 rounded-sm p-0.5 text-muted outline-hidden hover:bg-sunken hover:text-ink focus-visible:shadow-[var(--ring)]"
+        onClick={() => setExpanded((value) => !value)}
       >
         <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
-      </button>
+      </IconButton>
     </div>
   );
 }

@@ -6,8 +6,9 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createExtra, getQuoteDraft, logQuoteSent, setExtraStatus, updateExtra } from "@/app/actions/extras";
-import { Dialog, fieldClass, GhostButton, PrimaryButton } from "@/components/dialog";
+import { compactFieldClass, Dialog, fieldClass, GhostButton, PrimaryButton } from "@/components/dialog";
 import { Badge, type Tone } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { mailtoLink } from "@/lib/chasing";
 import { EXTRA_STATUS_LABELS, formatEuros, parseEuros } from "@/lib/extras";
 import { plural } from "@/lib/plural";
@@ -85,26 +86,27 @@ export function ExtrasView({
             <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
               {loose.map((task) => (
                 <li key={task.id}>
-                  <label className="flex items-center gap-2 px-3 py-1.5 text-ui">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(task.id)}
-                      onChange={() =>
-                        setSelected((current) => {
-                          const next = new Set(current);
-                          if (next.has(task.id)) next.delete(task.id);
-                          else next.add(task.id);
-                          return next;
-                        })
-                      }
-                      className="accent-[var(--accent)]"
-                    />
-                    <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
-                    <span className="min-w-0 flex-1 truncate">{task.title}</span>
-                    <span className="tabular text-xs text-muted">
-                      {task.estimatedAmountCents !== null ? formatEuros(task.estimatedAmountCents) : "à chiffrer"}
-                    </span>
-                  </label>
+                  <Checkbox
+                    checked={selected.has(task.id)}
+                    onChange={() =>
+                      setSelected((current) => {
+                        const next = new Set(current);
+                        if (next.has(task.id)) next.delete(task.id);
+                        else next.add(task.id);
+                        return next;
+                      })
+                    }
+                    className="flex w-full px-3 py-1.5"
+                    label={
+                      <>
+                        <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
+                        <span className="min-w-0 flex-1 truncate">{task.title}</span>
+                        <span className="tabular text-xs text-muted">
+                          {task.estimatedAmountCents !== null ? formatEuros(task.estimatedAmountCents) : "à chiffrer"}
+                        </span>
+                      </>
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -156,7 +158,7 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
   const saveAmount = () => {
     const cents = parseEuros(amount);
     if (amount.trim() && cents === null) {
-      toast.error("Montant illisible : écrivez par exemple 450 ou 450,50.");
+      toast.error("Montant illisible : écrivez par exemple 450 ou 450,50.");
       return;
     }
     if (cents === extra.amountCents) return;
@@ -201,9 +203,10 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
                 onChange={(event) => setAmount(event.target.value)}
                 onBlur={saveAmount}
                 inputMode="decimal"
-                className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-ui text-ink"
+                aria-label="Montant HT, en euros"
+                className={cn(compactFieldClass, "w-24")}
               />
-              €
+              <span aria-hidden="true">€</span>
             </label>
             <PrimaryButton type="button" className="ml-auto" disabled={pending} onClick={() => setQuoting(true)}>
               Envoyer le devis
@@ -217,7 +220,7 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
               onChange={(event) => setDetail(event.target.value)}
               placeholder="Accepté par (nom)"
               aria-label="Accepté par"
-              className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-ui"
+              className={cn(compactFieldClass, "min-w-0 flex-1")}
             />
             <GhostButton type="button" disabled={pending} onClick={() => move("REJECTED")}>Refusé</GhostButton>
             <PrimaryButton type="button" disabled={pending} onClick={() => move("APPROVED", { approvedBy: detail })}>Accepté</PrimaryButton>
@@ -230,7 +233,7 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
               onChange={(event) => setDetail(event.target.value)}
               placeholder="Référence de la facture (outil comptable)"
               aria-label="Référence de la facture"
-              className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-ui"
+              className={cn(compactFieldClass, "min-w-0 flex-1")}
             />
             <PrimaryButton type="button" disabled={pending} onClick={() => move("INVOICED", { invoiceRef: detail })}>Facturé</PrimaryButton>
           </>
@@ -284,7 +287,7 @@ function QuoteDialog({ extraId, label, onClose }: { extraId: string; label: stri
     try {
       await navigator.clipboard.writeText(body);
     } catch {
-      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
+      toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
       return;
     }
     record("WEB");
@@ -304,7 +307,7 @@ function QuoteDialog({ extraId, label, onClose }: { extraId: string; label: stri
   return (
     <Dialog open onClose={onClose} wide title={`Devis de l’avenant ${label}`} description="Copier ou ouvrir dans la messagerie enregistre l’envoi du devis.">
       {error ? (
-        <p role="alert" className="text-ui text-danger">{error}</p>
+        <p role="alert" className="text-ui text-danger-text">{error}</p>
       ) : !draft ? (
         <p className="text-ui text-muted" aria-busy="true">Préparation du devis…</p>
       ) : (

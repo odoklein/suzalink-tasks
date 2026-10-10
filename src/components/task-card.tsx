@@ -12,6 +12,7 @@ import {
   PriorityIcon,
   ZoneChip,
 } from "@/components/primitives";
+import { plural } from "@/lib/plural";
 import type { TaskCard as TaskCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +64,8 @@ export function TaskCard({
           {task._count.comments > 0 && (
             <span className="tabular flex items-center gap-0.5 text-meta text-muted">
               <MessageSquare className="size-3" />
-              {task._count.comments}
+              <span aria-hidden="true">{task._count.comments}</span>
+              <span className="sr-only">{plural(task._count.comments, "commentaire")}</span>
             </span>
           )}
           <span className="font-mono text-meta text-muted">

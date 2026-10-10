@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ZonesButton } from "@/components/zones-dialog";
-import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
+import { TASK_STATUSES } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
 import { useArrivals } from "@/lib/use-arrivals";
 import { cn } from "@/lib/utils";
@@ -127,6 +127,10 @@ export function TaskList({
         {groups.map((group) => {
           const isCollapsed = collapsed.has(group.key);
           const doneCount = group.tasks.filter((task) => task.status === "DONE").length;
+          const breakdown = TASK_STATUSES.map((status) => ({
+            status,
+            count: group.tasks.filter((task) => task.status === status.value).length,
+          })).filter(({ count }) => count > 0);
           return (
             <section key={group.key} className="overflow-hidden rounded-lg border border-line bg-surface shadow-card">
               <button
@@ -141,15 +145,16 @@ export function TaskList({
                   {groupBy === "zone" ? `${doneCount}/${group.tasks.length} faites` : group.tasks.length}
                 </span>
                 {groupBy === "zone" && (
-                  <span className="ml-auto flex h-1.5 w-28 overflow-hidden rounded-full bg-sunken">
-                    {TASK_STATUSES.map((status) => {
-                      const count = group.tasks.filter((task) => task.status === status.value).length;
-                      return count ? (
-                        <Tooltip key={status.value} content={`${STATUS_BY_VALUE[status.value].label} : ${count}`}>
-                          <span style={{ flex: count, backgroundColor: status.tone }} />
-                        </Tooltip>
-                      ) : null;
-                    })}
+                  <span
+                    role="img"
+                    aria-label={breakdown.map(({ status, count }) => `${status.label} : ${count}`).join(", ")}
+                    className="ml-auto flex h-1.5 w-28 overflow-hidden rounded-full bg-sunken"
+                  >
+                    {breakdown.map(({ status, count }) => (
+                      <Tooltip key={status.value} content={`${status.label} : ${count}`}>
+                        <span style={{ flex: count, backgroundColor: status.tone }} />
+                      </Tooltip>
+                    ))}
                   </span>
                 )}
               </button>

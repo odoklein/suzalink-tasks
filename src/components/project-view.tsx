@@ -351,7 +351,7 @@ export function ProjectView({
               </Tooltip>
             )}
             {project.lead && (
-              <Tooltip content={`Responsable : ${project.lead.name}`}>
+              <Tooltip content={`Responsable : ${project.lead.name}`}>
                 <span>
                   <Avatar name={project.lead.name} color={project.lead.color} size={22} />
                 </span>
@@ -491,7 +491,7 @@ function Deliveries({
             </Button>
           }
         >
-          Enregistrez chaque mise en ligne avec son heure exacte : c&apos;est la preuve de ce qui a été livré, et quand.
+          Enregistrez chaque mise en ligne avec son heure exacte : c’est la preuve de ce qui a été livré, et quand.
         </EmptyState>
       </div>
     );
@@ -530,10 +530,10 @@ function Deliveries({
                   Voir <ExternalLink className="size-3" />
                 </a>
               )}
-              <button type="button" onClick={() => onEdit(delivery)} className="hover:text-ink hover:underline">
+              <button type="button" onClick={() => onEdit(delivery)} className="hover:text-ink hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                 Modifier
               </button>
-              <button type="button" onClick={() => remove(delivery)} className="hover:text-danger hover:underline">
+              <button type="button" onClick={() => remove(delivery)} className="hover:text-danger-text hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
                 Supprimer
               </button>
             </p>
@@ -567,7 +567,7 @@ function ActivityFeed({
   messages: ProjectData["clientMessages"];
 }) {
   if (activities.length === 0) {
-    return <p className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 text-ui text-muted">Aucune activité pour l&apos;instant.</p>;
+    return <p className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 text-ui text-muted">Aucune activité pour l’instant.</p>;
   }
   const bodies = new Map(messages.map((message) => [message.id, message.body]));
   return (
@@ -580,10 +580,10 @@ function ActivityFeed({
         const body = messageId ? bodies.get(messageId) : undefined;
         return (
           <li key={activity.id} className="flex items-start gap-3 text-ui">
-            {activity.actor ? <Avatar name={activity.actor.name} color={activity.actor.color} size={22} /> : <span className="size-[22px]" />}
+            {activity.actor ? <Avatar name={activity.actor.name} color={activity.actor.color} size={22} /> : <span aria-hidden="true" className="size-5.5" />}
             <div className="min-w-0 flex-1 text-ink-2">
               <p>
-                <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu'un"}</span> {activity.message}
+                <span className="font-medium text-ink">{activity.actor?.name ?? "Quelqu’un"}</span> {activity.message}
               </p>
               {body && (
                 <details className="mt-1">

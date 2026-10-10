@@ -7,8 +7,10 @@ import { toast } from "sonner";
 
 import { importFeedback, previewImport } from "@/app/actions/tasks";
 import { useApp } from "@/components/app-context";
-import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
+import { compactFieldClass, Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { StatusIcon } from "@/components/primitives";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
 import { PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import {
   columnLetter,
@@ -185,7 +187,7 @@ export function ImportDialog({
       onClose={onClose}
       wide
       title="Importer un tableau de retours"
-      description="Copiez les cellules depuis Google Sheets ou Excel (en-têtes compris) et collez-les ici. Les lignes déjà importées sont repérées : rien n’est créé en double."
+      description="Copiez les cellules depuis Google Sheets ou Excel (en-têtes compris) et collez-les ici. Les lignes déjà importées sont repérées : rien n’est créé en double."
     >
       <div className="space-y-3">
         <div>
@@ -203,25 +205,22 @@ export function ImportDialog({
         {detected.rows.length > 0 && (
           <details open={detected.ambiguous} className="rounded-lg border border-line bg-surface-2 px-3 py-2">
             <summary className="cursor-pointer text-xs font-medium text-ink-2">
-              Colonnes{detected.ambiguous ? " : vérifiez l’affectation" : ""}
+              Colonnes{detected.ambiguous ? " : vérifiez l’affectation" : ""}
             </summary>
             <div className="mt-2 space-y-2">
               {detected.ambiguous && (
                 <p role="status" className="text-xs text-muted">
                   {mapping.hasHeader
                     ? "La colonne Retour n’a pas été reconnue : choisissez-la ci-dessous."
-                    : "Aucun en-tête reconnu : l’ordre Date, Page, Retour, Commentaire, État est supposé. Corrigez-le si besoin."}
+                    : "Aucun en-tête reconnu : l’ordre Date, Page, Retour, Commentaire, État est supposé. Corrigez-le si besoin."}
                 </p>
               )}
-              <label className="flex items-center gap-2 text-xs text-ink-2">
-                <input
-                  type="checkbox"
-                  checked={mapping.hasHeader}
-                  onChange={(event) => changeMapping({ hasHeader: event.target.checked })}
-                  className="accent-[var(--accent)]"
-                />
-                La première ligne contient les en-têtes
-              </label>
+              <Checkbox
+                checked={mapping.hasHeader}
+                onChange={(event) => changeMapping({ hasHeader: event.target.checked })}
+                label="La première ligne contient les en-têtes"
+                className="text-xs"
+              />
               <div className="grid gap-2 sm:grid-cols-2">
                 {columnSelect("map-retour", "Retour", mapping.retour, (retour) => changeMapping({ retour }), false)}
                 {columnSelect("map-page", "Page", mapping.page, (page) => changeMapping({ page }))}
@@ -252,14 +251,13 @@ export function ImportDialog({
                 );
                 return (
                   <li key={index} className={cn("flex gap-2.5 border-b border-line px-3 py-2 text-xs last:border-b-0", mode === "skip" && "bg-surface-2 text-muted")}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={mode !== "skip"}
                       onChange={(event) =>
                         setEdit(index, { mode: event.target.checked ? modeWhenChecked(classification) : "skip" })
                       }
                       aria-label={`Importer la ligne ${index + 1}`}
-                      className="mt-1 accent-[var(--accent)]"
+                      className="mt-1 self-start"
                     />
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -268,7 +266,7 @@ export function ImportDialog({
                           value={rowStatus(index)}
                           onChange={(event) => setEdit(index, { status: event.target.value as TaskStatus })}
                           aria-label={`État de la ligne ${index + 1}`}
-                          className="rounded-md border border-line bg-surface px-1.5 py-1 text-xs"
+                          className={cn(compactFieldClass, "text-xs")}
                         >
                           {TASK_STATUSES.map((status) => (
                             <option key={status.value} value={status.value}>{status.short}</option>
@@ -279,24 +277,25 @@ export function ImportDialog({
                           onChange={(event) => setEdit(index, { zone: event.target.value })}
                           aria-label={`Page de la ligne ${index + 1}`}
                           placeholder="Page"
-                          className="w-28 rounded-md border border-line bg-surface px-1.5 py-1 text-xs"
+                          className={cn(compactFieldClass, "w-28 text-xs")}
                         />
-                        <span
-                          className={cn(
-                            "rounded px-1.5 py-0.5 text-meta font-medium",
-                            classification.kind === "new" && "bg-done-soft text-done-text",
-                            classification.kind === "existing" && classification.statusChanged && "bg-waiting-soft text-waiting-text",
-                            (classification.kind === "paste-duplicate" || (classification.kind === "existing" && !classification.statusChanged)) && "bg-sunken text-muted",
-                          )}
+                        <Chip
+                          tone={
+                            classification.kind === "new"
+                              ? "done"
+                              : classification.kind === "existing" && classification.statusChanged
+                                ? "waiting"
+                                : "neutral"
+                          }
                         >
                           {classificationLabel(classification, rowStatus(index))}
-                        </span>
+                        </Chip>
                         {classification.kind !== "new" && (
                           <select
                             value={mode}
                             onChange={(event) => setEdit(index, { mode: event.target.value as ImportMode })}
                             aria-label={`Action pour la ligne ${index + 1}`}
-                            className="rounded-md border border-line bg-surface px-1.5 py-1 text-xs"
+                            className={cn(compactFieldClass, "text-xs")}
                           >
                             {options.map((value) => (
                               <option key={value} value={value}>{MODE_LABELS[value]}</option>
@@ -357,7 +356,7 @@ export function ImportDialog({
 
         <div className="flex justify-end gap-2 pt-1">
           <GhostButton type="button" onClick={onClose}>Annuler</GhostButton>
-          <PrimaryButton type="button" disabled={pending || !matchesReady || counts.create + counts.update === 0} onClick={submit}>
+          <PrimaryButton type="button" loading={pending || !matchesReady} disabled={counts.create + counts.update === 0} onClick={submit}>
             {pending ? "Import…" : importButtonLabel(counts)}
           </PrimaryButton>
         </div>

@@ -197,7 +197,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
             onClick={() =>
               document.getElementById(`colonne-${status.value}`)?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", inline: "center", block: "nearest" })
             }
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-2"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink-2"
           >
             <StatusIcon status={status.value} size={12} />
             {status.short}
@@ -302,7 +302,7 @@ function Column({
         <span className="tabular text-xs text-muted">
           {tasks.length}
           {status === "WAITING_CLIENT" && tasks.length > 0 && (
-            <span className={cn(oldest >= 5 && "font-semibold text-waiting-text")}> · la plus ancienne : {oldest} j</span>
+            <span className={cn(oldest >= 5 && "font-semibold text-waiting-text")}> · la plus ancienne : {oldest} j</span>
           )}
         </span>
         <span className="ml-auto flex items-center">
@@ -329,7 +329,7 @@ function Column({
             <button
               type="button"
               onClick={() => setShowAll(true)}
-              className="mx-1 rounded-sm py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink"
+              className="mx-1 rounded-sm py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink pointer-coarse:min-h-11"
             >
               Voir les {tasks.length - visible.length} autres
             </button>

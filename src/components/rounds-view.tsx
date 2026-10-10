@@ -8,7 +8,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { closeRound, reopenRound } from "@/app/actions/rounds";
-import { GhostButton, PrimaryButton } from "@/components/dialog";
+import { compactFieldClass, GhostButton, PrimaryButton } from "@/components/dialog";
 import { QuickAdd } from "@/components/quick-add";
 import { plural } from "@/lib/plural";
 import { ROUND_STATUS_LABELS, roundCounts } from "@/lib/rounds";
@@ -173,7 +173,7 @@ function RoundCard({
               </GhostButton>
             )
           ) : (
-            <GhostButton type="button" disabled={pending} onClick={reopen}>
+            <GhostButton type="button" loading={pending} onClick={reopen}>
               Rouvrir
             </GhostButton>
           )}
@@ -187,7 +187,7 @@ function RoundCard({
             <select
               value={deliveryId}
               onChange={(event) => setDeliveryId(event.target.value)}
-              className="mt-1 block w-full rounded-md border border-line bg-surface px-2 py-1.5 text-ui"
+              className={cn(compactFieldClass, "mt-1 block w-full")}
             >
               {deliveries.map((delivery) => (
                 <option key={delivery.id} value={delivery.id}>
@@ -198,7 +198,7 @@ function RoundCard({
             </select>
           </label>
           <GhostButton type="button" onClick={() => setClosing(false)}>Annuler</GhostButton>
-          <PrimaryButton type="button" disabled={pending} onClick={close}>Clôturer</PrimaryButton>
+          <PrimaryButton type="button" loading={pending} onClick={close}>Clôturer</PrimaryButton>
         </div>
       )}
 
