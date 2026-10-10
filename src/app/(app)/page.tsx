@@ -337,7 +337,7 @@ export default async function TodayPage() {
               </ul>
             </Panel>
 
-            <Panel icon={<Users className="size-4 text-muted" />} title="Charge de l'équipe" count={teamLoad.length} empty="Aucun membre.">
+            <Panel icon={<Users className="size-4 text-muted" />} title="Charge de l’équipe" count={teamLoad.length} empty="Aucun membre.">
               <ul className="space-y-2.5">
                 {teamLoad.map((member) => (
                   <li key={member.id} className="flex items-center gap-2.5 text-xs">
@@ -419,11 +419,9 @@ function Stat({
   value: number;
   hint: string;
 }) {
-  return (
-    <a
-      href={value > 0 ? href : undefined}
-      className="block rounded-lg border border-line bg-surface p-4 shadow-card outline-hidden transition-shadow hover:shadow-raised focus-visible:shadow-[var(--ring)] [&:not([href])]:pointer-events-none"
-    >
+  const tile = "block rounded-lg border border-line bg-surface p-4 shadow-card";
+  const content = (
+    <>
       <div className="flex items-center gap-2 text-xs font-medium text-muted">
         <span
           className="flex size-6 items-center justify-center rounded-sm"
@@ -435,7 +433,15 @@ function Stat({
       </div>
       <p className="tabular mt-3 font-display text-hero font-semibold leading-none tracking-tight">{value}</p>
       <p className="mt-1.5 text-xs text-muted">{hint}</p>
+    </>
+  );
+  // Un lien seulement s’il y a quelque chose à atteindre ; sinon une simple tuile, sans survol ni focus.
+  return value > 0 ? (
+    <a href={href} className={cn(tile, "outline-hidden transition-shadow hover:shadow-raised focus-visible:shadow-[var(--ring)]")}>
+      {content}
     </a>
+  ) : (
+    <div className={tile}>{content}</div>
   );
 }
 

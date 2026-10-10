@@ -20,6 +20,7 @@ import {
 } from "@/components/primitives";
 import { SelectMenu } from "@/components/select-menu";
 import { TASK_STATUSES } from "@/lib/constants";
+import { plural } from "@/lib/plural";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { promptWaitingFor } from "@/lib/waiting-prompt";
@@ -88,7 +89,8 @@ export function TaskRow({
         {task._count.comments > 0 && (
           <span className="tabular flex items-center gap-0.5 text-meta text-muted">
             <MessageSquare className="size-3" />
-            {task._count.comments}
+            <span aria-hidden="true">{task._count.comments}</span>
+            <span className="sr-only">{plural(task._count.comments, "commentaire")}</span>
           </span>
         )}
         {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}

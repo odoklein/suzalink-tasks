@@ -5,8 +5,12 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { setWaitingDetails } from "@/app/actions/chasing";
+import { fieldClass } from "@/components/dialog";
+import { Button, IconButton } from "@/components/ui/button";
 import { CHASE_AFTER_DAYS } from "@/lib/chasing";
+import { NNBSP } from "@/lib/fr";
 import { toParisDateInput } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import { WAITING_PROMPT_EVENT, type WaitingPromptDetail } from "@/lib/waiting-prompt";
 
 const IDLE_MS = 15_000;
@@ -64,19 +68,19 @@ export function WaitingPrompt() {
             toast.error(result.error);
             return;
           }
-          toast.success(`${target.ref} : relance notée`);
+          toast.success(`${target.ref}${NNBSP}: relance notée`);
           close();
         });
       }}
-      className="animate-pop-in fixed bottom-20 left-1/2 z-[70] w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-line bg-surface p-3 shadow-pop"
+      className="animate-pop-in fixed bottom-20 left-1/2 z-palette w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-line bg-surface p-3 shadow-pop"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-ink-2">
           <span className="font-mono text-muted">{target.ref}</span> est chez le client
         </p>
-        <button type="button" onClick={close} aria-label="Fermer" className="rounded-md p-1 text-muted hover:bg-sunken hover:text-ink">
+        <IconButton label="Fermer" size="sm" onClick={close}>
           <X className="size-3.5" />
-        </button>
+        </IconButton>
       </div>
       <div className="flex flex-wrap items-end gap-2">
         <label className="min-w-0 flex-1 text-xs text-muted">
@@ -85,7 +89,8 @@ export function WaitingPrompt() {
             value={waitingFor}
             onChange={(event) => setWaitingFor(event.target.value)}
             placeholder="visuels HD, textes de la page À propos…"
-            className="mt-1 w-full rounded-md border border-line bg-surface-2 px-2 py-1.5 text-ui text-ink"
+            autoComplete="off"
+            className={cn(fieldClass, "mt-1")}
           />
         </label>
         <label className="text-xs text-muted">
@@ -94,16 +99,13 @@ export function WaitingPrompt() {
             type="date"
             value={followUpAt}
             onChange={(event) => setFollowUpAt(event.target.value)}
-            className="mt-1 block rounded-md border border-line bg-surface-2 px-2 py-1.5 text-ui text-ink"
+            autoComplete="off"
+            className={cn(fieldClass, "mt-1 block w-auto")}
           />
         </label>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-ink px-3 py-1.5 text-ui font-semibold text-bg disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" loading={pending}>
           Noter
-        </button>
+        </Button>
       </div>
     </form>
   );
