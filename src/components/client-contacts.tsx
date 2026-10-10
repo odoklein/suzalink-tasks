@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { createContact, deleteContact, updateContact, type ContactInput } from "@/app/actions/contacts";
 import { fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
 import { CopyEmailButton } from "@/components/copy-email-button";
+import { Button, IconButton } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type ContactRow = {
   id: string;
@@ -41,7 +43,7 @@ export function ClientContacts({ clientId, contacts, legacy }: { clientId: strin
 
   return (
     <div className="mt-3">
-      {contacts.length === 0 && legacy && <p className="text-[13px] text-muted">{legacy}</p>}
+      {contacts.length === 0 && legacy && <p className="text-ui text-muted">{legacy}</p>}
       {contacts.length > 0 && (
         <ul className="divide-y divide-line rounded-lg border border-line">
           {contacts.map((contact) =>
@@ -50,34 +52,28 @@ export function ClientContacts({ clientId, contacts, legacy }: { clientId: strin
                 <ContactForm initial={contact} pending={pending} onSave={(input) => save(contact.id, input)} onCancel={() => setEditing(null)} />
               </li>
             ) : (
-              <li key={contact.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-[13px]">
+              <li key={contact.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-ui">
                 <span className="font-medium">{contact.name}</span>
                 {contact.role && <span className="text-muted">{contact.role}</span>}
                 {contact.isPrimary && (
-                  <span className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent">
+                  <span className="inline-flex items-center gap-1 rounded-sm bg-accent-soft px-1.5 py-0.5 text-meta font-medium text-accent">
                     <Star className="size-3" aria-hidden /> Principal
                   </span>
                 )}
                 <span className="ml-auto flex items-center gap-1">
                   {contact.email && <CopyEmailButton email={contact.email} />}
-                  {contact.phone && <span className="tabular text-[12px] text-muted">{contact.phone}</span>}
-                  <button
-                    type="button"
-                    aria-label={`Modifier ${contact.name}`}
-                    onClick={() => setEditing(contact.id)}
-                    className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-ink"
-                  >
+                  {contact.phone && <span className="tabular text-xs text-muted">{contact.phone}</span>}
+                  <IconButton label={`Modifier ${contact.name}`} onClick={() => setEditing(contact.id)}>
                     <Pencil className="size-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Supprimer ${contact.name}`}
+                  </IconButton>
+                  <IconButton
+                    label={`Supprimer ${contact.name}`}
                     disabled={pending}
                     onClick={() => remove(contact)}
-                    className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-danger disabled:opacity-50"
+                    className="hover:text-danger-text"
                   >
                     <Trash2 className="size-3.5" />
-                  </button>
+                  </IconButton>
                 </span>
               </li>
             ),
@@ -90,13 +86,15 @@ export function ClientContacts({ clientId, contacts, legacy }: { clientId: strin
           <ContactForm pending={pending} onSave={(input) => save("new", input)} onCancel={() => setEditing(null)} />
         </div>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<Plus className="size-3.5" />}
           onClick={() => setEditing("new")}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[12px] font-medium text-accent hover:bg-accent-soft"
+          className="mt-2 text-accent hover:bg-accent-soft hover:text-accent"
         >
-          <Plus className="size-3.5" /> Ajouter un contact
-        </button>
+          Ajouter un contact
+        </Button>
       )}
     </div>
   );
@@ -149,10 +147,12 @@ function ContactForm({
           <input id={`contact-phone-${id}`} type="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} className={fieldClass} />
         </div>
       </div>
-      <label className="flex items-center gap-2 text-[12px] text-ink-2">
-        <input type="checkbox" checked={form.isPrimary} onChange={(e) => set({ isPrimary: e.target.checked })} className="accent-[var(--accent)]" />
-        Contact principal (salutation des messages au client)
-      </label>
+      <Checkbox
+        checked={form.isPrimary}
+        onChange={(e) => set({ isPrimary: e.target.checked })}
+        label="Contact principal (salutation des messages au client)"
+        className="text-xs"
+      />
       <div className="flex justify-end gap-2">
         <GhostButton type="button" onClick={onCancel}>Annuler</GhostButton>
         <PrimaryButton type="submit" disabled={pending}>

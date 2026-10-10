@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import { verifySession } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { initials } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 
 const STATUS_TONE: Record<string, Tone> = { ACTIVE: "progress", WAITING_CLIENT: "waiting", PAUSED: "todo", DONE: "done" };
 
@@ -27,7 +27,7 @@ function ProjectLine({ project, nested = false }: { project: ClientProject; nest
   const status = PROJECT_STATUS_BY_VALUE[project.status as keyof typeof PROJECT_STATUS_BY_VALUE];
   return (
     <li>
-      <Link href={`/projects/${project.slug}`} className={`flex items-center gap-3 py-2.5 pr-3 text-ui hover:bg-surface-2 ${nested ? "pl-9" : "pl-3"}`}>
+      <Link href={`/projects/${project.slug}`} className={cn("flex items-center gap-3 py-2.5 pr-3 text-ui hover:bg-surface-2", nested ? "pl-9" : "pl-3")}>
         <ProjectTile color={project.color} label={project.key} size={18} />
         <span className="font-medium">{project.name}</span>
         {!nested && project.endClient && <span className="truncate text-muted">{project.endClient}</span>}
@@ -106,11 +106,11 @@ export default async function ClientsPage() {
                 <ul className="mt-4 divide-y divide-line rounded-md border border-line">
                   {client.kind === "AGENCY"
                     ? // Agence : les projets sont regroupés sous leur client final.
-                      groupByEndClient(client.projects).map(([endClient, projects]) =>
+                      groupByEndClient(client.projects).map(([endClient, projects], group) =>
                         endClient ? (
                           <li key={endClient}>
-                            <p className="bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink-2">{endClient}</p>
-                            <ul className="divide-y divide-line">
+                            <p id={`end-client-${client.id}-${group}`} className="bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink-2">{endClient}</p>
+                            <ul aria-labelledby={`end-client-${client.id}-${group}`} className="divide-y divide-line">
                               {projects.map((project) => (
                                 <ProjectLine key={project.id} project={project} nested />
                               ))}
@@ -129,7 +129,7 @@ export default async function ClientsPage() {
 
         {clients.length === 0 && (
           <EmptyState title="Aucun client" className="mt-8 rounded-lg border border-dashed border-line-strong">
-            Les clients apparaissent ici dès qu&apos;ils sont rattachés à un projet.
+            Les clients apparaissent ici dès qu’ils sont rattachés à un projet.
           </EmptyState>
         )}
       </div>
