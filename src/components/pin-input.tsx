@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 export function PinInput({
   name,
   label,
+  legend,
+  legendClassName,
+  describedBy,
   onComplete,
   invalid = false,
   disabled = false,
@@ -20,6 +23,11 @@ export function PinInput({
 }: {
   name: string;
   label: string;
+  /** Texte visible de la légende du groupe ; sans lui, la légende reste réservée aux lecteurs d’écran. */
+  legend?: string;
+  legendClassName?: string;
+  /** Id du message d’erreur, relié à chaque case. */
+  describedBy?: string;
   onComplete?: (pin: string) => void;
   invalid?: boolean;
   disabled?: boolean;
@@ -47,7 +55,7 @@ export function PinInput({
 
   return (
     <fieldset className="min-w-0" disabled={disabled}>
-      <legend className="sr-only">{label}</legend>
+      <legend className={legend ? legendClassName : "sr-only"}>{legend ?? label}</legend>
       <input type="hidden" name={name} value={digits.join("")} />
       <div className={cn("flex gap-2", invalid && "animate-shake")}>
         {digits.map((digit, index) => (
@@ -61,6 +69,8 @@ export function PinInput({
             inputMode="numeric"
             autoComplete={index === 0 ? "one-time-code" : "off"}
             aria-label={`${label}, chiffre ${index + 1} sur 6`}
+            aria-invalid={invalid || undefined}
+            aria-describedby={invalid ? describedBy : undefined}
             maxLength={6}
             onFocus={(event) => event.target.select()}
             onChange={(event) => fillFrom(index, event.target.value)}
@@ -86,11 +96,10 @@ export function PinInput({
               }
             }}
             className={cn(
-              "tabular w-full min-w-0 rounded-lg border bg-surface text-center font-mono font-semibold text-ink caret-accent outline-none transition-[border-color,box-shadow,transform]",
-              "focus:border-accent focus:shadow-[0_0_0_4px_var(--accent-soft)]",
+              "tabular w-full min-w-0 rounded-lg border border-control bg-surface text-center font-mono font-semibold text-ink caret-accent outline-hidden transition-[border-color,box-shadow,transform]",
+              "focus-visible:border-accent focus-visible:shadow-[var(--ring)]",
               size === "lg" ? "h-14 text-h2" : "h-11 text-title",
-              digit ? "border-line-strong" : "border-line",
-              invalid && "border-danger focus:border-danger",
+              invalid && "border-danger focus-visible:border-danger",
             )}
           />
         ))}

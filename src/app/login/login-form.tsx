@@ -108,11 +108,13 @@ export function LoginForm({ next }: { next: string }) {
       )}
 
       <div>
-        <p className={labelClass}>Votre code (6 chiffres)</p>
         <PinInput
           key={state?.at ?? 0}
           name="pin"
           label="Votre code"
+          legend="Votre code (6 chiffres)"
+          legendClassName={labelClass}
+          describedBy="login-error"
           invalid={Boolean(error)}
           disabled={pending || locked}
           autoFocus={Boolean(knownEmail)}
@@ -129,7 +131,7 @@ export function LoginForm({ next }: { next: string }) {
 
       {error && (
         <div className="rounded-md bg-danger-soft px-3 py-2.5 text-body text-danger-text">
-          <p role="alert">{error}</p>
+          <p id="login-error" role="alert">{error}</p>
           {locked && (
             // Compte à rebours visuel seulement : le message ci-dessus est déjà annoncé une fois.
             <p aria-hidden className="tabular mt-1 text-xs">
