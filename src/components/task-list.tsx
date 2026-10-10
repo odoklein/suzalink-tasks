@@ -12,6 +12,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { ZonesButton } from "@/components/zones-dialog";
 import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import type { TaskCard } from "@/lib/types";
+import { useArrivals } from "@/lib/use-arrivals";
 import { cn } from "@/lib/utils";
 
 type GroupBy = "zone" | "status";
@@ -35,6 +36,8 @@ export function TaskList({
   const [hideDone, setHideDone] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [dismissedSource, setDismissedSource] = useState<string | null>(null);
+  // Une tâche qui arrive (nouvelle, ou passée dans un autre statut) apparaît avec un fondu au lieu de surgir.
+  const arrived = useArrivals(tasks.map((task) => ({ id: task.id, key: task.status })));
   if (!sourceFilter && dismissedSource !== null) setDismissedSource(null);
   const activeSource = sourceFilter && dismissedSource !== sourceFilter ? sourceFilter : null;
 
@@ -101,7 +104,7 @@ export function TaskList({
       </div>
 
       {activeSource && (
-        <p className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12px] text-ink-2">
+        <p className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs text-ink-2">
           <span>
             Source «&#8239;{activeSource}&#8239;» · {bySource.length} {bySource.length > 1 ? "tâches" : "tâche"}
           </span>
@@ -153,7 +156,7 @@ export function TaskList({
               {!isCollapsed && (
                 <ul>
                   {group.tasks.map((task) => (
-                    <TaskRow key={task.id} task={task} projectKey={projectKey} showZone={groupBy !== "zone"} />
+                    <TaskRow key={task.id} task={task} projectKey={projectKey} showZone={groupBy !== "zone"} arrived={arrived.has(task.id)} />
                   ))}
                 </ul>
               )}

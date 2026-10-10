@@ -30,11 +30,14 @@ export function TaskRow({
   projectKey,
   project,
   showZone = true,
+  arrived = false,
 }: {
   task: TaskCard;
   projectKey: string;
   project?: { name: string; color: string };
   showZone?: boolean;
+  /** La ligne vient d’arriver (nouvelle tâche, changement de statut) : fondu d’entrée. */
+  arrived?: boolean;
 }) {
   const { openTask } = useApp();
   const [pending, startTransition] = useTransition();
@@ -54,6 +57,7 @@ export function TaskRow({
       className={cn(
         "group flex items-center gap-2 border-b border-line px-3 py-1.5 transition-colors last:border-b-0 hover:bg-surface-2",
         pending && "opacity-60",
+        arrived && "animate-arrive",
       )}
     >
       <SelectMenu<TaskStatus>

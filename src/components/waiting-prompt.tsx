@@ -71,7 +71,7 @@ export function WaitingPrompt() {
       className="animate-pop-in fixed bottom-20 left-1/2 z-[70] w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-line bg-surface p-3 shadow-pop"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[12px] font-medium text-ink-2">
+        <p className="text-xs font-medium text-ink-2">
           <span className="font-mono text-muted">{target.ref}</span> est chez le client
         </p>
         <button type="button" onClick={close} aria-label="Fermer" className="rounded-md p-1 text-muted hover:bg-sunken hover:text-ink">
@@ -79,28 +79,28 @@ export function WaitingPrompt() {
         </button>
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <label className="min-w-0 flex-1 text-[12px] text-muted">
+        <label className="min-w-0 flex-1 text-xs text-muted">
           On attend
           <input
             value={waitingFor}
             onChange={(event) => setWaitingFor(event.target.value)}
             placeholder="visuels HD, textes de la page À propos…"
-            className="mt-1 w-full rounded-md border border-line bg-surface-2 px-2 py-1.5 text-[13px] text-ink"
+            className="mt-1 w-full rounded-md border border-line bg-surface-2 px-2 py-1.5 text-ui text-ink"
           />
         </label>
-        <label className="text-[12px] text-muted">
+        <label className="text-xs text-muted">
           Relancer le
           <input
             type="date"
             value={followUpAt}
             onChange={(event) => setFollowUpAt(event.target.value)}
-            className="mt-1 block rounded-md border border-line bg-surface-2 px-2 py-1.5 text-[13px] text-ink"
+            className="mt-1 block rounded-md border border-line bg-surface-2 px-2 py-1.5 text-ui text-ink"
           />
         </label>
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-ink px-3 py-1.5 text-[13px] font-semibold text-bg disabled:opacity-50"
+          className="rounded-md bg-ink px-3 py-1.5 text-ui font-semibold text-bg disabled:opacity-50"
         >
           Noter
         </button>

@@ -66,7 +66,7 @@ export function Dialog({
 }
 
 export const fieldClass =
-  "w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-body outline-hidden transition-colors placeholder:text-faint focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring)] pointer-coarse:text-[16px]";
+  "w-full rounded-md border border-control bg-surface-2 px-3 py-2 text-body outline-hidden transition-colors placeholder:text-muted focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring)] pointer-coarse:text-[16px]";
 
 export const labelClass = "mb-1.5 block text-xs font-medium text-ink-2";
 

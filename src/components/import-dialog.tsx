@@ -170,7 +170,7 @@ export function ImportDialog({
   const columnSelect = (id: string, label: string, value: number, onChange: (index: number) => void, optional = true) => (
     <div>
       <label htmlFor={id} className={labelClass}>Colonne {label}</label>
-      <select id={id} value={String(value)} onChange={(event) => onChange(Number(event.target.value))} className={cn(fieldClass, "py-1.5 text-[13px]")}>
+      <select id={id} value={String(value)} onChange={(event) => onChange(Number(event.target.value))} className={cn(fieldClass, "py-1.5 text-ui")}>
         {optional && <option value={NONE}>(aucune)</option>}
         {columnOptions.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
@@ -196,24 +196,24 @@ export function ImportDialog({
             onChange={(event) => changeText(event.target.value)}
             rows={rows.length > 0 ? 3 : 6}
             placeholder={"Date\tPage\tRetour\tCommentaire\tÉtat\n05/10\tHomepage\tInsérer la vidéo dans le bloc…\t\tPas fait"}
-            className={cn(fieldClass, "font-mono text-[12px]")}
+            className={cn(fieldClass, "font-mono text-xs")}
           />
         </div>
 
         {detected.rows.length > 0 && (
           <details open={detected.ambiguous} className="rounded-lg border border-line bg-surface-2 px-3 py-2">
-            <summary className="cursor-pointer text-[12px] font-medium text-ink-2">
+            <summary className="cursor-pointer text-xs font-medium text-ink-2">
               Colonnes{detected.ambiguous ? " : vérifiez l’affectation" : ""}
             </summary>
             <div className="mt-2 space-y-2">
               {detected.ambiguous && (
-                <p role="status" className="text-[12px] text-muted">
+                <p role="status" className="text-xs text-muted">
                   {mapping.hasHeader
                     ? "La colonne Retour n’a pas été reconnue : choisissez-la ci-dessous."
                     : "Aucun en-tête reconnu : l’ordre Date, Page, Retour, Commentaire, État est supposé. Corrigez-le si besoin."}
                 </p>
               )}
-              <label className="flex items-center gap-2 text-[12px] text-ink-2">
+              <label className="flex items-center gap-2 text-xs text-ink-2">
                 <input
                   type="checkbox"
                   checked={mapping.hasHeader}
@@ -237,7 +237,7 @@ export function ImportDialog({
 
         {rows.length > 0 && (
           <div className="overflow-hidden rounded-lg border border-line">
-            <p className="flex items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2" aria-live="polite">
+            <p className="flex items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink-2" aria-live="polite">
               <span>
                 {rows.length} ligne{rows.length > 1 ? "s" : ""} · {counts.create} à créer · {counts.update} à mettre à jour · {counts.skip} ignorée{counts.skip > 1 ? "s" : ""}
               </span>
@@ -251,7 +251,7 @@ export function ImportDialog({
                   (value) => value !== "update" || (classification.kind === "existing" && classification.statusChanged),
                 );
                 return (
-                  <li key={index} className={cn("flex gap-2.5 border-b border-line px-3 py-2 text-[12px] last:border-b-0", mode === "skip" && "bg-surface-2 text-muted")}>
+                  <li key={index} className={cn("flex gap-2.5 border-b border-line px-3 py-2 text-xs last:border-b-0", mode === "skip" && "bg-surface-2 text-muted")}>
                     <input
                       type="checkbox"
                       checked={mode !== "skip"}
@@ -268,7 +268,7 @@ export function ImportDialog({
                           value={rowStatus(index)}
                           onChange={(event) => setEdit(index, { status: event.target.value as TaskStatus })}
                           aria-label={`État de la ligne ${index + 1}`}
-                          className="rounded-md border border-line bg-surface px-1.5 py-1 text-[12px]"
+                          className="rounded-md border border-line bg-surface px-1.5 py-1 text-xs"
                         >
                           {TASK_STATUSES.map((status) => (
                             <option key={status.value} value={status.value}>{status.short}</option>
@@ -279,13 +279,13 @@ export function ImportDialog({
                           onChange={(event) => setEdit(index, { zone: event.target.value })}
                           aria-label={`Page de la ligne ${index + 1}`}
                           placeholder="Page"
-                          className="w-28 rounded-md border border-line bg-surface px-1.5 py-1 text-[12px]"
+                          className="w-28 rounded-md border border-line bg-surface px-1.5 py-1 text-xs"
                         />
                         <span
                           className={cn(
-                            "rounded px-1.5 py-0.5 text-[11px] font-medium",
-                            classification.kind === "new" && "bg-[color-mix(in_srgb,var(--st-done)_14%,transparent)] text-st-done",
-                            classification.kind === "existing" && classification.statusChanged && "bg-[color-mix(in_srgb,var(--st-waiting)_16%,transparent)] text-st-waiting",
+                            "rounded px-1.5 py-0.5 text-meta font-medium",
+                            classification.kind === "new" && "bg-done-soft text-done-text",
+                            classification.kind === "existing" && classification.statusChanged && "bg-waiting-soft text-waiting-text",
                             (classification.kind === "paste-duplicate" || (classification.kind === "existing" && !classification.statusChanged)) && "bg-sunken text-muted",
                           )}
                         >
@@ -296,7 +296,7 @@ export function ImportDialog({
                             value={mode}
                             onChange={(event) => setEdit(index, { mode: event.target.value as ImportMode })}
                             aria-label={`Action pour la ligne ${index + 1}`}
-                            className="rounded-md border border-line bg-surface px-1.5 py-1 text-[12px]"
+                            className="rounded-md border border-line bg-surface px-1.5 py-1 text-xs"
                           >
                             {options.map((value) => (
                               <option key={value} value={value}>{MODE_LABELS[value]}</option>

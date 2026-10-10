@@ -17,7 +17,7 @@ export function ZonesButton({ projectId, zones }: { projectId: string; zones: { 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-muted hover:bg-sunken hover:text-ink"
+        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted hover:bg-sunken hover:text-ink"
       >
         <Merge className="size-3.5" aria-hidden /> Fusionner les pages
       </button>
@@ -68,10 +68,10 @@ function ZonesDialog({
         <ul className="max-h-64 space-y-1 overflow-y-auto scroll-thin">
           {zones.map((zone) => (
             <li key={zone.name}>
-              <label className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px] hover:bg-surface-2">
+              <label className="flex items-center gap-2 rounded-md px-2 py-1 text-ui hover:bg-surface-2">
                 <input type="checkbox" checked={selected.has(zone.name)} onChange={() => toggle(zone.name)} className="accent-[var(--accent)]" />
                 <span className="min-w-0 flex-1 truncate">{zone.name}</span>
-                <span className="tabular text-[12px] text-muted">{plural(zone.count, "tâche")}</span>
+                <span className="tabular text-xs text-muted">{plural(zone.count, "tâche")}</span>
               </label>
             </li>
           ))}

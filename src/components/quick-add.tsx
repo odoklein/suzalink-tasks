@@ -13,12 +13,12 @@ import { parseQuickAdd, type QuickAddResult } from "@/lib/quick-add";
 import { cn } from "@/lib/utils";
 
 /**
- * Une couleur = un sens : urgence en danger/orange (comme DueChip), échéance en accent,
+ * Une couleur = un sens : urgence en danger, haute priorité en neutre (l’orange est réservé à l’échéance proche), échéance en accent,
  * hors périmètre en encre (comme BillableBadge), personne en couleur douce du membre.
  */
 const PRIORITY_TONE: Record<Priority, string> = {
   URGENT: "bg-danger-soft text-danger-text",
-  HIGH: "bg-soon-soft text-soon-text",
+  HIGH: "bg-sunken text-ink",
   MEDIUM: "bg-sunken text-ink-2",
   LOW: "bg-sunken text-muted",
   NONE: "bg-sunken text-muted",
@@ -138,11 +138,11 @@ export function QuickAdd({
           onBlur={() => !value && onDone?.()}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-ui outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 bg-transparent text-ui outline-none placeholder:text-muted"
         />
       </div>
       {error && (
-        <p id={errorId} role="alert" className="mt-1 pl-5 text-[12px] text-danger">
+        <p id={errorId} role="alert" className="mt-1 pl-5 text-xs text-danger">
           {error}
         </p>
       )}

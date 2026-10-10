@@ -23,10 +23,10 @@ export function CopyEmailButton({ email }: { email: string }) {
       type="button"
       onClick={copy}
       aria-label={`Copier l’adresse ${email}`}
-      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-muted hover:bg-sunken hover:text-ink"
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted hover:bg-sunken hover:text-ink"
     >
       <span className="max-w-[16rem] truncate">{email}</span>
-      {copied ? <Check className="size-3 text-st-done" aria-hidden /> : <Copy className="size-3" aria-hidden />}
+      {copied ? <Check className="size-3 text-done-text" aria-hidden /> : <Copy className="size-3" aria-hidden />}
     </button>
   );
 }

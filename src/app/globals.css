@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tailwind ne doit lire que le code : les notes de docs/ et design-plans/ citent des classes
+   d’exemple, dont une avec une barre verticale, qui produisaient du CSS invalide (erreur de build). */
+@source not "../../docs";
+@source not "../../design-plans";
+
 /* dark: suit la préférence système, sauf si l’utilisateur a forcé un thème (data-theme). */
 @custom-variant dark {
   @media (prefers-color-scheme: dark) {
@@ -18,7 +23,11 @@
    à relancer après toute modification de couleur.
    Le thème sombre est déclaré deux fois (préférence système + data-theme="dark") :
    le script vérifie que les deux blocs restent identiques.
-   Dernière exécution (101 paires, 0 échec) : pire texte clair 4,61:1 (muted sur sunken),
+   Le script vérifie aussi les formes porteuses d’information (icônes de statut ≥ 3:1 sur
+   surface, sunken et colonne « chez le client »), les placeholders (muted ≥ 4,5:1), les bordures
+   de contrôle (--control ≥ 3:1), l’anneau de focus, et qu’aucun ancien jeton --st-* ne subsiste.
+   Les mélanges se font en oklab : en oklch, la teinte tournerait vers le violet sur surface sombre.
+   Dernière exécution (144 vérifications, 0 échec) : pire texte clair 4,61:1 (muted sur sunken),
    pire texte sombre 5,11:1 (progress-text sur progress-soft). */
 :root {
   /* Neutres */
@@ -34,6 +43,9 @@
   --muted: #646973;
   /* faint : icônes, placeholders et états désactivés uniquement, jamais du texte d’information */
   --faint: #8f9298;
+  /* control : bordures des cases, interrupteurs et champs (3:1 sur surface et surface-2) ; line reste pour les séparateurs */
+  --control: #888c94;
+  --selection: color-mix(in oklab, var(--accent) 28%, var(--surface));
 
   /* Accent */
   --accent: #295ee3;
@@ -44,19 +56,19 @@
   --primary-ink: var(--bg);
 
   /* Tons : solide (formes, icônes) / texte / fond doux */
-  --todo: #8a8f98;
+  --todo: #81868f;
   --todo-text: var(--muted);
   --todo-soft: #efefec;
   --progress: var(--accent);
   --progress-text: var(--accent);
   --progress-soft: var(--accent-soft);
-  --waiting: #da950b;
+  --waiting: #bb7700;
   --waiting-text: #8a5a00;
   --waiting-soft: #fdf1d8;
   --review: #7855df;
   --review-text: #6744c5;
   --review-soft: #efeaff;
-  --done: #169f65;
+  --done: #03995f;
   --done-text: #127549;
   --done-soft: #e1f8eb;
   --danger: #c93029;
@@ -72,7 +84,7 @@
   --shadow-raised: 0 2px 4px rgb(16 24 40 / 0.06), 0 8px 16px -4px rgb(16 24 40 / 0.1);
   --shadow-pop: 0 1px 2px rgb(16 24 40 / 0.06), 0 12px 32px -8px rgb(16 24 40 / 0.18);
   --shadow-overlay: 0 2px 6px rgb(16 24 40 / 0.08), 0 24px 64px -12px rgb(16 24 40 / 0.28);
-  --ring: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft);
+  --ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
   --scrim: rgb(10 12 16 / 0.36);
   color-scheme: light;
 
@@ -82,6 +94,9 @@
   --dur-1: 120ms;
   --dur-2: 180ms;
   --dur-3: 240ms;
+  /* Réservées aux rares séquences de mise en scène (mise en ligne enregistrée). */
+  --dur-4: 360ms;
+  --dur-5: 560ms;
 
   /* Mise en page */
   --sidebar-w: 248px;
@@ -116,34 +131,36 @@
     --ink-2: #c4c8cf;
     --muted: #9ba1ab;
     --faint: #6a707b;
+    --control: var(--faint);
+    --selection: color-mix(in oklab, var(--accent) 32%, var(--surface));
 
     --accent: #7b97ff;
-    --accent-soft: color-mix(in oklch, var(--accent) 16%, var(--surface));
+    --accent-soft: color-mix(in oklab, var(--accent) 16%, var(--surface));
     --accent-ink: #0b0d10;
   --primary: var(--accent);
   --primary-ink: var(--accent-ink);
 
     --todo: #8b919b;
     --todo-text: var(--muted);
-    --todo-soft: color-mix(in oklch, var(--todo) 16%, var(--surface));
+    --todo-soft: color-mix(in oklab, var(--todo) 16%, var(--surface));
     --progress: var(--accent);
     --progress-text: var(--accent);
     --progress-soft: var(--accent-soft);
     --waiting: #f0aa2c;
     --waiting-text: #f2b84e;
-    --waiting-soft: color-mix(in oklch, var(--waiting) 16%, var(--surface));
+    --waiting-soft: color-mix(in oklab, var(--waiting) 16%, var(--surface));
     --review: #a38bff;
     --review-text: #b5a2ff;
-    --review-soft: color-mix(in oklch, var(--review) 16%, var(--surface));
+    --review-soft: color-mix(in oklab, var(--review) 16%, var(--surface));
     --done: #3fc488;
     --done-text: #52d096;
-    --done-soft: color-mix(in oklch, var(--done) 16%, var(--surface));
+    --done-soft: color-mix(in oklab, var(--done) 16%, var(--surface));
     --danger: #ff7a66;
     --danger-text: #ff907f;
-    --danger-soft: color-mix(in oklch, var(--danger) 16%, var(--surface));
+    --danger-soft: color-mix(in oklab, var(--danger) 16%, var(--surface));
     --soon: #ff9a4d;
     --soon-text: #ffab69;
-    --soon-soft: color-mix(in oklch, var(--soon) 16%, var(--surface));
+    --soon-soft: color-mix(in oklab, var(--soon) 16%, var(--surface));
 
     --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
     --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.35);
@@ -167,34 +184,36 @@
   --ink-2: #c4c8cf;
   --muted: #9ba1ab;
   --faint: #6a707b;
+  --control: var(--faint);
+  --selection: color-mix(in oklab, var(--accent) 32%, var(--surface));
 
   --accent: #7b97ff;
-  --accent-soft: color-mix(in oklch, var(--accent) 16%, var(--surface));
+  --accent-soft: color-mix(in oklab, var(--accent) 16%, var(--surface));
   --accent-ink: #0b0d10;
   --primary: var(--accent);
   --primary-ink: var(--accent-ink);
 
   --todo: #8b919b;
   --todo-text: var(--muted);
-  --todo-soft: color-mix(in oklch, var(--todo) 16%, var(--surface));
+  --todo-soft: color-mix(in oklab, var(--todo) 16%, var(--surface));
   --progress: var(--accent);
   --progress-text: var(--accent);
   --progress-soft: var(--accent-soft);
   --waiting: #f0aa2c;
   --waiting-text: #f2b84e;
-  --waiting-soft: color-mix(in oklch, var(--waiting) 16%, var(--surface));
+  --waiting-soft: color-mix(in oklab, var(--waiting) 16%, var(--surface));
   --review: #a38bff;
   --review-text: #b5a2ff;
-  --review-soft: color-mix(in oklch, var(--review) 16%, var(--surface));
+  --review-soft: color-mix(in oklab, var(--review) 16%, var(--surface));
   --done: #3fc488;
   --done-text: #52d096;
-  --done-soft: color-mix(in oklch, var(--done) 16%, var(--surface));
+  --done-soft: color-mix(in oklab, var(--done) 16%, var(--surface));
   --danger: #ff7a66;
   --danger-text: #ff907f;
-  --danger-soft: color-mix(in oklch, var(--danger) 16%, var(--surface));
+  --danger-soft: color-mix(in oklab, var(--danger) 16%, var(--surface));
   --soon: #ff9a4d;
   --soon-text: #ffab69;
-  --soon-soft: color-mix(in oklch, var(--soon) 16%, var(--surface));
+  --soon-soft: color-mix(in oklab, var(--soon) 16%, var(--surface));
 
   --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.35);
@@ -215,6 +234,7 @@
   --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
+  --color-control: var(--control);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
@@ -279,6 +299,10 @@
   --text-h1--line-height: 34px;
   --text-hero: 34px;
   --text-hero--line-height: 40px;
+
+  /* Les transitions Tailwind sans durée explicite suivent --dur-1 et --ease-out. */
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Pile d’empilement : une seule échelle pour la barre latérale, le tiroir, les
@@ -331,7 +355,7 @@ h3 {
 }
 
 ::selection {
-  background: var(--accent-soft);
+  background: var(--selection);
 }
 
 :focus-visible {
@@ -387,15 +411,6 @@ h3 {
   scrollbar-color: var(--line-strong) transparent;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 @keyframes slide-in {
   from {
     transform: translateX(16px);
@@ -432,7 +447,7 @@ h3 {
 }
 
 .animate-fade-in {
-  animation: fade-in var(--dur-2) ease-out;
+  animation: fade-in var(--dur-2) var(--ease-out);
 }
 
 .animate-pop-in {
@@ -449,4 +464,129 @@ h3 {
 
 .animate-shake {
   animation: shake 0.36s ease-in-out;
+}
+
+/* Une tâche arrive quelque part : fondu, 4 px de descente et un lavis d’accent qui s’efface. */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    background-color: var(--accent-soft);
+  }
+}
+
+.animate-arrive {
+  animation: arrive var(--dur-2) var(--ease-out);
+}
+
+/* Une tâche tombe dans « Fait » replié : le rail prend un instant la teinte du statut. */
+@keyframes landed {
+  from {
+    background-color: var(--done-soft);
+  }
+}
+
+.animate-landed {
+  animation: landed 600ms var(--ease-out);
+}
+
+/* Mouvement réduit : l’indicateur d’attente bat doucement au lieu de tourner. */
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Mise en ligne enregistrée : la seule séquence mise en scène de la page. Le point du jalon
+   se pose, une onde part de lui, le contenu monte, un lavis de « fait » s’efface. */
+@keyframes stamp-dot {
+  from {
+    transform: scale(1.8);
+  }
+}
+
+@keyframes stamp-ripple {
+  from {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+@keyframes stamp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes stamp-wash {
+  from {
+    background-color: var(--done-soft);
+  }
+}
+
+.stamp-dot {
+  animation: stamp-dot var(--dur-4) var(--ease-out);
+}
+
+.stamp-ripple::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background-color: var(--done);
+  animation: stamp-ripple var(--dur-5) var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+.stamp-content {
+  animation:
+    stamp-rise var(--dur-3) var(--ease-out),
+    stamp-wash 900ms var(--ease-out);
+}
+
+/* Mouvement réduit : moins de déplacement, jamais moins de sens. Le mouvement spatial disparaît,
+   mais l’opacité, la couleur et les lavis qui confirment une action restent. Pas de règle
+   « durée 0,01 ms » globale : elle laissait tourner les boucles en saccade et effaçait les confirmations. */
+@keyframes arrive-calm {
+  from {
+    opacity: 0;
+    background-color: var(--accent-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in,
+  .animate-pop-in {
+    animation: fade-in var(--dur-1) linear;
+  }
+  .animate-shake {
+    animation: none;
+  }
+  .animate-spin {
+    animation: soft-pulse 1.4s ease-in-out infinite;
+  }
+  .animate-arrive {
+    animation: arrive-calm var(--dur-2) linear;
+  }
+  .stamp-dot,
+  .stamp-ripple::after {
+    animation: none;
+  }
+  .stamp-content {
+    animation: stamp-wash 900ms linear;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, outline-color, opacity, box-shadow !important;
+  }
 }

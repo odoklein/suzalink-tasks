@@ -76,14 +76,14 @@ export function DatePicker({
         aria-controls={open ? popoverId : undefined}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "inline-flex w-full items-center gap-2 border border-line bg-surface-2 text-left text-ink outline-hidden transition-colors",
+          "inline-flex w-full items-center gap-2 border border-control bg-surface-2 text-left text-ink outline-hidden transition-colors",
           "hover:border-line-strong focus-visible:border-accent focus-visible:shadow-[var(--ring)] disabled:opacity-45 aria-expanded:border-accent",
           size === "lg" ? "h-10 rounded-md px-3.5 text-body" : "h-8 rounded-md px-3 text-ui",
           className,
         )}
       >
         <CalendarDays className="size-3.5 shrink-0 text-faint" />
-        <span className={cn("min-w-0 flex-1 truncate", !value && "text-faint")}>
+        <span className={cn("min-w-0 flex-1 truncate", !value && "text-muted")}>
           {value && parseISODate(value) ? formatParis(dateOf(value), "EEE d MMM yyyy") : placeholder}
         </span>
       </button>
@@ -162,7 +162,7 @@ function Panel({ value, onChoose }: { value: ISODate | null; onChoose: (value: I
           aria-label="Saisir une date"
           aria-invalid={invalid || undefined}
           placeholder="demain, +3j, 12/10…"
-          className="h-8 w-full rounded-md border border-line bg-surface-2 px-3 text-ui outline-hidden placeholder:text-faint focus-visible:border-accent focus-visible:shadow-[var(--ring)] aria-invalid:border-danger pointer-coarse:text-[16px]"
+          className="h-8 w-full rounded-md border border-control bg-surface-2 px-3 text-ui outline-hidden placeholder:text-muted focus-visible:border-accent focus-visible:shadow-[var(--ring)] aria-invalid:border-danger pointer-coarse:text-[16px]"
         />
         {invalid && (
           <p role="alert" className="mt-1 text-xs text-danger-text">

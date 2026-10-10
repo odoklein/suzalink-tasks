@@ -38,8 +38,8 @@ export function ChaseButton({
         className={cn(
           "inline-flex items-center gap-1.5 rounded-md font-medium transition-colors",
           compact
-            ? "px-1.5 py-0.5 text-[11px] text-st-waiting hover:bg-[color-mix(in_srgb,var(--st-waiting)_14%,transparent)]"
-            : "border border-line bg-surface px-3 py-2 text-[13px] text-ink-2 hover:border-line-strong hover:text-ink",
+            ? "px-1.5 py-0.5 text-meta text-waiting-text hover:bg-waiting-soft"
+            : "border border-line bg-surface px-3 py-2 text-ui text-ink-2 hover:border-line-strong hover:text-ink",
           className,
         )}
       >
@@ -119,12 +119,12 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
       description="Un message poli qui liste ce que nous attendons. Copier ou ouvrir dans la messagerie enregistre la relance dans l’historique."
     >
       {error ? (
-        <p role="alert" className="text-[13px] text-danger">{error}</p>
+        <p role="alert" className="text-ui text-danger">{error}</p>
       ) : !draft ? (
-        <p className="text-[13px] text-muted" aria-busy="true">Préparation du message…</p>
+        <p className="text-ui text-muted" aria-busy="true">Préparation du message…</p>
       ) : (
         <div className="space-y-3">
-          <p className="text-[12px] text-muted">
+          <p className="text-xs text-muted">
             {draft.to
               ? <>À{" "}: <span className="text-ink-2">{draft.to.name}</span>{draft.to.email ? ` <${draft.to.email}>` : " (pas d’adresse email)"}</>
               : "Aucun contact principal : ajoutez-en un sur la page Clients pour personnaliser la salutation."}
@@ -135,7 +135,7 @@ function ChaseDialog({ projectId, projectName, onClose }: { projectId: string; p
             onChange={(event) => setBody(event.target.value)}
             rows={14}
             aria-label="Texte de la relance"
-            className={cn(fieldClass, "text-[13px] leading-relaxed")}
+            className={cn(fieldClass, "text-ui leading-relaxed")}
           />
           <div className="flex flex-wrap justify-end gap-2">
             <GhostButton type="button" disabled={pending} onClick={copy}>

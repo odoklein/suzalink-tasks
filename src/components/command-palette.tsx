@@ -158,7 +158,7 @@ export function CommandPalette() {
               ? "Titre de la tâche, puis choisissez le projet…"
               : "Chercher une tâche (BG-12), un projet, une action… (« + » pour créer)"
           }
-          className="w-full border-b border-line bg-transparent px-4 py-3.5 text-body outline-none placeholder:text-faint"
+          className="w-full border-b border-line bg-transparent px-4 py-3.5 text-body outline-none placeholder:text-muted"
         />
         <Command.List className="max-h-[360px] overflow-y-auto p-1.5 scroll-thin">
           <Command.Empty className="px-3 py-6 text-center text-ui text-muted">Rien ne correspond.</Command.Empty>

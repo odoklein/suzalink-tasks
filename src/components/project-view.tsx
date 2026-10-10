@@ -3,7 +3,7 @@
 import type { ActivityType, ClientKind, MessageKind, ProjectStatus } from "@prisma/client";
 import { ChevronDown, ExternalLink, FileSpreadsheet, MessageSquareText, MoreHorizontal, Rocket } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { deleteDelivery, restoreDelivery } from "@/app/actions/deliveries";
@@ -118,6 +118,15 @@ export function ProjectView({
   const [importText, setImportText] = useState("");
   const [, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // Le statut du projet change tout de suite à l’écran ; il revient en arrière si le serveur refuse.
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic(project.status);
+  // Mise en ligne qu’on vient d’enregistrer : sa ligne de la frise est mise en scène une fois.
+  const [freshDeliveryId, setFreshDeliveryId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!freshDeliveryId) return;
+    const timer = setTimeout(() => setFreshDeliveryId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [freshDeliveryId]);
 
   // Actions demandées par la palette ou les raccourcis clavier.
   useEffect(() => {
@@ -156,7 +165,7 @@ export function ProjectView({
   const open = project.tasks.filter((task) => task.status !== "DONE").length;
   const waiting = project.tasks.filter((task) => task.status === "WAITING_CLIENT").length;
   const billable = project.tasks.filter((task) => task.billable).length;
-  const status = PROJECT_STATUS_BY_VALUE[project.status];
+  const status = PROJECT_STATUS_BY_VALUE[optimisticStatus];
   const primary = project.client?.contactRecords[0] ?? null;
 
   const [now] = useState(() => new Date());
@@ -197,9 +206,10 @@ export function ProjectView({
             <h1 className="truncate font-display text-h2 font-semibold tracking-tight">{project.name}</h1>
             <SelectMenu<ProjectStatus>
               label="Statut du projet"
-              value={project.status}
+              value={optimisticStatus}
               onChange={(value) =>
                 startTransition(async () => {
+                  setOptimisticStatus(value);
                   const result = await updateProjectStatus(project.id, value);
                   if (!result.ok) {
                     toast.error(result.error);
@@ -213,7 +223,7 @@ export function ProjectView({
                 label: s.label,
                 icon: <span className="size-2 rounded-full" style={{ backgroundColor: s.tone }} />,
               }))}
-              trigger={<Badge tone={STATUS_TONE[project.status]}>{status.label}</Badge>}
+              trigger={<Badge tone={STATUS_TONE[optimisticStatus]}>{status.label}</Badge>}
             />
             {project.siteUrl && (
               <Tooltip content={project.siteUrl.replace(/^https?:\/\//, "")}>
@@ -384,6 +394,7 @@ export function ProjectView({
         {tab === "mises-en-ligne" && (
           <Deliveries
             deliveries={project.deliveries}
+            freshId={freshDeliveryId}
             projectKey={project.key}
             onAdd={() => {
               setEditingDelivery(null);
@@ -417,12 +428,13 @@ export function ProjectView({
       {dialog === "delivery" && (
         <DeliveryDialog
           onClose={() => setDialog(null)}
-          onSaved={() =>
+          onSaved={(deliveryId) => {
+            setFreshDeliveryId(deliveryId);
             toast.success("Mise en ligne enregistrée", {
               action: { label: "Préparer le récap client →", onClick: () => setDialog("recap") },
               duration: 8000,
-            })
-          }
+            });
+          }}
           projectId={project.id}
           projectKey={project.key}
           siteUrl={project.siteUrl}
@@ -438,11 +450,14 @@ export function ProjectView({
 
 function Deliveries({
   deliveries,
+  freshId,
   projectKey,
   onAdd,
   onEdit,
 }: {
   deliveries: ProjectData["deliveries"];
+  /** Mise en ligne tout juste enregistrée : sa ligne se pose avec un court effet de tampon. */
+  freshId: string | null;
   projectKey: string;
   onAdd: () => void;
   onEdit: (delivery: ProjectData["deliveries"][number]) => void;
@@ -484,7 +499,9 @@ function Deliveries({
 
   return (
     <ol className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8 pb-10">
-      {deliveries.map((delivery, index) => (
+      {deliveries.map((delivery, index) => {
+        const fresh = delivery.id === freshId;
+        return (
         <li key={delivery.id} className="grid grid-cols-[88px_1fr] gap-5">
           {/* Deux lignes : « 7 oct. » en encre, « 15h21 » en discret ; heure de Paris des deux côtés. */}
           <time dateTime={new Date(delivery.deployedAt).toISOString()} className="tabular pt-0.5 text-right text-xs leading-tight">
@@ -492,8 +509,14 @@ function Deliveries({
             <span className="block text-muted">{formatParis(delivery.deployedAt, "HH'h'mm")}</span>
           </time>
           {/* La ligne est portée par la colonne de contenu, padding compris : plus de trous entre les items. */}
-          <div className={cn("relative border-l pb-6 pl-5", index === deliveries.length - 1 ? "border-transparent" : "border-line")}>
-            <span className={cn("absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-bg", index === 0 ? "bg-done" : "bg-line-strong")} />
+          <div className={cn("relative border-l pb-6 pl-5", index === deliveries.length - 1 ? "border-transparent" : "border-line", fresh && "stamp-content rounded-sm")}>
+            <span
+              className={cn(
+                "absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-bg",
+                index === 0 ? "bg-done" : "bg-line-strong",
+                fresh && "stamp-dot stamp-ripple",
+              )}
+            />
             <p className="text-body font-medium">{delivery.title}</p>
             {delivery.notes && <p className="mt-1 whitespace-pre-wrap text-ui leading-relaxed text-ink-2">{delivery.notes}</p>}
             <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -515,12 +538,12 @@ function Deliveries({
               </button>
             </p>
             {delivery.tasks.length > 0 && (
-              <details className="mt-2 text-[12px]">
+              <details className="mt-2 text-xs">
                 <summary className="cursor-pointer text-muted hover:text-ink">{plural(delivery.tasks.length, "tâche livrée", "tâches livrées")}</summary>
                 <ul className="mt-1 space-y-0.5">
                   {delivery.tasks.map(({ task }) => (
                     <li key={task.id} className="flex items-baseline gap-2 text-ink-2">
-                      <span className="font-mono text-[11px] text-muted">{projectKey}-{task.number}</span>
+                      <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
                       {task.zone && <span className="text-muted">{task.zone} ·</span>}
                       <span className="min-w-0 truncate">{task.title}</span>
                     </li>
@@ -530,7 +553,8 @@ function Deliveries({
             )}
           </div>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

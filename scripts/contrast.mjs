@@ -1,7 +1,7 @@
 // Vérifie les contrastes WCAG des jetons de src/app/globals.css (clair et sombre).
 // Usage : node scripts/contrast.mjs      (code de sortie 1 si une paire de texte < 4,5:1)
 //
-// Le script lit le CSS : il suit les var(--x) et calcule color-mix(in oklch, …),
+// Le script lit le CSS : il suit les var(--x) et calcule color-mix(in oklab, …),
 // donc il n'y a pas de seconde copie de la palette à maintenir.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -67,21 +67,20 @@ function fromOklch({ L, C, h }) {
   const b = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
   return [r, g, b].map((c) => Math.min(1, Math.max(0, unlin(c))));
 }
-function mixOklch(a, pa, b) {
-  const A = toOklch(a);
-  const B = toOklch(b);
+function toOklab(rgb) {
+  const { L, C, h } = toOklch(rgb);
+  return { L, a: C * Math.cos((h * Math.PI) / 180), b: C * Math.sin((h * Math.PI) / 180) };
+}
+function fromOklab({ L, a, b }) {
+  return fromOklch({ L, C: Math.hypot(a, b), h: (Math.atan2(b, a) * 180) / Math.PI });
+}
+// Mélange en oklab, comme `color-mix(in oklab, …)` : interpolation linéaire de L, a, b,
+// sans rotation de teinte (oklch ferait dériver l’ambre vers le violet sur surface sombre).
+function mixOklab(a, pa, b) {
+  const A = toOklab(a);
+  const B = toOklab(b);
   const t = pa / 100;
-  // Comme CSS : une teinte neutre (chroma ~ 0) prend la teinte de l'autre couleur.
-  const hA = A.C < 1e-4 ? B.h : A.h;
-  const hB = B.C < 1e-4 ? A.h : B.h;
-  let d = hB - hA;
-  if (d > 180) d -= 360;
-  if (d < -180) d += 360;
-  return fromOklch({
-    L: A.L * t + B.L * (1 - t),
-    C: A.C * t + B.C * (1 - t),
-    h: hA + d * (1 - t),
-  });
+  return fromOklab({ L: A.L * t + B.L * (1 - t), a: A.a * t + B.a * (1 - t), b: A.b * t + B.b * (1 - t) });
 }
 
 function resolve(value, scope, seen = new Set()) {
@@ -93,10 +92,13 @@ function resolve(value, scope, seen = new Set()) {
     if (!(ref[1] in scope)) throw new Error(`Jeton inconnu ${ref[1]}`);
     return resolve(scope[ref[1]], scope, new Set(seen).add(ref[1]));
   }
-  const mix = v.match(/^color-mix\(in oklch,\s*(.+?)\s+(\d+(?:\.\d+)?)%\s*,\s*(.+)\)$/);
-  if (mix) return mixOklch(resolve(mix[1], scope, seen), Number(mix[2]), resolve(mix[3], scope, seen));
+  const mix = v.match(/^color-mix\(in oklab,\s*(.+?)\s+(\d+(?:\.\d+)?)%\s*,\s*(.+)\)$/);
+  if (mix) return mixOklab(resolve(mix[1], scope, seen), Number(mix[2]), resolve(mix[3], scope, seen));
   throw new Error(`Valeur non gérée : ${v}`);
 }
+
+/** Fusion alpha en sRGB : `top` à `alpha` au-dessus de `bottom`. */
+const blend = (top, alpha, bottom) => top.map((c, i) => c * alpha + bottom[i] * (1 - alpha));
 
 const luminance = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 const ratio = (a, b) => {
@@ -135,8 +137,25 @@ function run(name, scope) {
     check("bg", `${t}-text`, 4.5, `bg sur ${t}-text (badge plein)`);
   check("ink", "accent-soft", 4.5);
   for (const bg of GROUNDS) check("faint", bg, 3, `faint sur ${bg} (icônes, 3:1 indicatif)`, true);
-  for (const t of ["waiting", "done", "review", "danger", "soon", "progress"])
+
+  // Formes porteuses d'information (icône de statut, pastille de la barre latérale) : 3:1 bloquant
+  // sur la surface, le fond de colonne (sunken) et la colonne « chez le client » (waiting-soft à 60 %).
+  const waitingColumn = blend(get("waiting-soft"), 0.6, get("bg"));
+  for (const t of ["waiting", "done", "todo"]) {
+    check(t, "surface", 3, `${t} (solide) sur surface (forme)`);
+    check(t, "sunken", 3, `${t} (solide) sur sunken (forme, colonne)`);
+    const r = ratio(get(t), waitingColumn);
+    if (r < 3) failures++;
+    out(`${r >= 3 ? "ok  " : "FAIL"} ${r.toFixed(2).padStart(5)}:1  ${t} (solide) sur la colonne chez le client  (min 3)`);
+  }
+  for (const t of ["review", "danger", "soon", "progress"])
     check(t, "surface", 3, `${t} (solide) sur surface (forme, 3:1 indicatif)`, true);
+
+  // Textes d'aide, contrôles et focus.
+  for (const bg of ["surface", "surface-2"]) check("muted", bg, 4.5, `placeholder (muted) sur ${bg}`);
+  for (const bg of ["surface", "surface-2"]) check("control", bg, 3, `bordure de contrôle sur ${bg}`);
+  check("accent", "surface", 3, "anneau de focus (accent) sur surface");
+  check("ink", "selection", 4.5, "ink sur sélection de texte");
 }
 
 run("clair", light);

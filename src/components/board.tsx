@@ -32,6 +32,8 @@ import { TaskCard } from "@/components/task-card";
 import { IconButton } from "@/components/ui/button";
 import { TASK_STATUSES } from "@/lib/constants";
 import { computePosition } from "@/lib/position";
+import { useArrivals } from "@/lib/use-arrivals";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { oldestWaitingDays } from "@/lib/waiting";
 import type { TaskCard as TaskCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,6 +42,8 @@ import { promptWaitingFor } from "@/lib/waiting-prompt";
 type Columns = Record<TaskStatus, TaskCardData[]>;
 
 const DONE_PREVIEW = 7;
+// Même courbe que --ease-out (globals.css) : dnd-kit anime en JS et ne lit pas les variables CSS.
+const EASE_OUT = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 
 function toColumns(tasks: TaskCardData[]): Columns {
   const columns = Object.fromEntries(TASK_STATUSES.map((s) => [s.value, [] as TaskCardData[]])) as Columns;
@@ -68,6 +72,14 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
   const [, startTransition] = useTransition();
   // État des colonnes au début du glisser : on y revient si le serveur refuse le déplacement.
   const snapshot = useRef<Columns | null>(null);
+  const reduceMotion = useReducedMotion();
+  // Une tâche qui change de colonne ailleurs que par glisser (tiroir, liste, palette) apparaît avec un fondu.
+  const arrived = useArrivals(
+    Object.values(columns)
+      .flat()
+      .map((task) => ({ id: task.id, key: task.status })),
+    activeId === null && inflight === 0,
+  );
 
   // Les données serveur font foi dès qu'elles changent (après chaque action) :
   // on resynchronise pendant le rendu plutôt que dans un effet. Pendant un glisser, ou tant qu'un
@@ -131,7 +143,12 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     const list = [...columns[column]];
     const fromIndex = list.findIndex((task) => task.id === active.id);
     const overIndex = list.findIndex((task) => task.id === over.id);
-    if (overIndex !== -1 && overIndex !== fromIndex) {
+    if (column === "DONE") {
+      // « Fait » est trié par date, les plus récentes d’abord : la carte déposée prend la tête, comme
+      // après la resynchronisation serveur, au lieu de sauter en haut sans transition.
+      const [moved] = list.splice(fromIndex, 1);
+      list.unshift(moved);
+    } else if (overIndex !== -1 && overIndex !== fromIndex) {
       const [moved] = list.splice(fromIndex, 1);
       list.splice(overIndex, 0, moved);
     }
@@ -178,7 +195,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
             key={status.value}
             type="button"
             onClick={() =>
-              document.getElementById(`colonne-${status.value}`)?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+              document.getElementById(`colonne-${status.value}`)?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", inline: "center", block: "nearest" })
             }
             className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-2"
           >
@@ -198,10 +215,11 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
             projectId={projectId}
             projectKey={projectKey}
             dragging={activeId !== null}
+            arrived={arrived}
           />
         ))}
       </div>
-      <DragOverlay dropAnimation={{ duration: 160, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }}>
+      <DragOverlay dropAnimation={reduceMotion ? null : { duration: 180, easing: EASE_OUT }}>
         {activeTask ? <TaskCard task={activeTask} projectKey={projectKey} dragging /> : null}
       </DragOverlay>
     </DndContext>
@@ -215,6 +233,7 @@ function Column({
   projectId,
   projectKey,
   dragging,
+  arrived,
 }: {
   status: TaskStatus;
   label: string;
@@ -222,6 +241,7 @@ function Column({
   projectId: string;
   projectKey: string;
   dragging: boolean;
+  arrived: ReadonlySet<string>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const oldest = status === "WAITING_CLIENT" ? oldestWaitingDays(tasks) : 0;
@@ -232,18 +252,30 @@ function Column({
   const isDone = status === "DONE";
   const visible = isDone && !showAll ? tasks.slice(0, DONE_PREVIEW) : tasks;
 
+  // Une tâche tombe dans « Fait » replié : le rail n’a pas de carte où atterrir, il prend un instant
+  // la teinte du statut (la clé relance l’animation à chaque arrivée). Pendant un glisser, le compte
+  // reste celui du départ : le signal part au dépôt, pas quand le curseur survole le rail.
+  const [seenCount, setSeenCount] = useState(tasks.length);
+  const [landings, setLandings] = useState(0);
+  if (!dragging && seenCount !== tasks.length) {
+    setSeenCount(tasks.length);
+    if (tasks.length > seenCount) setLandings((count) => count + 1);
+  }
+
   if (isDone && !expanded) {
     return (
       <section id={`colonne-${status}`} aria-label={label} className="shrink-0 snap-center">
         <button
+          key={landings}
           ref={setNodeRef}
           type="button"
           onClick={() => setExpanded(true)}
           aria-expanded={false}
           aria-label={`Afficher la colonne « ${label} » (${tasks.length})`}
           className={cn(
-            "flex h-full min-h-40 w-11 flex-col items-center gap-2 rounded-lg bg-sunken py-3 text-ui font-semibold text-ink-2 transition-colors hover:bg-line",
-            isOver && "ring-2 ring-inset ring-accent/40",
+            "flex h-full min-h-40 w-11 flex-col items-center gap-2 rounded-lg bg-sunken py-3 text-ui font-semibold text-ink-2 transition-[background-color,box-shadow] hover:bg-line",
+            landings > 0 && "animate-landed",
+            isOver && "ring-2 ring-inset ring-accent/80",
           )}
         >
           <StatusIcon status={status} />
@@ -261,7 +293,7 @@ function Column({
       className={cn(
         "flex w-[85vw] shrink-0 snap-center flex-col rounded-lg bg-sunken transition-shadow sm:w-[272px]",
         status === "WAITING_CLIENT" && "bg-waiting-soft/60",
-        isOver && "ring-2 ring-inset ring-accent/40",
+        isOver && "ring-2 ring-inset ring-accent/80",
       )}
     >
       <header className="sticky top-0 z-[1] flex items-center gap-2 rounded-t-lg px-3 pb-2 pt-3">
@@ -291,7 +323,7 @@ function Column({
             <QuickAdd projectId={projectId} status={status} compact autoFocus onDone={() => setAdding(false)} />
           )}
           {visible.map((task) => (
-            <SortableCard key={task.id} task={task} projectKey={projectKey} />
+            <SortableCard key={task.id} task={task} projectKey={projectKey} arrived={arrived.has(task.id)} />
           ))}
           {visible.length < tasks.length && (
             <button
@@ -318,8 +350,12 @@ function Column({
   );
 }
 
-function SortableCard({ task, projectKey }: { task: TaskCardData; projectKey: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({ id: task.id });
+function SortableCard({ task, projectKey, arrived }: { task: TaskCardData; projectKey: string; arrived: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
+    id: task.id,
+    // Les cartes voisines glissent avec la même durée et la même courbe que le reste de l’interface.
+    transition: { duration: 180, easing: EASE_OUT },
+  });
   return (
     <div
       ref={setNodeRef}
@@ -332,7 +368,7 @@ function SortableCard({ task, projectKey }: { task: TaskCardData; projectKey: st
       {...attributes}
       {...listeners}
     >
-      <TaskCard task={task} projectKey={projectKey} />
+      <TaskCard task={task} projectKey={projectKey} className={arrived ? "animate-arrive" : undefined} />
     </div>
   );
 }

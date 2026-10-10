@@ -42,10 +42,10 @@ export function RoundsView({
 }) {
   if (rounds.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-6">
+      <div className="mx-auto w-full max-w-[var(--page-narrow)] px-4 sm:px-8">
         <div className="rounded-xl border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
-          <p className="font-display text-[17px] font-semibold">Aucun lot de retours</p>
-          <p className="mx-auto mt-1 max-w-md text-[13px] text-muted">
+          <p className="font-display text-title font-semibold">Aucun lot de retours</p>
+          <p className="mx-auto mt-1 max-w-md text-ui text-muted">
             Chaque tableau de retours importé devient un lot : on voit d’un coup d’œil ce qui est fait, ce qui attend le client et ce qui reste.
           </p>
           <div className="mt-5 flex justify-center">
@@ -59,7 +59,7 @@ export function RoundsView({
   }
 
   return (
-    <ul className="mx-auto w-full max-w-3xl space-y-3 px-6 pb-10">
+    <ul className="mx-auto w-full max-w-[var(--page-narrow)] space-y-3 px-4 sm:px-8 pb-10">
       {rounds.map((round) => (
         <RoundCard
           key={round.id}
@@ -109,30 +109,30 @@ function RoundCard({
     });
 
   const segments = [
-    { key: "done", count: counts.done, color: "var(--st-done)", label: "faites" },
-    { key: "waiting", count: counts.waiting, color: "var(--st-waiting)", label: "chez le client" },
+    { key: "done", count: counts.done, color: "var(--done)", label: "faites" },
+    { key: "waiting", count: counts.waiting, color: "var(--waiting)", label: "chez le client" },
     { key: "remaining", count: counts.remaining, color: "var(--line-strong)", label: "restantes" },
   ];
 
   return (
     <li className="rounded-xl border border-line bg-surface p-4 shadow-card">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-[15px] font-semibold">{round.label}</h2>
+        <h2 className="text-body font-semibold">{round.label}</h2>
         <span
           className={cn(
-            "rounded-full px-2 py-0.5 text-[11px] font-medium",
+            "rounded-full px-2 py-0.5 text-meta font-medium",
             open ? "bg-accent-soft text-accent" : "bg-sunken text-ink-2",
           )}
         >
           {ROUND_STATUS_LABELS[round.status]}
         </span>
-        <span className="text-[12px] text-muted">
+        <span className="text-xs text-muted">
           Reçus le {formatParis(round.receivedAt, "d MMM yyyy")}
           {round.fromContact && ` · de ${round.fromContact.name}`}
         </span>
       </div>
 
-      <p className="tabular mt-2 text-[13px] text-ink-2">
+      <p className="tabular mt-2 text-ui text-ink-2">
         {plural(counts.done, "faite")} · {counts.waiting} chez le client · {plural(counts.remaining, "restante")}
         <span className="text-muted"> sur {plural(counts.total, "tâche")}</span>
       </p>
@@ -147,7 +147,7 @@ function RoundCard({
       </div>
 
       {round.closedBy && (
-        <p className="mt-2 text-[12px] text-muted">
+        <p className="mt-2 text-xs text-muted">
           Livré avec «&#8239;{round.closedBy.title}&#8239;» le {formatParis(round.closedBy.deployedAt, "d MMM")}
         </p>
       )}
@@ -155,14 +155,14 @@ function RoundCard({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Link
           href={`${pathname}?vue=liste&source=${encodeURIComponent(round.label)}`}
-          className="text-[12px] font-medium text-accent hover:underline"
+          className="text-xs font-medium text-accent hover:underline"
         >
           Voir les tâches
         </Link>
         {round.rawText && (
-          <details className="text-[12px]">
+          <details className="text-xs">
             <summary className="cursor-pointer text-muted hover:text-ink">Collage d’origine</summary>
-            <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-2 font-mono text-[11px]">{round.rawText}</pre>
+            <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-2 font-mono text-meta">{round.rawText}</pre>
           </details>
         )}
         <span className="ml-auto flex gap-2">
@@ -182,12 +182,12 @@ function RoundCard({
 
       {open && closing && (
         <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-line bg-surface-2 p-3">
-          <label className="min-w-0 flex-1 text-[12px] text-ink-2">
+          <label className="min-w-0 flex-1 text-xs text-ink-2">
             Mise en ligne qui livre ce lot
             <select
               value={deliveryId}
               onChange={(event) => setDeliveryId(event.target.value)}
-              className="mt-1 block w-full rounded-md border border-line bg-surface px-2 py-1.5 text-[13px]"
+              className="mt-1 block w-full rounded-md border border-line bg-surface px-2 py-1.5 text-ui"
             >
               {deliveries.map((delivery) => (
                 <option key={delivery.id} value={delivery.id}>

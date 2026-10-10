@@ -35,7 +35,7 @@ export default async function IntegrationsPage() {
   return (
     <SettingsSubpage title="Intégrations" description="Ce que l’outil reçoit de l’extérieur, et les travaux de fond qui ont échoué.">
       {cronLate && (
-        <p role="status" className="mt-6 rounded-lg border border-st-waiting/40 bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
+        <p role="status" className="mt-6 rounded-lg border border-waiting/40 bg-surface-2 px-4 py-3 text-[13px] text-ink-2">
           Le cron n’a pas tourné depuis plus de 5 minutes : relances, e-mails et synchronisations sont en pause. Vérifiez la tâche
           pg_cron dans Supabase (voir le README).
         </p>

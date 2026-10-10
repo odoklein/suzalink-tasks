@@ -201,10 +201,14 @@ export function DueChip({
 }) {
   if (!date) return null;
   const tone = dueTone(date, done);
+  const overdue = tone === "overdue";
   return (
     <Chip
-      tone={tone === "overdue" ? "danger" : "soon"}
+      tone={overdue ? "danger" : "soon"}
+      // En retard : plein, pour ne pas dépendre de la seule teinte (rouge et orange se confondent en daltonisme).
+      variant={overdue ? "solid" : "soft"}
       muted={tone === "muted"}
+      aria-label={overdue ? `En retard : ${formatDue(date)}` : undefined}
       className={cn("tabular min-w-[5.25rem]", className)}
       icon={
         <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">

@@ -145,7 +145,7 @@ export function DeliveryDialog({
         {candidates.length > 0 && (
           <fieldset className="overflow-hidden rounded-lg border border-line">
             <legend className="sr-only">Tâches livrées</legend>
-            <label className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[12px] font-medium text-ink-2">
+            <label className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-xs font-medium text-ink-2">
               <input
                 type="checkbox"
                 checked={allIncluded}
@@ -158,11 +158,11 @@ export function DeliveryDialog({
             <ul className="max-h-48 overflow-y-auto scroll-thin">
               {candidates.map((task) => (
                 <li key={task.id}>
-                  <label className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[12px] last:border-b-0">
+                  <label className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-xs last:border-b-0">
                     <input type="checkbox" checked={included.has(task.id)} onChange={() => toggle(task.id)} className="accent-[var(--accent)]" />
                     <StatusIcon status={task.status} size={13} />
-                    <span className="font-mono text-[11px] text-muted">{projectKey}-{task.number}</span>
-                    {task.zone && <span className="max-w-[8rem] shrink-0 truncate rounded bg-sunken px-1.5 py-0.5 text-[11px]">{task.zone}</span>}
+                    <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
+                    {task.zone && <span className="max-w-[8rem] shrink-0 truncate rounded bg-sunken px-1.5 py-0.5 text-meta">{task.zone}</span>}
                     <span className="min-w-0 flex-1 truncate">{task.title}</span>
                   </label>
                 </li>
@@ -172,7 +172,7 @@ export function DeliveryDialog({
         )}
 
         {reviewIncluded.length > 0 && (
-          <label className="flex items-center gap-2 text-[13px] text-ink-2">
+          <label className="flex items-center gap-2 text-ui text-ink-2">
             <input type="checkbox" checked={promote} onChange={(event) => setPromote(event.target.checked)} className="accent-[var(--accent)]" />
             Passer {reviewIncluded.length > 1 ? `les ${reviewIncluded.length}` : "la"} “À valider” en Fait
           </label>
@@ -184,7 +184,7 @@ export function DeliveryDialog({
             {roundOptions.map((option) => {
               const round = rounds.find((r) => r.id === option.id);
               return (
-                <label key={option.id} className="flex items-center gap-2 text-[13px] text-ink-2">
+                <label key={option.id} className="flex items-center gap-2 text-ui text-ink-2">
                   <input
                     type="checkbox"
                     checked={closeRound(option.id, option.complete)}
@@ -192,7 +192,7 @@ export function DeliveryDialog({
                     className="accent-[var(--accent)]"
                   />
                   Clôturer «&#8239;{round?.label}&#8239;»
-                  {!option.complete && <span className="text-[12px] text-muted">(des tâches restent ouvertes)</span>}
+                  {!option.complete && <span className="text-xs text-muted">(des tâches restent ouvertes)</span>}
                 </label>
               );
             })}

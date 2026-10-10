@@ -349,11 +349,11 @@ Add `src/lib/plural.ts` with `plural(n, "tâche")` returning `1 tâche` / `3 tâ
     - `--ink #16181d`
     - `--ink-2 #3b4048`
     - `--muted #646973` (≥ 4.5:1 on `--sunken`)
-    - `--faint #8f9298`: **icons, placeholders and disabled only, never information text**
+    - `--faint #8f9298`: **icons and disabled only, never information text.** Placeholders use `--muted` (they carry instructions); control borders use `--control`
   - **Accent:** `--accent #295ee3`, `--accent-soft #e4efff`, `--accent-ink #fff`.
   - **Tone triplets** (solid / text / soft), for `todo`, `progress`, `waiting`, `review`, `done`, `danger` and a new **`soon`** (orange, for due today or tomorrow, so it no longer shares amber with waiting):
-    - `--waiting #da950b` / `--waiting-text #8a5a00` / `--waiting-soft #fdf1d8`
-    - `--done #169f65` / `--done-text #137a4c` / `--done-soft #e1f8eb`
+    - `--waiting #bb7700` (was `#da950b`: 2.1:1 on the board columns, now ≥ 3:1) / `--waiting-text #8a5a00` / `--waiting-soft #fdf1d8`
+    - `--done #03995f` (was `#169f65`, same reason) / `--done-text #137a4c` / `--done-soft #e1f8eb`
     - `--review #7855df` / `--review-text #6744c5`
     - `--danger #c93029` / `--danger-text #b8321f` / `--danger-soft`
     - `--soon #e0700f` / `--soon-text #af4803` / `--soon-soft`
@@ -408,7 +408,7 @@ Add `src/lib/plural.ts` with `plural(n, "tâche")` returning `1 tâche` / `3 tâ
     - counts in `sidebar.tsx`
     - times in `project-view.tsx`
   - `text-st-*` used as text → `text-*-text`; keep `bg-*` and `fill` with the solid tone.
-- Page containers use `max-w-[var(--page-wide|medium|narrow)]` and the same `px-4 sm:px-8` everywhere (`project-view.tsx` currently uses `px-6` with no mobile step).
+- Page containers use `max-w-[var(--page-wide)]`, `-medium` or `-narrow` and the same `px-4 sm:px-8` everywhere (`project-view.tsx` currently uses `px-6` with no mobile step).
 - Remove the alias tokens from P2-01.
 - **Acceptance:** `grep -rE "text-\[(10|11\.5|12\.5|15|18|20|21|24|26|30|32)px\]" src` returns nothing, and screens look the same or better.
 

@@ -19,10 +19,12 @@ export function TaskCard({
   task,
   projectKey,
   dragging = false,
+  className,
 }: {
   task: TaskCardData;
   projectKey: string;
   dragging?: boolean;
+  className?: string;
 }) {
   const { openTask } = useApp();
   const done = task.status === "DONE";
@@ -36,9 +38,10 @@ export function TaskCard({
         if (event.key === "Enter") openTask(task.id, `${projectKey}-${task.number}`);
       }}
       className={cn(
-        "group cursor-pointer rounded-md border border-line bg-surface p-3 shadow-card outline-hidden transition-[border-color,box-shadow,transform] duration-[var(--dur-1)]",
-        "hover:-translate-y-px hover:border-line-strong hover:shadow-raised focus-visible:shadow-[var(--ring)]",
+        "group cursor-pointer rounded-md border border-line bg-surface p-3 shadow-card outline-hidden transition-[border-color,box-shadow] duration-[var(--dur-1)]",
+        "hover:border-line-strong hover:shadow-raised focus-visible:shadow-[var(--ring)]",
         dragging && "rotate-[1.5deg] border-accent shadow-pop",
+        className,
       )}
     >
       <div className="flex items-start gap-2">

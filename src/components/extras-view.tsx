@@ -7,12 +7,23 @@ import { toast } from "sonner";
 
 import { createExtra, getQuoteDraft, logQuoteSent, setExtraStatus, updateExtra } from "@/app/actions/extras";
 import { Dialog, fieldClass, GhostButton, PrimaryButton } from "@/components/dialog";
+import { Badge, type Tone } from "@/components/ui/badge";
 import { mailtoLink } from "@/lib/chasing";
 import { EXTRA_STATUS_LABELS, formatEuros, parseEuros } from "@/lib/extras";
 import { plural } from "@/lib/plural";
 import { formatParis } from "@/lib/time";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+/** Le ton suit le sens du produit : ambre = la balle est chez le client, accent = à vous de facturer. */
+const EXTRA_STATUS_TONE: Record<ExtraStatus, Tone> = {
+  DRAFT: "neutral",
+  QUOTED: "waiting",
+  APPROVED: "accent",
+  REJECTED: "danger",
+  INVOICED: "waiting",
+  PAID: "done",
+};
 
 export type ExtraData = {
   id: string;
@@ -62,11 +73,11 @@ export function ExtrasView({
     .reduce((sum, task) => sum + (task.estimatedAmountCents ?? 0), 0);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 px-6 pb-10">
+    <div className="mx-auto w-full max-w-[var(--page-narrow)] space-y-5 px-4 sm:px-8 pb-10">
       <section className="rounded-xl border border-line bg-surface p-4 shadow-card">
-        <h2 className="text-[15px] font-semibold">Hors périmètre à regrouper</h2>
+        <h2 className="text-body font-semibold">Hors périmètre à regrouper</h2>
         {loose.length === 0 ? (
-          <p className="mt-1 text-[13px] text-muted">
+          <p className="mt-1 text-ui text-muted">
             Aucune tâche hors périmètre en attente. Ajoutez « $ » (ou « $150 ») dans la saisie rapide, ou cochez « Hors périmètre » dans une tâche.
           </p>
         ) : (
@@ -74,7 +85,7 @@ export function ExtrasView({
             <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
               {loose.map((task) => (
                 <li key={task.id}>
-                  <label className="flex items-center gap-2 px-3 py-1.5 text-[13px]">
+                  <label className="flex items-center gap-2 px-3 py-1.5 text-ui">
                     <input
                       type="checkbox"
                       checked={selected.has(task.id)}
@@ -88,9 +99,9 @@ export function ExtrasView({
                       }
                       className="accent-[var(--accent)]"
                     />
-                    <span className="font-mono text-[11px] text-muted">{projectKey}-{task.number}</span>
+                    <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
                     <span className="min-w-0 flex-1 truncate">{task.title}</span>
-                    <span className="tabular text-[12px] text-muted">
+                    <span className="tabular text-xs text-muted">
                       {task.estimatedAmountCents !== null ? formatEuros(task.estimatedAmountCents) : "à chiffrer"}
                     </span>
                   </label>
@@ -164,16 +175,16 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
   return (
     <li className="rounded-xl border border-line bg-surface p-4 shadow-card">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-mono text-[12px] text-muted">AV-{extra.number}</span>
-        <h3 className="text-[15px] font-semibold">{extra.title}</h3>
-        <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-medium text-ink-2">{EXTRA_STATUS_LABELS[extra.status]}</span>
-        <span className="tabular ml-auto text-[14px] font-semibold">{extra.amountCents !== null ? `${formatEuros(extra.amountCents)} HT` : "à chiffrer"}</span>
+        <span className="font-mono text-xs text-muted">AV-{extra.number}</span>
+        <h3 className="text-body font-semibold">{extra.title}</h3>
+        <Badge tone={EXTRA_STATUS_TONE[extra.status]}>{EXTRA_STATUS_LABELS[extra.status]}</Badge>
+        <span className="tabular ml-auto text-body font-semibold">{extra.amountCents !== null ? `${formatEuros(extra.amountCents)} HT` : "à chiffrer"}</span>
       </div>
-      {dates.length > 0 && <p className="mt-1 text-[12px] text-muted">{dates.join(" · ")}</p>}
-      <ul className="mt-2 space-y-0.5 text-[12px] text-ink-2">
+      {dates.length > 0 && <p className="mt-1 text-xs text-muted">{dates.join(" · ")}</p>}
+      <ul className="mt-2 space-y-0.5 text-xs text-ink-2">
         {tasks.map((task) => (
           <li key={task.id} className="flex gap-2">
-            <span className="font-mono text-[11px] text-muted">{projectKey}-{task.number}</span>
+            <span className="font-mono text-meta text-muted">{projectKey}-{task.number}</span>
             <span className="min-w-0 flex-1 truncate">{task.title}</span>
             {task.estimatedAmountCents !== null && <span className="tabular text-muted">{formatEuros(task.estimatedAmountCents)}</span>}
           </li>
@@ -183,14 +194,14 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {extra.status === "DRAFT" && (
           <>
-            <label className="flex items-center gap-1.5 text-[12px] text-muted">
+            <label className="flex items-center gap-1.5 text-xs text-muted">
               Montant HT
               <input
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 onBlur={saveAmount}
                 inputMode="decimal"
-                className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-[13px] text-ink"
+                className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-ui text-ink"
               />
               €
             </label>
@@ -206,7 +217,7 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
               onChange={(event) => setDetail(event.target.value)}
               placeholder="Accepté par (nom)"
               aria-label="Accepté par"
-              className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-[13px]"
+              className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-ui"
             />
             <GhostButton type="button" disabled={pending} onClick={() => move("REJECTED")}>Refusé</GhostButton>
             <PrimaryButton type="button" disabled={pending} onClick={() => move("APPROVED", { approvedBy: detail })}>Accepté</PrimaryButton>
@@ -219,7 +230,7 @@ function ExtraCard({ extra, projectKey, tasks }: { extra: ExtraData; projectKey:
               onChange={(event) => setDetail(event.target.value)}
               placeholder="Référence de la facture (outil comptable)"
               aria-label="Référence de la facture"
-              className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-[13px]"
+              className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-ui"
             />
             <PrimaryButton type="button" disabled={pending} onClick={() => move("INVOICED", { invoiceRef: detail })}>Facturé</PrimaryButton>
           </>
@@ -293,12 +304,12 @@ function QuoteDialog({ extraId, label, onClose }: { extraId: string; label: stri
   return (
     <Dialog open onClose={onClose} wide title={`Devis de l’avenant ${label}`} description="Copier ou ouvrir dans la messagerie enregistre l’envoi du devis.">
       {error ? (
-        <p role="alert" className="text-[13px] text-danger">{error}</p>
+        <p role="alert" className="text-ui text-danger">{error}</p>
       ) : !draft ? (
-        <p className="text-[13px] text-muted" aria-busy="true">Préparation du devis…</p>
+        <p className="text-ui text-muted" aria-busy="true">Préparation du devis…</p>
       ) : (
         <div className="space-y-3">
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={14} aria-label="Texte du devis" className={cn(fieldClass, "text-[13px] leading-relaxed")} />
+          <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={14} aria-label="Texte du devis" className={cn(fieldClass, "text-ui leading-relaxed")} />
           <div className="flex justify-end gap-2">
             <GhostButton type="button" disabled={pending} onClick={copy}>
               <ClipboardCopy className="size-4" /> Copier

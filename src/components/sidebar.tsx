@@ -58,13 +58,24 @@ export function Sidebar() {
 
   return (
     <>
-      {navOpen && <div className="animate-fade-in fixed inset-0 z-sidebar bg-[var(--scrim)] md:hidden" onClick={close} aria-hidden="true" />}
+      <div
+        className={cn(
+          "fixed inset-0 z-sidebar bg-[var(--scrim)] transition-opacity duration-[var(--dur-2)] md:hidden",
+          navOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={close}
+        aria-hidden="true"
+      />
       <aside
         aria-label="Menu"
         className={cn(
-          "flex h-full w-[272px] shrink-0 flex-col border-r border-line bg-chrome transition-transform duration-200",
+          "flex h-full w-[272px] shrink-0 flex-col border-r border-line bg-chrome",
           "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-sidebar max-md:shadow-pop",
-          navOpen ? "max-md:translate-x-0" : "max-md:invisible max-md:-translate-x-full",
+          // Ouvert : arrivée posée. Fermé : sortie plus rapide, et `visibility` attend la fin du glissement
+          // (sans cela le panneau disparaissait d’un coup, sans qu’on voie la sortie).
+          navOpen
+            ? "max-md:translate-x-0 max-md:[transition:transform_var(--dur-3)_var(--ease-out),visibility_0s]"
+            : "max-md:invisible max-md:-translate-x-full max-md:[transition:transform_var(--dur-2)_var(--ease-in),visibility_0s_linear_var(--dur-2)]",
           "md:w-[var(--sidebar-w)]",
         )}
       >

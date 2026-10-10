@@ -136,9 +136,9 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
       }
     >
       {error ? (
-        <p role="alert" className="text-[13px] text-danger">{error}</p>
+        <p role="alert" className="text-ui text-danger">{error}</p>
       ) : !loaded ? (
-        <p className="text-[13px] text-muted" aria-busy="true">Préparation du récap…</p>
+        <p className="text-ui text-muted" aria-busy="true">Préparation du récap…</p>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
@@ -152,7 +152,7 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
                 className={cn(fieldClass, "w-auto")}
               />
             </div>
-            <label className="flex items-center gap-2 text-[13px] text-ink-2">
+            <label className="flex items-center gap-2 text-ui text-ink-2">
               <input
                 type="checkbox"
                 checked={options.includeBillable}
@@ -161,7 +161,7 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
               />
               Modifications supplémentaires
             </label>
-            <label className="flex items-center gap-2 text-[13px] text-ink-2">
+            <label className="flex items-center gap-2 text-ui text-ink-2">
               <input
                 type="checkbox"
                 checked={options.includeWaiting}
@@ -171,7 +171,7 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
               En attente de votre côté
             </label>
             {agency && (
-              <label className="flex items-center gap-2 text-[13px] text-ink-2">
+              <label className="flex items-center gap-2 text-ui text-ink-2">
                 <input
                   type="checkbox"
                   checked={options.whiteLabel}
@@ -184,13 +184,13 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
           </div>
 
           {counts && (
-            <p className="text-[12px] text-muted">
+            <p className="text-xs text-muted">
               {counts.done} faites{counts.billable ? ` · ${counts.billable} supplémentaires` : ""} · {counts.waiting} en attente client · {counts.remaining} en cours
               {loaded.to && <> · À{" "}: {loaded.to.name}</>}
             </p>
           )}
           {stale && (
-            <p role="status" className="flex flex-wrap items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-[12px] text-ink-2">
+            <p role="status" className="flex flex-wrap items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-xs text-ink-2">
               Régénérer va remplacer vos modifications.
               <button type="button" onClick={regenerate} className="font-medium text-accent hover:underline">Régénérer</button>
               <button type="button" onClick={() => setStale(false)} className="text-muted hover:underline">Garder mon texte</button>
@@ -203,7 +203,7 @@ export function RecapDialog({ onClose, projectId }: { onClose: () => void; proje
             }}
             rows={14}
             aria-label="Texte du récap"
-            className={cn(fieldClass, "text-[13px] leading-relaxed")}
+            className={cn(fieldClass, "text-ui leading-relaxed")}
           />
           <div className="flex flex-wrap justify-end gap-2">
             <GhostButton type="button" disabled={pending} onClick={() => copy(false)}>

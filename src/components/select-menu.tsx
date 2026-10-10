@@ -209,7 +209,7 @@ export function SelectMenu<T extends string>({
               }}
               placeholder="Filtrer…"
               aria-label={`Filtrer : ${label}`}
-              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-none placeholder:text-faint"
+              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-none placeholder:text-muted"
             />
           )}
           <ul
@@ -229,7 +229,7 @@ export function SelectMenu<T extends string>({
                 onClick={() => choose(option)}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-ui",
-                  index === active && "bg-sunken",
+                  index === active && "bg-sunken shadow-[inset_2px_0_0_var(--accent)]",
                 )}
               >
                 {option.icon}

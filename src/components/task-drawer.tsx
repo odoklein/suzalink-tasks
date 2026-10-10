@@ -539,7 +539,7 @@ function CommentComposer({ taskId, onSubmit }: { taskId: string; onSubmit: (body
         }}
         placeholder="Écrire un commentaire…"
         aria-label="Nouveau commentaire"
-        className="w-full resize-none bg-transparent px-3 py-2 text-ui outline-hidden placeholder:text-faint"
+        className="w-full resize-none bg-transparent px-3 py-2 text-ui outline-hidden placeholder:text-muted"
       />
       <div className="flex items-center justify-between px-3 pb-2">
         <span className="text-meta text-muted">Ctrl + Entrée pour envoyer</span>
@@ -581,17 +581,17 @@ function DrawerMessage({ title, onClose, onRetry }: { title: string; onClose: ()
         </button>
       </div>
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-4 pb-16 text-center">
-        <p className="font-display text-[17px] font-semibold">{title}</p>
+        <p className="font-display text-title font-semibold">{title}</p>
         <div className="flex gap-2">
           {onRetry && (
-            <button type="button" onClick={onRetry} className="rounded-lg bg-ink px-3.5 py-2 text-[13px] font-semibold text-bg hover:opacity-90">
+            <button type="button" onClick={onRetry} className="rounded-lg bg-ink px-3.5 py-2 text-ui font-semibold text-bg hover:opacity-90">
               Réessayer
             </button>
           )}
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] font-medium text-ink-2 hover:border-line-strong hover:text-ink"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-ui font-medium text-ink-2 hover:border-line-strong hover:text-ink"
           >
             Fermer
           </button>
