@@ -18,10 +18,11 @@ const variants: Record<ButtonVariant, string> = {
 };
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "h-7 gap-1.5 rounded-sm px-2.5 text-xs",
-  md: "h-8 gap-2 rounded-md px-3 text-ui",
-  lg: "h-10 gap-2 rounded-md px-4 text-body",
-  icon: "size-8 rounded-md",
+  // Au toucher, un pseudo-élément prolonge la zone cliquable jusqu’à 44 px sans agrandir le bouton.
+  sm: "h-7 gap-1.5 rounded-sm px-2.5 text-xs pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-2",
+  md: "h-8 gap-2 rounded-md px-3 text-ui pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5",
+  lg: "h-10 gap-2 rounded-md px-4 text-body pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-0.5",
+  icon: "size-8 rounded-md pointer-coarse:after:absolute pointer-coarse:after:-inset-1.5",
 };
 
 /** Classes d’un bouton, pour styler un <Link> comme un bouton. */
@@ -109,8 +110,8 @@ export function IconButton({
         className={cn(
           base,
           variants[variant],
-          size === "sm" ? "size-6 rounded-sm" : "size-7 rounded-md",
-          "pointer-coarse:after:absolute pointer-coarse:after:-inset-2",
+          size === "sm" ? "size-6 rounded-sm pointer-coarse:after:-inset-2.5" : "size-7 rounded-md pointer-coarse:after:-inset-2",
+          "pointer-coarse:after:absolute",
           className,
         )}
       >

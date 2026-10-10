@@ -214,29 +214,28 @@ function Panel({ value, onChoose }: { value: ISODate | null; onChoose: (value: I
               {week.map((day) => {
                 const selected = day.value === value;
                 return (
-                  <button
-                    key={day.value}
-                    type="button"
-                    role="gridcell"
-                    data-date={day.value}
-                    aria-selected={selected}
-                    aria-current={day.value === today ? "date" : undefined}
-                    aria-label={formatParis(dateOf(day.value), "EEEE d MMMM yyyy")}
-                    tabIndex={day.value === focused ? 0 : -1}
-                    onClick={() => onChoose(day.value)}
-                    onFocus={() => setFocused(day.value)}
-                    className={cn(
-                      "tabular mx-auto my-px grid size-8 place-items-center rounded-md text-xs outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
-                      selected
-                        ? "bg-accent font-semibold text-accent-ink"
-                        : day.inMonth
-                          ? "text-ink hover:bg-sunken"
-                          : "text-muted hover:bg-sunken",
-                      !selected && day.value === today && "font-semibold text-accent ring-1 ring-accent/40",
-                    )}
-                  >
-                    {day.day}
-                  </button>
+                  <div key={day.value} role="gridcell" aria-selected={selected}>
+                    <button
+                      type="button"
+                      data-date={day.value}
+                      aria-current={day.value === today ? "date" : undefined}
+                      aria-label={formatParis(dateOf(day.value), "EEEE d MMMM yyyy")}
+                      tabIndex={day.value === focused ? 0 : -1}
+                      onClick={() => onChoose(day.value)}
+                      onFocus={() => setFocused(day.value)}
+                      className={cn(
+                        "tabular mx-auto my-px grid size-8 place-items-center rounded-md text-xs outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
+                        selected
+                          ? "bg-accent font-semibold text-accent-ink"
+                          : day.inMonth
+                            ? "text-ink hover:bg-sunken"
+                            : "text-muted hover:bg-sunken",
+                        !selected && day.value === today && "font-semibold text-accent ring-1 ring-accent/40",
+                      )}
+                    >
+                      {day.day}
+                    </button>
+                  </div>
                 );
               })}
             </div>

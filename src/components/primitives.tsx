@@ -26,23 +26,23 @@ export function Avatar({
   const withLabel = size >= 20;
   return (
     <Tooltip content={name}>
-    <span
-      role="img"
-      aria-label={name}
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.42,
-        backgroundColor: withLabel ? softColor(color) : color,
-        color: withLabel ? strongColor(color) : undefined,
-      }}
-      className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold leading-none",
-        className,
-      )}
-    >
-      {withLabel ? initials(name) : null}
-    </span>
+      <span
+        role="img"
+        aria-label={name}
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.42,
+          backgroundColor: withLabel ? softColor(color) : color,
+          color: withLabel ? strongColor(color) : undefined,
+        }}
+        className={cn(
+          "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold leading-none",
+          className,
+        )}
+      >
+        {withLabel ? initials(name) : null}
+      </span>
     </Tooltip>
   );
 }
@@ -78,11 +78,14 @@ export function AvatarStack({
 
 export function EmptyAvatar({ size = 22 }: { size?: number }) {
   return (
-    <span
-      title="Non attribuée"
-      style={{ width: size, height: size }}
-      className="inline-flex shrink-0 rounded-full border border-dashed border-line-strong"
-    />
+    <Tooltip content="Non attribuée">
+      <span
+        role="img"
+        aria-label="Non attribuée"
+        style={{ width: size, height: size }}
+        className="inline-flex shrink-0 rounded-full border border-dashed border-line-strong"
+      />
+    </Tooltip>
   );
 }
 
@@ -208,7 +211,7 @@ export function DueChip({
       // En retard : plein, pour ne pas dépendre de la seule teinte (rouge et orange se confondent en daltonisme).
       variant={overdue ? "solid" : "soft"}
       muted={tone === "muted"}
-      aria-label={overdue ? `En retard : ${formatDue(date)}` : undefined}
+      aria-label={overdue ? `En retard : ${formatDue(date)}` : undefined}
       className={cn("tabular min-w-[5.25rem]", className)}
       icon={
         <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">

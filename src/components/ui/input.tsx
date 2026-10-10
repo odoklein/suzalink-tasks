@@ -14,7 +14,7 @@ const control =
   "pointer-coarse:text-[16px]";
 
 const sizes = {
-  input: { md: "h-8 rounded-md px-3 text-ui", lg: "h-10 rounded-md px-3.5 text-body" } satisfies Record<Size, string>,
+  input: { md: "h-8 rounded-md px-3 text-ui pointer-coarse:h-11", lg: "h-10 rounded-md px-3.5 text-body pointer-coarse:h-11" } satisfies Record<Size, string>,
   textarea: { md: "min-h-16 rounded-md px-3 py-2 text-ui", lg: "min-h-20 rounded-md px-3.5 py-2.5 text-body" } satisfies Record<Size, string>,
 };
 

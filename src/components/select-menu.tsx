@@ -180,7 +180,7 @@ export function SelectMenu<T extends string>({
           else setOpen(true);
           setActive(Math.max(0, options.findIndex((option) => option.value === value)));
         }}
-        className="flex min-w-0 items-center gap-2 rounded-sm px-1.5 py-1 text-left text-ui text-ink-2 transition-colors hover:bg-sunken"
+        className="relative flex min-w-0 items-center gap-2 rounded-sm px-1.5 py-1 text-left text-ui text-ink-2 transition-colors hover:bg-sunken pointer-coarse:after:absolute pointer-coarse:after:-inset-2.5"
       >
         {trigger}
       </button>
@@ -208,8 +208,8 @@ export function SelectMenu<T extends string>({
                 setActive(0);
               }}
               placeholder="Filtrer…"
-              aria-label={`Filtrer : ${label}`}
-              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-none placeholder:text-muted"
+              aria-label={`Filtrer : ${label}`}
+              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-hidden placeholder:text-muted focus-visible:shadow-[var(--ring)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]"
             />
           )}
           <ul
@@ -228,7 +228,7 @@ export function SelectMenu<T extends string>({
                 onMouseEnter={() => setActive(index)}
                 onClick={() => choose(option)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-ui",
+                  "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-ui pointer-coarse:min-h-11",
                   index === active && "bg-sunken shadow-[inset_2px_0_0_var(--accent)]",
                 )}
               >

@@ -100,7 +100,7 @@ export function ActionMenu({
                 item.onSelect();
               }}
               className={cn(
-                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-ui outline-hidden hover:bg-sunken focus-visible:bg-sunken disabled:opacity-45",
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-ui outline-hidden hover:bg-sunken focus-visible:bg-sunken disabled:opacity-45 pointer-coarse:min-h-11",
                 item.tone === "danger" ? "text-danger-text" : "text-ink",
               )}
             >

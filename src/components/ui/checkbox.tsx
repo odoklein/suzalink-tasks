@@ -17,7 +17,9 @@ export function Checkbox({ label, className, ...props }: Props) {
       <span
         aria-hidden="true"
         className={cn(
-          "grid size-4 shrink-0 place-items-center rounded-xs border border-control bg-surface text-accent-ink transition-colors",
+          "relative grid size-4 shrink-0 place-items-center rounded-xs border border-control bg-surface text-accent-ink transition-colors",
+          // Au toucher, la case se prolonge jusqu’à 44 px ; en contraste forcé, l’ombre disparaît, un contour la remplace.
+          "pointer-coarse:after:absolute pointer-coarse:after:-inset-3.5 forced-colors:peer-focus-visible:outline-2 forced-colors:peer-focus-visible:outline-offset-2",
           "peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:shadow-[var(--ring)]",
           "[&>svg]:opacity-0 peer-checked:[&>svg]:opacity-100",
         )}
@@ -38,6 +40,7 @@ export function Switch({ label, className, ...props }: Props) {
         aria-hidden="true"
         className={cn(
           "relative h-5 w-9 shrink-0 rounded-full bg-control transition-colors",
+          "pointer-coarse:before:absolute pointer-coarse:before:inset-x-0 pointer-coarse:before:-inset-y-3 forced-colors:peer-focus-visible:outline-2 forced-colors:peer-focus-visible:outline-offset-2",
           "after:absolute after:left-0.5 after:top-0.5 after:size-4 after:rounded-full after:bg-surface after:shadow-xs after:transition-transform",
           "peer-checked:bg-accent peer-checked:after:translate-x-4 peer-focus-visible:shadow-[var(--ring)]",
         )}

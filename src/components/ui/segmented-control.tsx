@@ -56,7 +56,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => move(event, index)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-sm font-medium outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
+              "inline-flex items-center gap-1.5 rounded-sm font-medium outline-hidden transition-colors focus-visible:shadow-[var(--ring)] pointer-coarse:min-h-11",
               size === "sm" ? "px-2 py-0.5 text-xs" : "px-2.5 py-1 text-xs",
               selected ? "bg-sunken text-ink" : "text-muted hover:text-ink",
             )}
