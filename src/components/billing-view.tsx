@@ -46,11 +46,11 @@ export function BillingView({ extras }: { extras: BillingExtra[] }) {
   const totalCents = extras.reduce((sum, e) => sum + (e.amountCents ?? 0), 0);
 
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-6 sm:px-8 sm:py-8">
+    <div className="mx-auto max-w-[var(--page-medium)] px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h1 className="font-display text-[28px] font-semibold tracking-tight">Facturation</h1>
-          <p className="mt-1 text-[14px] text-muted">
+          <h1 className="font-display text-h1 font-semibold tracking-tight">Facturation</h1>
+          <p className="mt-1 text-body text-muted">
             Avenants acceptés en attente de facturation dans votre outil comptable.
           </p>
         </div>
@@ -63,23 +63,23 @@ export function BillingView({ extras }: { extras: BillingExtra[] }) {
 
       <div className="mt-6 rounded-xl border border-line bg-surface p-4 shadow-card">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-[13px] text-muted">Total à facturer</span>
-          <span className="tabular text-[20px] font-semibold">{formatEuros(totalCents)} HT</span>
+          <span className="text-ui text-muted">Total à facturer</span>
+          <span className="tabular text-h2 font-semibold">{formatEuros(totalCents)} HT</span>
         </div>
       </div>
 
       {extras.length === 0 ? (
-        <p className="mt-8 text-center text-[13px] text-muted">
+        <p className="mt-8 text-center text-ui text-muted">
           Aucun avenant en attente de facturation. Dès qu’un client valide un avenant, il apparaîtra ici.
         </p>
       ) : (
         <div className="mt-6 space-y-6">
           {[...byMonth.entries()].map(([month, monthExtras]) => (
             <section key={month} className="space-y-3">
-              <h2 className="text-[15px] font-semibold capitalize text-ink">{month}</h2>
+              <h2 className="text-title font-semibold capitalize text-ink">{month}</h2>
               <ul className="divide-y divide-line rounded-xl border border-line bg-surface shadow-card">
                 {monthExtras.map((extra) => (
-                  <li key={extra.id} className="flex flex-wrap items-center gap-3 p-4 text-[13px]">
+                  <li key={extra.id} className="flex flex-wrap items-center gap-3 p-4 text-ui">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
                         <span className="font-medium text-ink">{extra.client}</span>
@@ -90,11 +90,11 @@ export function BillingView({ extras }: { extras: BillingExtra[] }) {
                         >
                           {extra.project}
                         </Link>
-                        <span className="font-mono text-[11px] text-muted">AV-{extra.number}</span>
+                        <span className="font-mono text-meta text-muted">AV-{extra.number}</span>
                       </div>
                       <p className="mt-0.5 text-ink-2">{extra.title}</p>
                       {extra.approvedBy && (
-                        <p className="mt-0.5 text-[11px] text-muted">Validé par {extra.approvedBy}</p>
+                        <p className="mt-0.5 text-meta text-muted">Validé par {extra.approvedBy}</p>
                       )}
                     </div>
                     <div className="tabular text-right font-semibold">
