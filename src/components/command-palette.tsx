@@ -46,12 +46,12 @@ function cycleTheme() {
   const attribute = themeAttribute(next);
   if (attribute) document.documentElement.dataset.theme = attribute;
   else delete document.documentElement.dataset.theme;
-  toast.success(`Thème : ${THEME_LABELS[next]}`);
+  toast.success(`Thème : ${THEME_LABELS[next]}`);
   void setTheme(next);
 }
 
 const itemClass =
-  "flex cursor-pointer items-center gap-2.5 rounded-sm px-2.5 py-2 text-ui text-ink-2 data-[selected=true]:bg-sunken data-[selected=true]:text-ink";
+  "flex cursor-pointer items-center gap-2.5 rounded-sm px-2.5 py-2 text-ui text-ink-2 data-[selected=true]:bg-sunken data-[selected=true]:text-ink pointer-coarse:min-h-11";
 
 export function CommandPalette() {
   const router = useRouter();
@@ -134,6 +134,9 @@ export function CommandPalette() {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Palette de commandes"
       className="animate-fade-in fixed inset-0 z-palette flex items-start justify-center bg-[var(--scrim)] px-4 pt-[14vh] backdrop-blur-[2px]"
       onMouseDown={close}
     >
@@ -158,7 +161,7 @@ export function CommandPalette() {
               ? "Titre de la tâche, puis choisissez le projet…"
               : "Chercher une tâche (BG-12), un projet, une action… (« + » pour créer)"
           }
-          className="w-full border-b border-line bg-transparent px-4 py-3.5 text-body outline-none placeholder:text-muted"
+          className="w-full border-b border-line bg-transparent px-4 py-3.5 text-body outline-hidden placeholder:text-muted pointer-coarse:text-[16px]"
         />
         <Command.List className="max-h-[360px] overflow-y-auto p-1.5 scroll-thin">
           <Command.Empty className="px-3 py-6 text-center text-ui text-muted">Rien ne correspond.</Command.Empty>
@@ -195,7 +198,7 @@ export function CommandPalette() {
 
           {creating && (
             <Command.Group
-              heading={title ? `Créer « ${title} » dans` : "Créer une tâche : tapez d’abord le titre"}
+              heading={title ? `Créer « ${title} » dans` : "Créer une tâche : tapez d’abord le titre"}
               className={groupClass}
             >
               {targets.map((project) => (
@@ -218,7 +221,7 @@ export function CommandPalette() {
             <>
               <Command.Group heading="Aller à" className={groupClass}>
                 <Command.Item value="aujourd'hui accueil" onSelect={() => go("/")} className={itemClass}>
-                  <CalendarCheck2 className="size-4 text-muted" /> Aujourd&apos;hui
+                  <CalendarCheck2 className="size-4 text-muted" /> Aujourd’hui
                 </Command.Item>
                 <Command.Item value="projets" onSelect={() => go("/projects")} className={itemClass}>
                   <FolderKanban className="size-4 text-muted" /> Projets
@@ -292,7 +295,7 @@ export function CommandPalette() {
           <span className="flex items-center gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd> naviguer</span>
           <span className="flex items-center gap-1"><Kbd>Entrée</Kbd> valider</span>
           <span className="flex items-center gap-1"><Kbd keys="Mod+K" /> fermer</span>
-          <span className="ml-auto">{creating ? "@odo !haute #homepage demain" : "+ titre : créer une tâche"}</span>
+          <span className="ml-auto">{creating ? "@odo !haute #homepage demain" : "+ titre : créer une tâche"}</span>
         </div>
       </Command>
     </div>

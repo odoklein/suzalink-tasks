@@ -8,7 +8,7 @@ import { logout } from "@/app/actions/auth";
 import { useApp } from "@/components/app-context";
 import { useOpenNewTask } from "@/components/new-task-dialog";
 import { Avatar } from "@/components/primitives";
-import { Button, IconButton } from "@/components/ui/button";
+import { Button, buttonClass, IconButton } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Tooltip } from "@/components/ui/tooltip";
 import { projectSwatchVars } from "@/lib/color";
@@ -17,7 +17,7 @@ import type { ProjectNavItem } from "@/lib/dal";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/", label: "Aujourd'hui", icon: CalendarCheck2 },
+  { href: "/", label: "Aujourd’hui", icon: CalendarCheck2 },
   { href: "/projects", label: "Projets", icon: FolderKanban },
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/facturation", label: "Facturation", icon: Euro },
@@ -32,7 +32,7 @@ export function MobileBar() {
       <IconButton label="Ouvrir le menu" onClick={() => setNavOpen(true)}>
         <Menu className="size-4" />
       </IconButton>
-      <span className="flex size-6 items-center justify-center rounded-sm bg-ink text-xs font-bold text-bg">S</span>
+      <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-sm bg-ink text-xs font-bold text-bg">S</span>
       <span className="text-body font-semibold tracking-[-0.01em]">Suzali Tasks</span>
       <IconButton label="Rechercher" className="ml-auto" onClick={() => setPaletteOpen(true)}>
         <Search className="size-4" />
@@ -80,7 +80,7 @@ export function Sidebar() {
         )}
       >
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-          <span className="flex size-7 items-center justify-center rounded-md bg-ink text-ui font-bold text-bg">S</span>
+          <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-md bg-ink text-ui font-bold text-bg">S</span>
           <div className="leading-tight">
             <p className="text-body font-semibold tracking-[-0.01em]">Suzali Tasks</p>
             <p className="text-meta text-muted">Suzali Conseil</p>
@@ -122,7 +122,7 @@ export function Sidebar() {
               onClick={close}
               aria-current={isActive(href) ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-ui font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-ui font-medium transition-colors pointer-coarse:min-h-11",
                 isActive(href) ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:bg-sunken",
               )}
             >
@@ -151,7 +151,7 @@ export function Sidebar() {
             {live.map((project) => (
               <ProjectLink key={project.id} project={project} active={pathname.startsWith(`/projects/${project.slug}`)} onNavigate={close} />
             ))}
-            {projects.length === 0 && <li className="px-2.5 py-2 text-xs text-muted">Aucun projet pour l&apos;instant.</li>}
+            {projects.length === 0 && <li className="px-2.5 py-2 text-xs text-muted">Aucun projet pour l’instant.</li>}
           </ul>
 
           {delivered.length > 0 && (
@@ -176,7 +176,7 @@ export function Sidebar() {
             <p className="truncate text-ui font-medium">{user.name}</p>
             <p className="truncate text-meta text-muted">{user.email}</p>
           </div>
-          <Link href="/settings" onClick={close} aria-label="Paramètres" className="rounded-xs p-1 text-muted hover:bg-sunken hover:text-ink">
+          <Link href="/settings" onClick={close} aria-label="Paramètres" className={buttonClass({ variant: "ghost", size: "icon", className: "size-7 text-muted" })}>
             <Settings className="size-4" />
           </Link>
           <form action={logout}>
@@ -198,16 +198,19 @@ function ProjectLink({ project, active, onNavigate }: { project: ProjectNavItem;
         onClick={onNavigate}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "group flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-ui transition-colors",
+          "group flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-ui transition-colors pointer-coarse:min-h-11",
           active ? "bg-surface font-medium text-ink shadow-card" : "text-ink-2 hover:bg-sunken",
         )}
       >
         <span className="project-swatch size-2.5 shrink-0 rounded-xs" style={projectSwatchVars(project.color)} />
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
         {project.status === "WAITING_CLIENT" && (
-          <Tooltip content={PROJECT_STATUS_BY_VALUE.WAITING_CLIENT.label}>
-            <span className="size-1.5 rounded-full bg-waiting" />
-          </Tooltip>
+          <>
+            <Tooltip content={PROJECT_STATUS_BY_VALUE.WAITING_CLIENT.label}>
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-waiting" />
+            </Tooltip>
+            <span className="sr-only">{PROJECT_STATUS_BY_VALUE.WAITING_CLIENT.label}</span>
+          </>
         )}
         {project._count.tasks > 0 && <span className="tabular text-meta text-muted">{project._count.tasks}</span>}
       </Link>

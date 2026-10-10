@@ -224,6 +224,18 @@
   color-scheme: dark;
 }
 
+/* Contraste renforcé demandé par le système : séparateurs et bordures de champ nettement visibles,
+   texte discret au niveau du texte courant. Sélecteur à trois classes pour passer devant les deux
+   blocs sombres sans les dupliquer. */
+@media (prefers-contrast: more) {
+  :root:root:root {
+    --line: var(--control);
+    --line-strong: var(--muted);
+    --muted: var(--ink-2);
+    --faint: var(--muted);
+  }
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-chrome: var(--chrome);

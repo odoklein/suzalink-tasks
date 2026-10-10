@@ -27,7 +27,7 @@ const code = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Suzali Tasks", template: "%s · Suzali Tasks" },
-  description: "Projets et tâches de l'agence Suzali Conseil.",
+  description: "Projets et tâches de l’agence Suzali Conseil.",
   robots: { index: false, follow: false },
 };
 
