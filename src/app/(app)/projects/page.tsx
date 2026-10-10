@@ -106,7 +106,7 @@ export default async function ProjectsPage(props: PageProps<"/projects">) {
             ))}
             <Link
               href={filterHref(filters, "vue", "compacte")}
-              aria-pressed={compactView}
+              aria-current={compactView ? "true" : undefined}
               className={cn(chipClass, "ml-auto", compactView && chipActive)}
             >
               Vue compacte
@@ -172,11 +172,11 @@ export default async function ProjectsPage(props: PageProps<"/projects">) {
 }
 
 const chipClass =
-  "inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-2 transition-colors hover:border-line-strong hover:text-ink";
+  "inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-2 transition-colors hover:border-line-strong hover:text-ink pointer-coarse:min-h-11";
 const chipActive = "border-accent bg-accent-soft text-accent hover:border-accent hover:text-accent";
 
 function GroupDot({ tone }: { tone: string }) {
-  return <span className="size-2 rounded-full" style={{ backgroundColor: tone }} />;
+  return <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: tone }} />;
 }
 
 /** Vue compacte : un tableau d’une ligne par projet. */
@@ -266,7 +266,7 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
         </p>
       ) : (
         // Toute la carte mène au projet, où le point d’étape se saisit : pas de lien imbriqué.
-        !compact && <p className="mt-4 text-xs text-muted underline decoration-dotted underline-offset-2 group-hover:text-accent">Ajouter un point d&apos;étape</p>
+        !compact && <p className="mt-4 text-xs text-muted underline decoration-dotted underline-offset-2 group-hover:text-accent">Ajouter un point d’étape</p>
       )}
 
       {!compact && (
@@ -278,7 +278,7 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
               <span className="ml-1.5 text-muted">{formatPercent(total ? done / total : 0)}</span>
             </span>
           </div>
-          <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-sunken" role="img" aria-label={`${done} tâches faites sur ${total}`}>
+          <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-sunken" role="img" aria-label={`${done} sur ${total} tâches faites`}>
             {TASK_STATUSES.slice()
               .reverse()
               .map((s) => {

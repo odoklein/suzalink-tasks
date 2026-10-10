@@ -69,7 +69,7 @@ export function ProjectTemplateFields() {
         <label htmlFor="project-start" className={labelClass}>Démarrage</label>
         <input id="project-start" name="startDate" type="date" defaultValue={start} className={fieldClass} />
       </div>
-      <p className="text-[12px] text-muted sm:col-span-3">
+      <p className="text-xs text-muted sm:col-span-3">
         {chosen
           ? "Les échéances des tâches du modèle partent de la date de démarrage."
           : <>Les modèles se gèrent dans <Link href="/settings/templates" className="text-accent hover:underline">Paramètres › Modèles</Link>.</>}

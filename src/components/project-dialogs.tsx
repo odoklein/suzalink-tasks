@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { PROJECT_COLORS } from "@/lib/constants";
+import { PROJECT_PALETTE } from "@/lib/color";
 import { cn } from "@/lib/utils";
 
 export { DeliveryDialog } from "@/components/delivery-dialog";
@@ -109,22 +110,22 @@ export function NewProjectDialog() {
         <div>
           <span className={labelClass}>Couleur</span>
           <input type="hidden" name="color" value={color} />
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {PROJECT_COLORS.map((swatch) => (
               <button
                 key={swatch}
                 type="button"
-                aria-label={`Couleur ${swatch}`}
+                aria-label={`Couleur ${PROJECT_PALETTE.find((entry) => entry.light === swatch)?.name ?? swatch}`}
                 aria-pressed={color === swatch}
                 onClick={() => setColor(swatch)}
                 style={{ backgroundColor: swatch }}
-                className={cn("size-6 rounded-sm transition-transform", color === swatch && "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-surface")}
+                className={cn("size-7 rounded-sm transition-transform pointer-coarse:size-11", color === swatch && "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-surface")}
               />
             ))}
           </div>
         </div>
 
-        {state?.error && <p className="text-ui text-danger-text">{state.error}</p>}
+        {state?.error && <p role="alert" className="text-ui text-danger-text">{state.error}</p>}
       </form>
     </Dialog>
   );
