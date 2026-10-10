@@ -12,17 +12,18 @@ export function RetryJobButton({ jobId }: { jobId: string }) {
   return (
     <GhostButton
       type="button"
-      disabled={pending}
-      className="px-2.5 py-1.5 text-[12px]"
+      size="sm"
+      loading={pending}
+      icon={<RotateCw className="size-3.5" />}
       onClick={() =>
         startTransition(async () => {
           const result = await retryFailedJob(jobId);
           if ("error" in result) toast.error(result.error);
-          else toast.success("Travail relancé : il repartira au prochain passage du cron.");
+          else toast.success("Travail relancé : il repartira au prochain passage du cron.");
         })
       }
     >
-      <RotateCw className="size-3.5" /> Relancer
+      Relancer
     </GhostButton>
   );
 }

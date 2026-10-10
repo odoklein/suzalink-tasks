@@ -29,23 +29,23 @@ export default async function JournalPage() {
     <SettingsSubpage title="Journal des connexions" description="Les 100 dernières tentatives de connexion, réussies ou non.">
       <SettingsCard title="Connexions">
         {events.length === 0 ? (
-          <p className="mt-3 text-[13px] text-muted">Aucune connexion enregistrée pour l’instant.</p>
+          <p className="mt-3 text-ui text-muted">Aucune connexion enregistrée pour l’instant.</p>
         ) : (
           <ul className="mt-3 divide-y divide-line rounded-lg border border-line">
             {events.map((event) => (
-              <li key={event.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-3 py-2 text-[13px]">
-                <span className={cn("w-16 shrink-0 font-medium", event.success ? "text-done-text" : "text-danger")}>
+              <li key={event.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-3 py-2 text-ui">
+                <span className={cn("w-16 shrink-0 font-medium", event.success ? "text-done-text" : "text-danger-text")}>
                   {event.success ? "Réussie" : "Échec"}
                 </span>
                 <span className="min-w-0 flex-1 truncate">
                   {event.user?.name ?? event.email}
-                  {event.method === "GOOGLE" && <span className="ml-1.5 text-[12px] text-muted">via Google</span>}
+                  {event.method === "GOOGLE" && <span className="ml-1.5 text-xs text-muted">via Google</span>}
                 </span>
-                <span className="text-[12px] text-muted">
+                <span className="text-xs text-muted">
                   {device(event.ua)}
                   {event.ip ? ` · ${event.ip}` : ""}
                 </span>
-                <time dateTime={event.createdAt.toISOString()} className="tabular w-28 text-right text-[12px] text-muted">
+                <time dateTime={event.createdAt.toISOString()} className="tabular w-28 text-right text-xs text-muted">
                   {formatParis(event.createdAt, "d MMM HH'h'mm")}
                 </time>
               </li>

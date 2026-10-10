@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 import { deleteTemplate, saveTemplate, type TemplateInput } from "@/app/actions/templates";
 import { fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
+import { Button } from "@/components/ui/button";
+import { plural } from "@/lib/plural";
 import { parseTemplateTasks, PROJECT_TYPES } from "@/lib/templates";
 import { cn } from "@/lib/utils";
 
@@ -32,17 +34,18 @@ export function TemplateEditor({ template }: { template: Editable | null }) {
         className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-4 text-left shadow-card hover:border-line-strong"
       >
         <span className="font-medium">{template.name}</span>
-        <span className="text-[12px] text-muted">{PROJECT_TYPES.find((t) => t.value === template.type)?.label}</span>
-        <span className="ml-auto text-[12px] text-muted">{taskCount} tâches · Modifier</span>
+        <span className="text-xs text-muted">{PROJECT_TYPES.find((t) => t.value === template.type)?.label}</span>
+        <span className="ml-auto text-xs text-muted">{plural(taskCount, "tâche")} · Modifier</span>
       </button>
     ) : (
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        icon={<Plus className="size-4" />}
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] font-medium text-accent hover:bg-accent-soft"
+        className="text-accent hover:bg-accent-soft hover:text-accent"
       >
-        <Plus className="size-4" /> Nouveau modèle
-      </button>
+        Nouveau modèle
+      </Button>
     );
   }
 
@@ -95,14 +98,14 @@ export function TemplateEditor({ template }: { template: Editable | null }) {
       </div>
       <div>
         <label htmlFor={`tpl-tasks-${id}`} className={labelClass}>
-          Tâches de départ ({taskCount}) : Titre | Page | Jalon | J+3 | 2h
+          Tâches de départ ({taskCount}) : Titre | Page | Jalon | J+3 | 2h
         </label>
         <textarea
           id={`tpl-tasks-${id}`}
           rows={8}
           value={form.tasks}
           onChange={(e) => set({ tasks: e.target.value })}
-          className={cn(fieldClass, "font-mono text-[12px]")}
+          className={cn(fieldClass, "font-mono text-xs")}
         />
       </div>
       <div className="flex flex-wrap justify-end gap-2">
@@ -111,7 +114,7 @@ export function TemplateEditor({ template }: { template: Editable | null }) {
             type="button"
             disabled={pending}
             onClick={() => (confirmDelete ? remove() : setConfirmDelete(true))}
-            className={cn("mr-auto", confirmDelete && "border-danger text-danger")}
+            className={cn("mr-auto", confirmDelete && "border-danger text-danger-text")}
           >
             {confirmDelete ? "Confirmer la suppression" : "Supprimer"}
           </GhostButton>

@@ -17,14 +17,14 @@ export default async function TemplatesPage() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
-      <div className="mx-auto max-w-[720px] px-4 py-6 sm:px-8 sm:py-8">
-        <p className="text-[13px] text-muted">
+      <div className="mx-auto max-w-[var(--page-narrow)] px-4 py-6 sm:px-8 sm:py-8">
+        <p className="text-ui text-muted">
           <Link href="/settings" className="hover:text-ink hover:underline">Paramètres</Link> › Modèles
         </p>
-        <h1 className="mt-1 font-display text-[28px] font-semibold tracking-tight">Modèles de projet</h1>
-        <p className="mt-1 text-[14px] text-muted">
-          Jalons, pages et tâches de départ créés avec un nouveau projet. Une tâche par ligne :
-          {" "}<span className="font-mono text-[12px]">Titre | Page | Jalon | J+3 | 2h</span>.
+        <h1 className="mt-1 font-display text-h1 font-semibold tracking-tight">Modèles de projet</h1>
+        <p className="mt-1 text-body text-muted">
+          Jalons, pages et tâches de départ créés avec un nouveau projet. Une tâche par ligne :
+          {" "}<span className="font-mono text-xs">Titre | Page | Jalon | J+3 | 2h</span>.
         </p>
 
         <ul className="mt-6 space-y-4">

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { mergeZones } from "@/app/actions/zones";
 import { Dialog, fieldClass, GhostButton, labelClass, PrimaryButton } from "@/components/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { plural } from "@/lib/plural";
 
 /** « Fusionner les pages » : réunit les orthographes d’une même page (Homepage / Accueil / Home). */
@@ -14,13 +16,9 @@ export function ZonesButton({ projectId, zones }: { projectId: string; zones: { 
   if (zones.length < 2) return null;
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted hover:bg-sunken hover:text-ink"
-      >
-        <Merge className="size-3.5" aria-hidden /> Fusionner les pages
-      </button>
+      <Button variant="ghost" size="sm" icon={<Merge className="size-3.5" aria-hidden />} onClick={() => setOpen(true)} className="text-muted">
+        Fusionner les pages
+      </Button>
       {open && <ZonesDialog projectId={projectId} zones={zones} onClose={() => setOpen(false)} />}
     </>
   );
@@ -65,14 +63,20 @@ function ZonesDialog({
   return (
     <Dialog open onClose={onClose} title="Fusionner les pages" description="Cochez les pages qui désignent la même chose, puis choisissez le nom à garder.">
       <div className="space-y-3">
-        <ul className="max-h-64 space-y-1 overflow-y-auto scroll-thin">
+        <ul className="max-h-64 space-y-1 overflow-y-auto overscroll-contain scroll-thin">
           {zones.map((zone) => (
             <li key={zone.name}>
-              <label className="flex items-center gap-2 rounded-md px-2 py-1 text-ui hover:bg-surface-2">
-                <input type="checkbox" checked={selected.has(zone.name)} onChange={() => toggle(zone.name)} className="accent-[var(--accent)]" />
-                <span className="min-w-0 flex-1 truncate">{zone.name}</span>
-                <span className="tabular text-xs text-muted">{plural(zone.count, "tâche")}</span>
-              </label>
+              <Checkbox
+                checked={selected.has(zone.name)}
+                onChange={() => toggle(zone.name)}
+                className="flex w-full rounded-md px-2 py-1 hover:bg-surface-2"
+                label={
+                  <>
+                    <span className="min-w-0 flex-1 truncate">{zone.name}</span>
+                    <span className="tabular text-xs text-muted">{plural(zone.count, "tâche")}</span>
+                  </>
+                }
+              />
             </li>
           ))}
         </ul>

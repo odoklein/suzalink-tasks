@@ -99,21 +99,16 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
             )}
             </div>
             {confirmingReset === member.id && (
-              <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-[12px] text-ink-2">
+              <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-xs text-ink-2">
                 <span className="min-w-0 flex-1">
-                  Le code actuel de {member.name.split(" ")[0]} ne fonctionnera plus. Générer un nouveau code ?
+                  Le code actuel de {member.name.split(" ")[0]} ne fonctionnera plus. Générer un nouveau code ?
                 </span>
-                <button
-                  type="button"
-                  disabled={pendingReset}
-                  onClick={() => reset(member)}
-                  className="rounded-md bg-ink px-2.5 py-1 font-semibold text-bg disabled:opacity-50"
-                >
+                <Button variant="primary" size="sm" loading={pendingReset} onClick={() => reset(member)}>
                   Générer un nouveau code
-                </button>
-                <button type="button" onClick={() => setConfirmingReset(null)} className="rounded-md px-2 py-1 font-medium text-muted hover:text-ink">
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmingReset(null)}>
                   Annuler
-                </button>
+                </Button>
               </div>
             )}
           </li>
@@ -145,7 +140,7 @@ export function TeamSection({ members, currentUserId }: { members: Member[]; cur
           <Button type="submit" variant="primary" loading={pending}>{pending ? "Création…" : "Créer le compte"}</Button>
           <p role="status" aria-live="polite" className="text-xs text-danger-text">{state?.error}</p>
         </div>
-        <p className="mt-2 text-xs text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle choisira son propre code à la première connexion.</p>
+        <p className="mt-2 text-xs text-muted">Un code à 6 chiffres est généré et affiché une seule fois : transmettez-le à la personne, elle choisira son propre code à la première connexion.</p>
       </form>
     </div>
   );
@@ -165,25 +160,21 @@ function ActiveToggle({ member, disabled, onConfirm }: { member: Member; disable
   };
   if (!member.active) {
     return (
-      <button type="button" disabled={disabled} onClick={onConfirm} className="rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-sunken hover:text-ink disabled:opacity-50">
+      <Button variant="ghost" size="sm" disabled={disabled} onClick={onConfirm}>
         Réactiver
-      </button>
+      </Button>
     );
   }
   return armed ? (
-    <button type="button" disabled={disabled} onClick={confirm} className="rounded-md bg-danger px-2 py-1 text-[12px] font-semibold text-white disabled:opacity-50">
+    <Button variant="danger" size="sm" disabled={disabled} onClick={confirm} aria-label={`Confirmer la désactivation de ${member.name}`}>
       Confirmer
-    </button>
+    </Button>
   ) : (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => setArmed(true)}
-      title="Le compte ne pourra plus se connecter ; ses sessions sont fermées."
-      className="rounded-md px-2 py-1 text-[12px] font-medium text-muted hover:bg-danger-soft hover:text-danger disabled:opacity-50"
-    >
-      Désactiver
-    </button>
+    <Tooltip content="Le compte ne pourra plus se connecter ; ses sessions sont fermées.">
+      <Button variant="ghost" size="sm" disabled={disabled} onClick={() => setArmed(true)} className="hover:bg-danger-soft hover:text-danger-text">
+        Désactiver
+      </Button>
+    </Tooltip>
   );
 }
 
@@ -199,13 +190,13 @@ function IssuedPin({ issued, onClose }: { issued: Issued; onClose: () => void })
       setCopied(what);
       setTimeout(() => setCopied(null), 1800);
     } catch {
-      toast.error("Copie impossible : notez le code à la main.");
+      toast.error("Copie impossible : notez le code à la main.");
     }
   };
   return (
     <div role="status" className="animate-pop-in mb-4 flex flex-wrap items-center gap-4 rounded-md border border-accent/40 bg-accent-soft px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-ink-2">Code de {issued.name} : affiché une seule fois</p>
+        <p className="text-xs text-ink-2">Code de {issued.name} : affiché une seule fois</p>
         <p className="tabular mt-0.5 font-mono text-h1 font-semibold tracking-[0.3em]">{issued.pin}</p>
       </div>
       <div className="flex gap-2">

@@ -29,8 +29,8 @@ export function SettingsLinks({ isAdmin }: { isAdmin: boolean }) {
           <li key={link.href}>
             <Link href={link.href} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2">
               <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-medium">{link.label}</span>
-                <span className="block text-[13px] text-muted">{link.description}</span>
+                <span className="block text-body font-medium">{link.label}</span>
+                <span className="block text-ui text-muted">{link.description}</span>
               </span>
               <ChevronRight className="size-4 text-faint" />
             </Link>

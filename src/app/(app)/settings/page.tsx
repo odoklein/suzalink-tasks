@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { logoutEverywhere } from "@/app/actions/auth";
 import { Avatar } from "@/components/primitives";
+import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
@@ -95,13 +96,9 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
             Un téléphone perdu, un ordinateur partagé ? Déconnectez tous les appareils, y compris celui-ci.
           </p>
           <form action={logoutEverywhere} className="mt-4">
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ui font-medium text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
-            >
-              <LogOut className="size-4" />
+            <Button type="submit" icon={<LogOut className="size-4" />}>
               Se déconnecter de tous les appareils
-            </button>
+            </Button>
           </form>
         </section>
 
