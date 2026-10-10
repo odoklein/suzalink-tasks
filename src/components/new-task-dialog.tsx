@@ -45,7 +45,7 @@ export function NewTaskDialog() {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       const typing = target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
-      if (!typing && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "c") {
+      if (!typing && !event.repeat && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "c") {
         event.preventDefault();
         openNewTask();
       }

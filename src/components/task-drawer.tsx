@@ -151,6 +151,17 @@ export function TaskDrawer() {
     return () => document.removeEventListener("keydown", onKey);
   }, [openTaskRef, requestClose]);
 
+  const panel = useRef<HTMLElement>(null);
+  const drawerOpen = Boolean(openTaskRef);
+  // Le focus entre dans le tiroir à l’ouverture (pas à chaque changement de tâche) et revient à
+  // l’élément qui l’avait à la fermeture : un clavier ne reste pas derrière le voile.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!panel.current?.contains(document.activeElement)) panel.current?.focus();
+    return () => previous?.focus();
+  }, [drawerOpen]);
+
   // Le tiroir s’affiche dès que l’URL porte ?tache= ; le squelette couvre la résolution.
   if (!openTaskRef) return null;
 
@@ -164,9 +175,12 @@ export function TaskDrawer() {
     <>
       <div className="animate-fade-in fixed inset-0 z-drawer bg-[var(--scrim)]" onMouseDown={requestClose} />
       <aside
+        ref={panel}
         role="dialog"
+        aria-modal="true"
         aria-label="Détail de la tâche"
-        className="animate-slide-in fixed inset-y-0 right-0 z-drawer flex w-full max-w-[var(--drawer-w)] flex-col border-l border-line bg-surface shadow-overlay"
+        tabIndex={-1}
+        className="animate-slide-in fixed inset-y-0 right-0 z-drawer flex w-full max-w-[var(--drawer-w)] flex-col border-l border-line bg-surface shadow-overlay outline-hidden"
       >
         {status === "missing" ? (
           <DrawerMessage title="Cette tâche a été supprimée." onClose={requestClose} />
@@ -313,7 +327,7 @@ export function TaskDrawer() {
                         onSave={(value) => {
                           const cents = parseEuros(value);
                           if (value.trim() && cents === null) {
-                            toast.error("Montant illisible : écrivez par exemple 150 ou 150,50.");
+                            toast.error("Montant illisible : écrivez par exemple 150 ou 150,50.");
                             return;
                           }
                           patch({ estimatedAmountCents: cents });
@@ -398,7 +412,7 @@ async function copy(text: string, done: string) {
     await navigator.clipboard.writeText(text);
     toast.success(done);
   } catch {
-    toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
+    toast.error("Copie impossible : sélectionnez le texte et copiez-le à la main.");
   }
 }
 
@@ -447,7 +461,7 @@ function TitleField({
           (event.target as HTMLTextAreaElement).blur();
         }
       }}
-      className="w-full resize-none bg-transparent text-h2 font-semibold leading-snug tracking-[-0.01em] outline-none"
+      className="w-full resize-none rounded-sm bg-transparent text-h2 font-semibold leading-snug tracking-[-0.01em] outline-hidden focus-visible:shadow-[var(--ring)]"
     />
   );
 }
@@ -576,25 +590,19 @@ function DrawerMessage({ title, onClose, onRetry }: { title: string; onClose: ()
   return (
     <div className="flex h-full flex-col p-5">
       <div className="flex justify-end">
-        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-md p-1.5 text-muted hover:bg-sunken">
+        <IconButton label="Fermer" onClick={onClose}>
           <X className="size-4" />
-        </button>
+        </IconButton>
       </div>
       <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-4 pb-16 text-center">
         <p className="font-display text-title font-semibold">{title}</p>
         <div className="flex gap-2">
           {onRetry && (
-            <button type="button" onClick={onRetry} className="rounded-lg bg-ink px-3.5 py-2 text-ui font-semibold text-bg hover:opacity-90">
+            <Button variant="primary" onClick={onRetry}>
               Réessayer
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-ui font-medium text-ink-2 hover:border-line-strong hover:text-ink"
-          >
-            Fermer
-          </button>
+          <Button onClick={onClose}>Fermer</Button>
         </div>
       </div>
     </div>

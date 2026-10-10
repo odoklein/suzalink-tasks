@@ -109,7 +109,7 @@ export function QuickAdd({
   return (
     <div
       className={cn(
-        "rounded-md border border-line bg-surface transition-colors focus-within:border-accent",
+        "rounded-md border border-control bg-surface transition-colors focus-within:border-accent focus-within:shadow-[var(--ring)]",
         compact ? "px-2 py-1.5" : "px-3 py-2",
       )}
     >
@@ -138,11 +138,11 @@ export function QuickAdd({
           onBlur={() => !value && onDone?.()}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-ui outline-none placeholder:text-muted"
+          className="min-w-0 flex-1 bg-transparent text-ui outline-hidden placeholder:text-muted"
         />
       </div>
       {error && (
-        <p id={errorId} role="alert" className="mt-1 pl-5 text-xs text-danger">
+        <p id={errorId} role="alert" className="mt-1 pl-5 text-xs text-danger-text">
           {error}
         </p>
       )}
