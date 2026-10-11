@@ -393,7 +393,7 @@ Each phase ends in something usable. Estimates assume one engineer who knows the
 
 - `next.config.ts`: `output: "standalone"`. The Netlify secret-scanning notes go once Netlify is gone.
 - Add `Dockerfile` (multi-stage, `node:20` slim, `prisma generate` at build, non-root user) and `.dockerignore`.
-- Dokploy app: env vars, domain `tasks.suzaliconseil.com`, TLS, and a health check on `/login`.
+- Dokploy app: env vars, domain `projets.suzaliconseil.com`, TLS, and a health check on `/login`.
 - One instance, so no shared cache handler and no `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` yet. Both are needed if it ever scales out; see `node_modules/next/dist/docs/01-app/02-guides/self-hosting.md`.
 - Cron: by default, keep Supabase pg_cron calling `/api/cron/tick`. It's already set up and doesn't depend on the host. Fallback: a Dokploy « Application Job » with cron `* * * * *` that runs a command inside the app container, a `node -e "fetch('http://localhost:3000/api/cron/tick', …)"` call with the Bearer secret. Dokploy logs each run. Its docs don't say which timezone it uses, which doesn't matter for an every-minute job.
 - Update the README sections « Hébergement » and « Tâches de fond ».

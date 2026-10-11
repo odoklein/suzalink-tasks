@@ -1,6 +1,6 @@
 # Suzali Tasks
 
-Gestion de projets et de tâches de l'agence Suzali Conseil, prévue sur **tasks.suzaliconseil.com**.
+Gestion de projets et de tâches de l'agence Suzali Conseil, prévue sur **projets.suzaliconseil.com**.
 
 Pensée pour la façon dont les projets clients se déroulent vraiment :
 
@@ -67,19 +67,19 @@ alter table "MeetingProposal" enable row level security;
 
 Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.
 
-## Mise en ligne sur tasks.suzaliconseil.com
+## Mise en ligne sur projets.suzaliconseil.com
 
 1. **Base** : créer un projet Supabase, récupérer les deux chaînes de connexion, lancer `npm run db:push` puis `npm run db:seed` en local avec ces valeurs.
 2. **Hébergement** (Netlify, comme les autres sites, ou Vercel) : importer le dépôt, commande de build `npm run build`, et renseigner `DATABASE_URL`, `DIRECT_URL`, `SESSION_SECRET` dans les variables d'environnement.
-3. **Domaine** : ajouter `tasks.suzaliconseil.com` comme domaine personnalisé, puis créer chez le registrar de suzaliconseil.com un enregistrement **CNAME** `tasks` → l'adresse fournie par l'hébergeur (ex. `suzali-tasks.netlify.app`). Le HTTPS est activé automatiquement.
+3. **Domaine** : ajouter `projets.suzaliconseil.com` comme domaine personnalisé, puis créer chez le registrar de suzaliconseil.com un enregistrement **CNAME** `projets` → l'adresse fournie par l'hébergeur (ex. `suzali-tasks.netlify.app`). Le HTTPS est activé automatiquement.
 
 ### Sur un VPS avec Dokploy
 
 Les Réunions ont besoin d'un serveur qui tourne en continu (transcription et compte rendu peuvent dépasser la minute) : Dokploy plutôt que Netlify.
 
 1. Dans Dokploy, créer une **Application** depuis le dépôt Git, type de build **Dockerfile** (`Dockerfile` à la racine : `next build` en mode « standalone », `BUILD_STANDALONE=1`), port **3000**.
-2. Renseigner les variables d'environnement (liste dans `.env.example`), puis le domaine `tasks.suzaliconseil.com` avec HTTPS (Let's Encrypt). Faire pointer l'enregistrement DNS `tasks` vers l'IP du VPS (enregistrement **A**).
-3. Le cron ne change pas : pg_cron appelle `https://tasks.suzaliconseil.com/api/cron/tick` (section suivante). À défaut, une tâche planifiée Dokploy (« Schedule » de type Application, `* * * * *`) peut lancer dans le conteneur `node -e "fetch('http://localhost:3000/api/cron/tick',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET}})"`.
+2. Renseigner les variables d'environnement (liste dans `.env.example`), puis le domaine `projets.suzaliconseil.com` avec HTTPS (Let's Encrypt). Faire pointer l'enregistrement DNS `projets` vers l'IP du VPS (enregistrement **A**).
+3. Le cron ne change pas : pg_cron appelle `https://projets.suzaliconseil.com/api/cron/tick` (section suivante). À défaut, une tâche planifiée Dokploy (« Schedule » de type Application, `* * * * *`) peut lancer dans le conteneur `node -e "fetch('http://localhost:3000/api/cron/tick',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET}})"`.
 4. Une seule instance de l'application : au-delà, voir `node_modules/next/dist/docs/01-app/02-guides/self-hosting.md` (clé `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, cache partagé).
 
 ## Tâches de fond (cron)
@@ -98,7 +98,7 @@ select cron.schedule(
   '* * * * *',
   $$
   select net.http_post(
-    url := 'https://tasks.suzaliconseil.com/api/cron/tick',
+    url := 'https://projets.suzaliconseil.com/api/cron/tick',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
@@ -117,7 +117,7 @@ Plan complet et décisions : `docs/REUNIONS-PLAN.md`. Chaque partie s'active seu
 
 1. **Google Agenda** (lecture seule).
    - Dans Google Cloud : activer l'**API Google Calendar**, puis configurer l'écran de consentement OAuth en type **Externe** (tout compte Google, @gmail.com compris). Dans **Google Auth Platform › Audience**, cliquer sur **Publier l'application** : en mode « Test », seuls les testeurs déclarés peuvent se connecter et leurs autorisations expirent au bout de 7 jours. Tant que l'application n'est pas validée par Google, chacun voit l'avertissement « Google n'a pas validé cette application » (Paramètres avancés › Accéder à…), dans la limite de 100 comptes ; la validation (page d'accueil, règles de confidentialité, vidéo de démonstration pour le champ d'accès agenda) le retire.
-   - Créer un identifiant **ID client OAuth** de type « Application Web », URI de redirection autorisée : `https://tasks.suzaliconseil.com/api/auth/google/callback`.
+   - Créer un identifiant **ID client OAuth** de type « Application Web », URI de redirection autorisée : `https://projets.suzaliconseil.com/api/auth/google/callback`.
    - Variables : `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENC_KEY`, et `AGENCY_DOMAIN` si le domaine n'est pas suzaliconseil.com (les membres connectés avec une adresse @gmail.com sont reconnus comme internes par leur adresse) (`openssl rand -base64 32` ; la changer rend illisibles les jetons déjà enregistrés : chacun devra reconnecter son agenda).
    - Chaque membre connecte son agenda dans **Paramètres › Google Agenda**. L'agenda est relu toutes les 5 minutes, sur 30 jours.
 2. **Robot d'enregistrement Vexa**, sur son propre VPS (les navigateurs du robot consomment beaucoup pendant les réunions).

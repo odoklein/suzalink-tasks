@@ -25,7 +25,7 @@ export type Member = {
 
 type Issued = { name: string; pin: string; email: string };
 
-const APP_URL = "https://tasks.suzaliconseil.com";
+const APP_URL = "https://projets.suzaliconseil.com";
 
 export function TeamSection({ members, currentUserId }: { members: Member[]; currentUserId: string }) {
   const [issued, setIssued] = useState<Issued | null>(null);

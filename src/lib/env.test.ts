@@ -7,7 +7,7 @@ const base = { DATABASE_URL: "postgresql://x", SESSION_SECRET: "x".repeat(32) };
 describe("parseEnv", () => {
   it("accepte la configuration minimale et donne l'URL par défaut", () => {
     const env = parseEnv(base);
-    expect(env.APP_URL).toBe("https://tasks.suzaliconseil.com");
+    expect(env.APP_URL).toBe("https://projets.suzaliconseil.com");
     expect(integrationEnabled("cron", env)).toBe(false);
   });
 
