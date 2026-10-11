@@ -230,6 +230,20 @@ export async function setProposalIgnored(actor: UserActor, proposalId: string, i
   });
 }
 
+/** Réunion trouvée dans un e-mail : « Confirmer » (elle peut alors être enregistrée) ou « Ignorer ». */
+export async function reviewEmailMeeting(actor: UserActor, meetingId: string, keep: boolean) {
+  const [user, meeting] = await Promise.all([
+    db.user.findUnique({ where: { id: actor.userId }, select: { role: true } }),
+    db.meeting.findUnique({ where: { id: meetingId }, include: { oauthAccount: { select: { userId: true } } } }),
+  ]);
+  if (!meeting || meeting.deletedAt) throw new ServiceError("Réunion introuvable.", "NOT_FOUND");
+  if (meeting.source !== "email" || meeting.confirmedAt) return;
+  if (user?.role !== "ADMIN" && meeting.oauthAccount?.userId !== actor.userId) {
+    throw new ServiceError("Seul le membre qui a reçu l’e-mail, ou un administrateur, peut confirmer cette réunion.", "FORBIDDEN");
+  }
+  await db.meeting.update({ where: { id: meetingId }, data: keep ? { confirmedAt: new Date() } : { deletedAt: new Date() } });
+}
+
 /** « Relancer » un compte rendu en échec : transcription d'abord si elle manque. */
 export async function retryReport(meetingId: string) {
   const meeting = await db.meeting.findUnique({ where: { id: meetingId }, select: { reportStatus: true, captureExternalId: true, deletedAt: true } });

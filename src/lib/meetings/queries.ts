@@ -18,6 +18,8 @@ const listSelect = {
   platform: true,
   attendees: true,
   internalOnly: true,
+  source: true,
+  confirmedAt: true,
   projectId: true,
   projectSuggestedBy: true,
   projectConfirmedAt: true,
@@ -124,7 +126,17 @@ export const getGoogleConnection = cache(async (userId: string) => {
   if (!integrationEnabled("google")) return { enabled: false as const };
   const account = await db.oAuthAccount.findUnique({
     where: { userId_provider: { userId, provider: "google" } },
-    select: { email: true, calendarSyncedAt: true, lastError: true, reconnectRequired: true, createdAt: true },
+    select: {
+      email: true,
+      calendarSyncedAt: true,
+      lastError: true,
+      reconnectRequired: true,
+      createdAt: true,
+      gmailConnectedAt: true,
+      gmailSyncedAt: true,
+      gmailError: true,
+      gmailPendingIds: true,
+    },
   });
   return { enabled: true as const, account };
 });
@@ -132,4 +144,9 @@ export const getGoogleConnection = cache(async (userId: string) => {
 /** Comptes rendus à revoir (Aujourd'hui, barre latérale). */
 export function countReportsToReview() {
   return db.meeting.count({ where: { deletedAt: null, reportStatus: "READY" } });
+}
+
+/** E-mails clients dont des actions attendent une revue (Aujourd'hui). */
+export function countEmailsToReview() {
+  return db.emailMessage.count({ where: { analysis: "READY" } });
 }

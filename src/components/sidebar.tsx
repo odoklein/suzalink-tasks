@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarCheck2, ChevronRight, ChevronsUpDown, Euro, FolderKanban, LogOut, Menu, Plus, Search, Settings, SquarePen, Video } from "lucide-react";
+import { Building2, CalendarCheck2, ChevronRight, ChevronsUpDown, Euro, FolderKanban, LogOut, Mail, Menu, Plus, Search, Settings, SquarePen, Video } from "lucide-react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -22,6 +22,7 @@ const NAV = [
   { href: "/projects", label: "Projets", icon: FolderKanban },
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/reunions", label: "Réunions", icon: Video },
+  { href: "/courriels", label: "E-mails", icon: Mail },
   { href: "/facturation", label: "Facturation", icon: Euro },
 ];
 

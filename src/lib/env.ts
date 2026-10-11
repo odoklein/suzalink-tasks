@@ -50,6 +50,8 @@ const schema = z.object({
   /** Mistral : comptes rendus et actions proposées, et transcription si MEETING_TRANSCRIPTION=mistral. */
   MISTRAL_API_KEY: optional(z.string().min(8, "MISTRAL_API_KEY invalide.")),
   MISTRAL_MODEL: optional(z.string()).transform((value) => value ?? "mistral-medium-latest"),
+  /** Lecture des e-mails clients : modèle plus rapide, l'e-mail est court. */
+  MISTRAL_EMAIL_MODEL: optional(z.string()).transform((value) => value ?? "mistral-small-latest"),
   /** Qui transcrit : `vexa` (service de transcription du serveur de capture) ou `mistral` (Voxtral, après la réunion). */
   MEETING_TRANSCRIPTION: optional(z.enum(["vexa", "mistral"], { error: "MEETING_TRANSCRIPTION : vexa ou mistral." })).transform(
     (value) => value ?? "vexa",

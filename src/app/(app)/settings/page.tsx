@@ -110,10 +110,26 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         <section id="google" aria-labelledby="google-titre" className="mt-6 scroll-mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
           <h2 id="google-titre" className="text-title font-semibold tracking-title">Google Agenda</h2>
           <p className="mt-1 text-ui text-muted">
-            Vos rendez-vous avec un lien Meet, Teams ou Zoom apparaissent dans Réunions. Lecture seule : l’outil ne modifie pas votre agenda
-            et ne lit pas vos e-mails.
+            Vos rendez-vous apparaissent dans Réunions, et, si vous connectez Gmail, vos échanges avec les clients dans E-mails. Lecture
+            seule : l’outil ne modifie pas votre agenda et n’envoie ni ne supprime d’e-mail.
           </p>
-          <GoogleCalendarSettings enabled={google.enabled} account={google.enabled ? (google.account ?? null) : null} outcome={googleOutcome} />
+          <GoogleCalendarSettings
+            enabled={google.enabled}
+            account={
+              google.enabled && google.account
+                ? {
+                    email: google.account.email,
+                    calendarSyncedAt: google.account.calendarSyncedAt,
+                    lastError: google.account.lastError,
+                    reconnectRequired: google.account.reconnectRequired,
+                    gmailConnectedAt: google.account.gmailConnectedAt,
+                    gmailSyncedAt: google.account.gmailSyncedAt,
+                    gmailError: google.account.gmailError,
+                  }
+                : null
+            }
+            outcome={googleOutcome}
+          />
         </section>
 
         <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">

@@ -1,6 +1,6 @@
 import { tz } from "@date-fns/tz";
 import { addDays, differenceInCalendarDays, isSameDay, subDays } from "date-fns";
-import { AlarmClock, ArrowRight, CalendarDays, ListChecks, Rocket, Sparkles, UserRoundPlus, Video } from "lucide-react";
+import { AlarmClock, ArrowRight, CalendarDays, ListChecks, Mail, Rocket, Sparkles, UserRoundPlus, Video } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -15,7 +15,7 @@ import { CHASE_AFTER_DAYS, chaseLabel, chaseState, waitingStart } from "@/lib/ch
 import { getCurrentUser, getTeam } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { capitalizeFirst, NNBSP } from "@/lib/fr";
-import { countReportsToReview } from "@/lib/meetings/queries";
+import { countEmailsToReview, countReportsToReview } from "@/lib/meetings/queries";
 import { plural } from "@/lib/plural";
 import { endOfDayParis, formatParis, nowParis, startOfDayParis, TZ } from "@/lib/time";
 import { taskCardSelect, type TaskCard } from "@/lib/types";
@@ -59,6 +59,7 @@ export default async function TodayPage() {
     overdueLoad,
     team,
     reportsToReview,
+    emailsToReview,
   ] = await Promise.all([
     db.task.findMany({
       where: { assigneeId: user.id, status: { not: "DONE" }, project: live },
@@ -118,6 +119,7 @@ export default async function TodayPage() {
     // Déjà chargée (et mise en cache pour la requête) par la mise en page : pas de seconde requête.
     getTeam(),
     countReportsToReview(),
+    countEmailsToReview(),
   ]);
 
   const overdue = mine.filter((task) => task.dueDate && task.dueDate < today);
@@ -185,15 +187,29 @@ export default async function TodayPage() {
           </div>
         </header>
 
-        {reportsToReview > 0 && (
-          <Link
-            href="/reunions"
-            className="mt-4 inline-flex items-center gap-2 rounded-full border border-waiting/40 bg-waiting-soft px-3 py-1.5 text-ui font-medium text-waiting-text transition-colors hover:border-waiting pointer-coarse:min-h-11"
-          >
-            <Video aria-hidden="true" className="size-4" />
-            {plural(reportsToReview, "compte rendu de réunion à revoir", "comptes rendus de réunion à revoir")}
-            <ArrowRight aria-hidden="true" className="size-3.5" />
-          </Link>
+        {(reportsToReview > 0 || emailsToReview > 0) && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {reportsToReview > 0 && (
+              <Link
+                href="/reunions"
+                className="inline-flex items-center gap-2 rounded-full border border-waiting/40 bg-waiting-soft px-3 py-1.5 text-ui font-medium text-waiting-text transition-colors hover:border-waiting pointer-coarse:min-h-11"
+              >
+                <Video aria-hidden="true" className="size-4" />
+                {plural(reportsToReview, "compte rendu de réunion à revoir", "comptes rendus de réunion à revoir")}
+                <ArrowRight aria-hidden="true" className="size-3.5" />
+              </Link>
+            )}
+            {emailsToReview > 0 && (
+              <Link
+                href="/courriels"
+                className="inline-flex items-center gap-2 rounded-full border border-waiting/40 bg-waiting-soft px-3 py-1.5 text-ui font-medium text-waiting-text transition-colors hover:border-waiting pointer-coarse:min-h-11"
+              >
+                <Mail aria-hidden="true" className="size-4" />
+                {plural(emailsToReview, "e-mail client à revoir", "e-mails clients à revoir")}
+                <ArrowRight aria-hidden="true" className="size-3.5" />
+              </Link>
+            )}
+          </div>
         )}
 
         {/* Chiffres clés */}

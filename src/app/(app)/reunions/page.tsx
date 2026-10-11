@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LocalTime } from "@/components/local-time";
 import { AutoRefresh } from "@/components/meetings/auto-refresh";
 import { CaptureControl } from "@/components/meetings/capture-control";
+import { EmailMeetingReview } from "@/components/meetings/email-meeting-review";
 import { ProjectPicker } from "@/components/meetings/project-picker";
 import { RefreshCalendarButton } from "@/components/meetings/refresh-calendar-button";
 import { ProjectTile } from "@/components/primitives";
@@ -235,7 +236,9 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
                           suggested={!!meeting.projectId && !meeting.projectConfirmedAt}
                           locked={!!meeting.roundId}
                         />
-                        {captureAvailable && meeting.platform && (
+                        {meeting.source === "email" && !meeting.confirmedAt ? (
+                          <EmailMeetingReview meetingId={meeting.id} canManage={meeting.canManage} />
+                        ) : captureAvailable && meeting.platform ? (
                           <CaptureControl
                             meetingId={meeting.id}
                             status={meeting.captureStatus}
@@ -243,7 +246,7 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
                             canManage={meeting.canManage}
                             botName={botName}
                           />
-                        )}
+                        ) : null}
                       </li>
                     ))}
                   </ul>

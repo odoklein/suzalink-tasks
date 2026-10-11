@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Unplug } from "lucide-react";
+import { CalendarClock, Mail, Unplug } from "lucide-react";
 import { useState } from "react";
 
 import { disconnectGoogle } from "@/app/actions/meetings";
@@ -11,7 +11,15 @@ import { Button, buttonClass } from "@/components/ui/button";
 import { GOOGLE_OUTCOMES } from "@/lib/meetings/labels";
 import { cn } from "@/lib/utils";
 
-type Account = { email: string; calendarSyncedAt: Date | null; lastError: string | null; reconnectRequired: boolean };
+type Account = {
+  email: string;
+  calendarSyncedAt: Date | null;
+  lastError: string | null;
+  reconnectRequired: boolean;
+  gmailConnectedAt: Date | null;
+  gmailSyncedAt: Date | null;
+  gmailError: string | null;
+};
 
 /** Paramètres › Google Agenda : un compte par membre, en lecture seule. */
 export function GoogleCalendarSettings({ enabled, account, outcome }: { enabled: boolean; account: Account | null; outcome: string | null }) {
@@ -70,6 +78,32 @@ export function GoogleCalendarSettings({ enabled, account, outcome }: { enabled:
               {account.reconnectRequired ? "L’accès a été retiré chez Google : reconnectez le compte." : `Dernière erreur : ${account.lastError}`}
             </p>
           )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3">
+            <p className="min-w-0 flex-1 text-ui">
+              <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+                <Mail className="size-4 text-muted" aria-hidden="true" /> Gmail
+              </span>
+              <span className="block text-meta text-muted">
+                {account.gmailConnectedAt ? (
+                  account.gmailSyncedAt ? (
+                    <>
+                      Lecture seule · dernière lecture <LocalTime date={account.gmailSyncedAt} relative />
+                    </>
+                  ) : (
+                    "Lecture seule · première lecture en cours…"
+                  )
+                ) : (
+                  "Pour rattacher vos échanges aux clients et proposer des actions. Lecture seule, texte effacé après 30 jours."
+                )}
+              </span>
+            </p>
+            {!account.gmailConnectedAt && (
+              <a href="/api/auth/google?gmail=1" className={buttonClass({ size: "sm" })}>
+                Connecter Gmail
+              </a>
+            )}
+          </div>
+          {account.gmailConnectedAt && account.gmailError && <p className="text-meta text-danger-text">Gmail : {account.gmailError}</p>}
         </>
       )}
 
@@ -77,7 +111,7 @@ export function GoogleCalendarSettings({ enabled, account, outcome }: { enabled:
         open={confirm}
         onClose={() => setConfirm(false)}
         title="Déconnecter Google Agenda ?"
-        description="L’accès est révoqué chez Google. Les enregistrements prévus de vos réunions à venir sont retirés ; les comptes rendus passés restent."
+        description="L’accès (agenda et Gmail) est révoqué chez Google. Les enregistrements prévus de vos réunions à venir sont retirés ; les comptes rendus et les e-mails déjà rattachés restent."
         footer={
           <>
             <Button onClick={() => setConfirm(false)}>Annuler</Button>

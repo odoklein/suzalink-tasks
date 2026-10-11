@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { NextRequest } from "next/server";
 
 import { randomToken } from "@/lib/crypto";
 import { readSession } from "@/lib/dal";
@@ -9,10 +10,12 @@ import { authorizationUrl, OAUTH_COOKIE, OAUTH_COOKIE_PATH, pkcePair } from "@/l
 
 /**
  * « Connecter Google Agenda » (Paramètres) : prépare le flux PKCE et envoie
- * le membre connecté vers l'écran de consentement de Google.
+ * le membre connecté vers l'écran de consentement de Google. `?gmail=1` :
+ * demande aussi la lecture de Gmail (« Connecter Gmail »).
  * Route publique dans le proxy (/api/auth/) : la session est vérifiée ici.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const gmail = request.nextUrl.searchParams.get("gmail") === "1";
   const session = await readSession();
   if (!session) redirect("/login?next=/settings");
   const client = googleClient();
@@ -23,12 +26,12 @@ export async function GET() {
   const nonce = randomToken(24);
   const { verifier, challenge } = pkcePair();
 
-  (await cookies()).set(OAUTH_COOKIE, JSON.stringify({ state, nonce, verifier, userId: session.userId }), {
+  (await cookies()).set(OAUTH_COOKIE, JSON.stringify({ state, nonce, verifier, userId: session.userId, gmail }), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: OAUTH_COOKIE_PATH,
     maxAge: 600,
   });
-  redirect(authorizationUrl(client, { state, challenge, nonce, loginHint: user?.email }));
+  redirect(authorizationUrl(client, { state, challenge, nonce, loginHint: user?.email, gmail }));
 }

@@ -23,6 +23,7 @@ const PROVIDERS: Record<string, string> = {
   sheets: "Google Sheets",
   resend: "E-mails sortants (Resend)",
   google: "Google Agenda (lecture des agendas)",
+  gmail: "Gmail (e-mails clients, lecture seule)",
   vexa: "Serveur d’enregistrement des réunions (Vexa)",
 };
 

@@ -51,7 +51,8 @@ async function schedulePoll(meetingId: string, delayMs = 60_000) {
 export async function approveCapture(actor: Actor & { userId: string }, meetingId: string) {
   if (!vexaEnabled()) throw new ServiceError("Le serveur d’enregistrement n’est pas configuré (VEXA_API_URL, VEXA_API_KEY).");
   const meeting = await requireCaptureRights(actor.userId, meetingId);
-  if (meeting.cancelledAt) throw new ServiceError("Cette réunion a été annulée.");
+  if (meeting.cancelledAt || meeting.deletedAt) throw new ServiceError("Cette réunion a été annulée.");
+  if (meeting.source === "email" && !meeting.confirmedAt) throw new ServiceError("Confirmez d’abord cette réunion trouvée dans un e-mail.");
   if (meeting.endsAt.getTime() < Date.now()) throw new ServiceError("Cette réunion est terminée.");
   if (!meeting.platform || !meeting.nativeMeetingId || !meeting.joinUrl) {
     throw new ServiceError("Aucun lien Google Meet, Teams ou Zoom reconnu dans l’invitation.");

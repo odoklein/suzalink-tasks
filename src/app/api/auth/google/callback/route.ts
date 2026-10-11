@@ -5,10 +5,10 @@ import type { NextRequest } from "next/server";
 import { safeEqual } from "@/lib/crypto";
 import { readSession } from "@/lib/dal";
 import { googleClient } from "@/lib/google/accounts";
-import { CALENDAR_SCOPE, exchangeCode, OAUTH_COOKIE, OAUTH_COOKIE_PATH, revokeToken, verifyIdToken } from "@/lib/google/oauth";
+import { CALENDAR_SCOPE, exchangeCode, GMAIL_SCOPE, OAUTH_COOKIE, OAUTH_COOKIE_PATH, revokeToken, verifyIdToken } from "@/lib/google/oauth";
 import { linkGoogleAccount } from "@/lib/meetings/accounts";
 
-type Pending = { state: string; nonce: string; verifier: string; userId: string };
+type Pending = { state: string; nonce: string; verifier: string; userId: string; gmail?: boolean };
 
 function readPending(raw: string | undefined): Pending | null {
   if (!raw) return null;
@@ -22,7 +22,7 @@ function readPending(raw: string | undefined): Pending | null {
 
 /**
  * Retour de Google après le consentement. Le résultat est montré dans
- * Paramètres (`?google=…`) : ok, refus, agenda-refuse, deja-relie, expire, erreur.
+ * Paramètres (`?google=…`) : ok, gmail-ok, gmail-refuse, refus, agenda-refuse, deja-relie, expire, erreur.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -61,6 +61,8 @@ export async function GET(request: NextRequest) {
         refreshToken: token.refresh_token,
         expiresIn: token.expires_in,
       });
+      // Gmail demandé : la case a-t-elle été cochée sur l'écran de Google ?
+      if (outcome === "ok" && pending.gmail) outcome = scopes.includes(GMAIL_SCOPE) ? "gmail-ok" : "gmail-refuse";
     }
   } catch (error) {
     console.error("google-oauth", error);

@@ -3,16 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { acceptMeetingProposals, ignoreMeetingProposal } from "@/app/actions/meetings";
 import { AppProvider } from "@/components/app-context";
-import { ProposalReview, type ProposalItem } from "@/components/meetings/proposal-review";
+import { ProposalReview, type ProposalActions, type ProposalItem } from "@/components/meetings/proposal-review";
 
-vi.mock("@/app/actions/meetings", () => ({
-  acceptMeetingProposals: vi.fn(),
-  ignoreMeetingProposal: vi.fn(),
-  linkMeetingProposal: vi.fn(),
-}));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+
+// Server Actions liées à la réunion, telles que la page les passe.
+const actions = { accept: vi.fn(), link: vi.fn(), ignore: vi.fn() } satisfies Record<keyof ProposalActions, unknown>;
 
 afterEach(() => {
   cleanup();
@@ -68,7 +65,7 @@ function renderReview(hasProject = true) {
       clients={[]}
     >
       <ProposalReview
-        meetingId="m1"
+        actions={actions as unknown as ProposalActions}
         hasProject={hasProject}
         proposals={proposals}
         segments={[
@@ -101,7 +98,7 @@ describe("Revue des actions proposées", () => {
   });
 
   it("envoie les actions choisies avec les modifications du manager", async () => {
-    vi.mocked(acceptMeetingProposals).mockResolvedValue({ ok: true, refs: ["BG-41", "BG-42"] } as never);
+    actions.accept.mockResolvedValue({ ok: true, refs: ["BG-41", "BG-42"] });
     const user = userEvent.setup();
     renderReview();
 
@@ -110,9 +107,8 @@ describe("Revue des actions proposées", () => {
     await user.type(title, "Remplacer le visuel par la photo d’équipe");
     await user.click(screen.getByRole("button", { name: "Créer les 2 tâches" }));
 
-    await waitFor(() => expect(acceptMeetingProposals).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(acceptMeetingProposals).mock.calls[0]).toEqual([
-      "m1",
+    await waitFor(() => expect(actions.accept).toHaveBeenCalledTimes(1));
+    expect(actions.accept.mock.calls[0]).toEqual([
       [
         { proposalId: "p1", title: "Remplacer le visuel par la photo d’équipe", assigneeId: null, dueDate: null, zone: "Homepage" },
         { proposalId: "p2", title: "Envoyer une proposition de visuel", assigneeId: "u1", dueDate: "2026-10-15", zone: null },
@@ -121,13 +117,13 @@ describe("Revue des actions proposées", () => {
   });
 
   it("ignore une action, et bloque la création sans projet", async () => {
-    vi.mocked(ignoreMeetingProposal).mockResolvedValue({ ok: true } as never);
+    actions.ignore.mockResolvedValue({ ok: true });
     const user = userEvent.setup();
     renderReview(false);
     expect((screen.getByRole("button", { name: "Créer les 2 tâches" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Associez d’abord la réunion à un projet pour créer les tâches.")).toBeTruthy();
 
     await user.click(screen.getAllByRole("button", { name: "Ignorer" })[2]);
-    await waitFor(() => expect(ignoreMeetingProposal).toHaveBeenCalledWith("m1", "p3", true));
+    await waitFor(() => expect(actions.ignore).toHaveBeenCalledWith("p3", true));
   });
 });

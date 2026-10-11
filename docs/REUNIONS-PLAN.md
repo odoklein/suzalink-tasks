@@ -508,3 +508,17 @@ Each phase ends in something usable. Estimates assume one engineer who knows the
 - **Every Vexa exchange updates Paramètres › Intégrations** (`vexa` row), as does every calendar read (`google` row).
 
 **Not verified against real services yet (M1):** a bot joining a real Meet, Teams and Zoom call; French quality and speaker names; Voxtral's `speaker_id` format and the multipart encoding of `timestamp_granularities` / `context_bias`; `DELETE /recordings/{id}` on Vexa.
+
+## 17. Gmail (built 2026-10-11, replaces M6)
+
+Decided by the human: all four uses, full read-only access (`gmail.readonly`).
+
+- **Connection:** a second, optional consent (« Connecter Gmail », `/api/auth/google?gmail=1`, `include_granted_scopes`). `OAuthAccount.gmailConnectedAt` marks when it was granted; only emails received after it are read by the AI.
+- **Sync** (`src/lib/emails/sync.ts`, job `gmail_sync` every 5 min): first pass lists 30 days (`newer_than:30d`, without promotions / social / forums); then `users.history.list` from `gmailHistoryId` (404 → recovery search over 3 days). New ids go to `OAuthAccount.gmailPendingIds`; each run reads at most 12 within a 7 s budget, because Netlify cuts functions after a few seconds.
+- **Filtering:** spam, trash, drafts, chats, Gmail categories, `List-Unsubscribe` / `List-Id`, `Auto-Submitted`, `Precedence: bulk`, no-reply senders. Internal-only exchanges are skipped.
+- **Routing** (`src/lib/emails/routing.ts`, pure, tested): contact email → client domain (never public mail domains) → previous email of the same thread → project key or name in the subject. A client with a single active project gets that project.
+- **Storage:** `EmailMessage` only for routed emails (deduplicated across mailboxes by `Message-ID`), text without quoted history, purged after 30 days (`email-retention` daily step). Unknown participants: `EmailSender` counters only (received / sent), suggested as contacts when the agency both wrote to them and heard back; adding one queues a 30-day search of their messages so they get routed.
+- **AI** (`src/lib/ai/email-report.ts`, `src/lib/emails/analyze.ts`): Mistral (`MISTRAL_EMAIL_MODEL`) returns actions with quotes (kept only if found in the email) and an optional meeting time. The meeting link is read from the email by code, never taken from the model; the time must carry a time zone, be in the future and within 90 days.
+- **Meetings from email:** `Meeting.source = "email"`, `confirmedAt` required before any recording (« Confirmer » / « Ignorer » in Réunions). `.ics` invitations attached to a client's email are handled without AI. When the same meeting later appears in a calendar (same link, start within 2 h, or same iCalUID), the calendar takes it over.
+- **Review:** `/courriels` (to review, new contacts, recent exchanges filtered by client) and `/courriels/[id]` (routing correction, summary, proposed actions with the same review component as meetings, message text, link to Gmail). Accepted actions become tasks in a round « E-mail du 12/10 · objet » (channel EMAIL), with the quote in the description.
+- **Google verification:** `gmail.readonly` is a restricted scope. Unverified: warning screen and a 100-account cap. Removing the warning needs Google's verification plus a security assessment.

@@ -10,7 +10,7 @@ export type MatchProject = { id: string; key: string; name: string; clientId: st
 export type ProjectSuggestion = { projectId: string; by: "contact" | "titre" };
 
 /** Messageries grand public : un domaine partagé ne désigne pas un client. */
-const PUBLIC_DOMAINS = new Set([
+export const PUBLIC_DOMAINS = new Set([
   "gmail.com",
   "googlemail.com",
   "outlook.com",
@@ -41,8 +41,8 @@ const normalize = (text: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-/** Projets dont la clé (« BG ») ou le nom figure dans le titre. */
-function byTitle(title: string, projects: MatchProject[]): MatchProject[] {
+/** Projets dont la clé (« BG ») ou le nom figure dans le titre (d'une réunion, d'un e-mail). */
+export function projectsNamedIn(title: string, projects: MatchProject[]): MatchProject[] {
   const words = new Set(title.split(/[^A-Za-z0-9]+/).filter(Boolean));
   const text = ` ${normalize(title)} `;
   return projects.filter((project) => {
@@ -80,12 +80,12 @@ export function suggestProject(
     const candidates = projects.filter((project) => project.clientId && clientIds.has(project.clientId));
     if (candidates.length === 1) return { projectId: candidates[0].id, by: "contact" };
     // Plusieurs projets chez ce client : le titre départage.
-    const titled = byTitle(meeting.title, candidates);
+    const titled = projectsNamedIn(meeting.title, candidates);
     if (titled.length === 1) return { projectId: titled[0].id, by: "titre" };
     return null;
   }
 
   // 2. Personne de connu : la clé ou le nom du projet dans le titre.
-  const titled = byTitle(meeting.title, projects);
+  const titled = projectsNamedIn(meeting.title, projects);
   return titled.length === 1 ? { projectId: titled[0].id, by: "titre" } : null;
 }

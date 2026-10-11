@@ -5,7 +5,6 @@ import { Check, Link2, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-import { acceptMeetingProposals, ignoreMeetingProposal, linkMeetingProposal } from "@/app/actions/meetings";
 import { useApp } from "@/components/app-context";
 import { compactFieldClass } from "@/components/dialog";
 import { useMeetingAction } from "@/components/meetings/use-meeting-action";
@@ -27,7 +26,8 @@ export type ProposalItem = {
   description: string | null;
   basis: ProposalBasis;
   quote: string;
-  segmentIndexes: number[];
+  /** Passages de transcription cités (réunions seulement). */
+  segmentIndexes?: number[];
   ownerText: string | null;
   suggestedUserId: string | null;
   dueText: string | null;
@@ -40,27 +40,41 @@ export type ProposalItem = {
 
 type Segment = { index: number; speaker: string | null; startMs: number };
 
+type Outcome<T extends object = object> = ({ ok: true } & T) | { ok?: false; error: string };
+export type AcceptItem = { proposalId: string; title: string; assigneeId: string | null; dueDate: string | null; zone: string | null };
+
+/** Server Actions déjà liées à la réunion ou à l'e-mail (`.bind(null, id)`). */
+export type ProposalActions = {
+  accept: (items: AcceptItem[]) => Promise<Outcome<{ refs: string[] }>>;
+  link: (proposalId: string, ref: string) => Promise<Outcome<{ ref: string }>>;
+  ignore: (proposalId: string, ignored: boolean) => Promise<Outcome>;
+};
+
 type Draft = { title: string; assigneeId: string | null; dueDate: string; zone: string | null };
 
 const NOBODY = "__personne__";
 const NO_ZONE = "__aucune__";
 
 /**
- * Actions proposées par le compte rendu : chacune est modifiable, puis créée
- * (lot de la réunion), rattachée à une tâche existante ou ignorée.
+ * Actions proposées (compte rendu de réunion, e-mail client) : chacune est
+ * modifiable, puis créée (dans le lot de la réunion ou de l'e-mail), rattachée
+ * à une tâche existante ou ignorée.
  */
 export function ProposalReview({
-  meetingId,
+  actions,
   hasProject,
   proposals,
-  segments,
+  segments = [],
   zones,
+  noProjectHint = "Associez d’abord la réunion à un projet pour créer les tâches.",
 }: {
-  meetingId: string;
+  actions: ProposalActions;
   hasProject: boolean;
   proposals: ProposalItem[];
-  segments: Segment[];
+  /** Passages de transcription, pour relier chaque citation à son moment (réunions seulement). */
+  segments?: Segment[];
   zones: string[];
+  noProjectHint?: string;
 }) {
   const pending = proposals.filter((proposal) => proposal.status === "PENDING");
   const done = proposals.filter((proposal) => proposal.status !== "PENDING");
@@ -98,8 +112,7 @@ export function ProposalReview({
   const createSelected = () =>
     run(
       () =>
-        acceptMeetingProposals(
-          meetingId,
+        actions.accept(
           chosen.map((proposal) => {
             const draft = drafts[proposal.id];
             return { proposalId: proposal.id, title: draft.title, assigneeId: draft.assigneeId, dueDate: draft.dueDate || null, zone: draft.zone };
@@ -119,13 +132,13 @@ export function ProposalReview({
           {pending.map((proposal) => (
             <PendingCard
               key={proposal.id}
-              meetingId={meetingId}
+              actions={actions}
               proposal={proposal}
               draft={drafts[proposal.id]}
               selected={selected.has(proposal.id)}
               onToggle={(on) => toggle(proposal.id, on)}
               onChange={(patch) => update(proposal.id, patch)}
-              segment={segmentByIndex.get(proposal.segmentIndexes[0])}
+              segment={proposal.segmentIndexes?.length ? segmentByIndex.get(proposal.segmentIndexes[0]) : undefined}
               zones={zones}
               disabled={busy}
             />
@@ -136,7 +149,7 @@ export function ProposalReview({
       {pending.length > 0 && (
         <div className="sticky bottom-0 z-sticky -mx-1 mt-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-pop backdrop-blur">
           <p className="mr-auto text-ui text-muted">
-            {hasProject ? plural(chosen.length, "action choisie", "actions choisies") : "Associez d’abord la réunion à un projet pour créer les tâches."}
+            {hasProject ? plural(chosen.length, "action choisie", "actions choisies") : noProjectHint}
           </p>
           <Button variant="primary" onClick={createSelected} loading={busy} disabled={!hasProject || chosen.length === 0}>
             {chosen.length > 1 ? `Créer les ${chosen.length} tâches` : "Créer la tâche"}
@@ -149,7 +162,7 @@ export function ProposalReview({
           <h3 className="mb-1.5 text-xs font-semibold text-muted">Traitées</h3>
           <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
             {done.map((proposal) => (
-              <DoneRow key={proposal.id} meetingId={meetingId} proposal={proposal} />
+              <DoneRow key={proposal.id} actions={actions} proposal={proposal} />
             ))}
           </ul>
         </div>
@@ -159,7 +172,7 @@ export function ProposalReview({
 }
 
 function PendingCard({
-  meetingId,
+  actions,
   proposal,
   draft,
   selected,
@@ -169,7 +182,7 @@ function PendingCard({
   zones,
   disabled,
 }: {
-  meetingId: string;
+  actions: ProposalActions;
   proposal: ProposalItem;
   draft: Draft;
   selected: boolean;
@@ -188,7 +201,7 @@ function PendingCard({
   const titleId = `proposition-${proposal.id}`;
 
   const link = (target: string) =>
-    run(() => linkMeetingProposal(meetingId, proposal.id, target), (result) => `Rattachée à ${result.ref}`);
+    run(() => actions.link(proposal.id, target), (result) => `Rattachée à ${result.ref}`);
 
   return (
     <li className={cn("rounded-xl border bg-surface p-4 shadow-card transition-colors", selected ? "border-accent/50" : "border-line")}>
@@ -260,10 +273,16 @@ function PendingCard({
           {proposal.description && <p className="text-ui text-ink-2">{proposal.description}</p>}
 
           <blockquote className="border-l-2 border-line-strong pl-3 text-ui text-ink-2">
-            {quote(proposal.quote)}{" "}
-            <a href={`#s-${proposal.segmentIndexes[0]}`} className="whitespace-nowrap text-meta text-muted hover:text-ink hover:underline">
-              {segment ? `${formatOffset(segment.startMs)}${segment.speaker ? ` · ${segment.speaker}` : ""}` : "Voir le passage"}
-            </a>
+            {quote(proposal.quote)}
+            {segment && (
+              <>
+                {" "}
+                <a href={`#s-${segment.index}`} className="whitespace-nowrap text-meta text-muted hover:text-ink hover:underline">
+                  {formatOffset(segment.startMs)}
+                  {segment.speaker ? ` · ${segment.speaker}` : ""}
+                </a>
+              </>
+            )}
           </blockquote>
 
           {proposal.duplicate && !linking && (
@@ -305,7 +324,7 @@ function PendingCard({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Button size="sm" variant="ghost" icon={<X className="size-3.5" />} onClick={() => run(() => ignoreMeetingProposal(meetingId, proposal.id, true))} disabled={pending || disabled}>
+          <Button size="sm" variant="ghost" icon={<X className="size-3.5" />} onClick={() => run(() => actions.ignore(proposal.id, true))} disabled={pending || disabled}>
             Ignorer
           </Button>
           {!linking && (
@@ -322,7 +341,7 @@ function PendingCard({
 /** Espace fine insécable + deux-points, pour « dit : jeudi ». */
 const NNBSP_COLON = " :";
 
-function DoneRow({ meetingId, proposal }: { meetingId: string; proposal: ProposalItem }) {
+function DoneRow({ actions, proposal }: { actions: ProposalActions; proposal: ProposalItem }) {
   const { pending, run } = useMeetingAction();
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-ui">
@@ -343,7 +362,7 @@ function DoneRow({ meetingId, proposal }: { meetingId: string; proposal: Proposa
         </Link>
       )}
       {proposal.status === "REJECTED" && (
-        <Button size="sm" variant="ghost" icon={<Undo2 className="size-3.5" />} onClick={() => run(() => ignoreMeetingProposal(meetingId, proposal.id, false))} loading={pending}>
+        <Button size="sm" variant="ghost" icon={<Undo2 className="size-3.5" />} onClick={() => run(() => actions.ignore(proposal.id, false))} loading={pending}>
           Remettre
         </Button>
       )}

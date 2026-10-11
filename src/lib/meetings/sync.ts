@@ -70,20 +70,27 @@ async function upsertMeeting(account: OAuthAccount, draft: MeetingDraft, context
   }
 
   const sameMeeting: Prisma.MeetingWhereInput[] = [];
-  if (draft.iCalUid) sameMeeting.push({ iCalUid: draft.iCalUid });
-  if (draft.link) sameMeeting.push({ nativeMeetingId: draft.link.nativeMeetingId });
+  if (draft.iCalUid) sameMeeting.push({ iCalUid: draft.iCalUid, startsAt: draft.startsAt });
+  if (draft.link) {
+    sameMeeting.push({ nativeMeetingId: draft.link.nativeMeetingId, startsAt: draft.startsAt });
+    // Réunion proposée depuis un e-mail : l'heure lue dans le texte peut différer un peu de l'agenda.
+    const window = 2 * 3600_000;
+    sameMeeting.push({
+      source: "email",
+      nativeMeetingId: draft.link.nativeMeetingId,
+      startsAt: { gte: new Date(draft.startsAt.getTime() - window), lte: new Date(draft.startsAt.getTime() + window) },
+    });
+  }
   const shared = sameMeeting.length
-    ? await db.meeting.findFirst({
-        where: { startsAt: draft.startsAt, OR: sameMeeting },
-        select: { id: true, oauthAccountId: true },
-      })
+    ? await db.meeting.findFirst({ where: { deletedAt: null, OR: sameMeeting }, select: { id: true, oauthAccountId: true, source: true } })
     : null;
   if (shared) {
-    // Déjà suivie par un autre membre ; reprise si son agenda a été déconnecté.
-    if (!shared.oauthAccountId) {
+    // Déjà suivie par un autre membre ; reprise si son agenda a été déconnecté, ou si elle venait d'un
+    // e-mail (l'agenda la confirme et donne l'heure exacte).
+    if (!shared.oauthAccountId || shared.source === "email") {
       await db.meeting.update({
         where: { id: shared.id },
-        data: { ...linkFields(draft), oauthAccountId: account.id, calendarEventId: draft.calendarEventId },
+        data: { ...linkFields(draft), oauthAccountId: account.id, calendarEventId: draft.calendarEventId, source: "calendar", confirmedAt: new Date() },
       });
     }
     return;
@@ -145,6 +152,7 @@ export async function syncAccount(account: OAuthAccount) {
   const missing = await db.meeting.findMany({
     where: {
       oauthAccountId: account.id,
+      source: "calendar",
       cancelledAt: null,
       startsAt: { gte: from, lte: to },
       calendarEventId: { notIn: [...seen] },

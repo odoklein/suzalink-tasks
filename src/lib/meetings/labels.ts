@@ -38,7 +38,9 @@ export const BASIS_LABELS: Record<ProposalBasis, { label: string; tone: Tone }> 
 
 /** Messages de retour de Google (Paramètres, `?google=…`). */
 export const GOOGLE_OUTCOMES: Record<string, { tone: "done" | "danger"; text: string }> = {
-  ok: { tone: "done", text: "Agenda Google connecté. Les réunions arrivent dans quelques minutes." },
+  ok: { tone: "done", text: "Agenda Google connecté : vos réunions sont dans Réunions." },
+  "gmail-ok": { tone: "done", text: "Gmail connecté (lecture seule). Les e-mails des 30 derniers jours sont lus par petits lots, en quelques minutes." },
+  "gmail-refuse": { tone: "danger", text: "L’accès à Gmail n’a pas été autorisé : recommencez en cochant la case de Gmail. L’agenda, lui, reste connecté." },
   refus: { tone: "danger", text: "Connexion annulée sur l’écran de Google." },
   "agenda-refuse": { tone: "danger", text: "L’accès à l’agenda n’a pas été autorisé : reconnectez en cochant la case de l’agenda." },
   "deja-relie": { tone: "danger", text: "Ce compte Google est déjà relié à un autre membre." },
@@ -64,3 +66,11 @@ export function formatOffset(ms: number): string {
   const seconds = String(total % 60).padStart(2, "0");
   return hours ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
 }
+
+export const EMAIL_ANALYSIS_LABELS: Record<"NONE" | "PENDING" | "READY" | "REVIEWED" | "FAILED", { label: string; tone: Tone }> = {
+  NONE: { label: "Non lu par l’IA", tone: "neutral" },
+  PENDING: { label: "Lecture en cours", tone: "progress" },
+  READY: { label: "À revoir", tone: "waiting" },
+  REVIEWED: { label: "Traité", tone: "done" },
+  FAILED: { label: "Lecture en échec", tone: "danger" },
+};

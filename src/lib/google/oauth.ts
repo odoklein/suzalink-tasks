@@ -8,11 +8,12 @@ import { randomToken } from "@/lib/crypto";
 
 /**
  * Connexion d'un compte Google (flux « code » avec PKCE, P7-08). REST simple,
- * sans le paquet `googleapis`. Lecture seule de l'agenda : aucun droit
- * d'écriture, aucun accès à Gmail.
+ * sans le paquet `googleapis`. Lecture seule : l'agenda d'abord, Gmail en
+ * option (second consentement). Aucun droit d'écriture ni d'envoi.
  */
 
 export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events.readonly";
+export const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 export const GOOGLE_SCOPES = ["openid", "email", CALENDAR_SCOPE];
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -45,13 +46,13 @@ export function pkcePair() {
 
 export function authorizationUrl(
   client: Pick<GoogleClient, "clientId" | "redirectUri">,
-  input: { state: string; challenge: string; nonce: string; loginHint?: string },
+  input: { state: string; challenge: string; nonce: string; loginHint?: string; gmail?: boolean },
 ): string {
   const params = new URLSearchParams({
     client_id: client.clientId,
     redirect_uri: client.redirectUri,
     response_type: "code",
-    scope: GOOGLE_SCOPES.join(" "),
+    scope: [...GOOGLE_SCOPES, ...(input.gmail ? [GMAIL_SCOPE] : [])].join(" "),
     // Jeton de rafraîchissement : l'agenda est relu en tâche de fond.
     access_type: "offline",
     prompt: "consent",

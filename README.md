@@ -63,6 +63,9 @@ alter table "AiRun" enable row level security;
 alter table "Meeting" enable row level security;
 alter table "MeetingSegment" enable row level security;
 alter table "MeetingProposal" enable row level security;
+alter table "EmailMessage" enable row level security;
+alter table "EmailProposal" enable row level security;
+alter table "EmailSender" enable row level security;
 ```
 
 Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.
@@ -127,7 +130,13 @@ Plan complet et décisions : `docs/REUNIONS-PLAN.md`. Chaque partie s'active seu
 3. **Transcription et compte rendu (Mistral).**
    - `MISTRAL_API_KEY` ; `MISTRAL_MODEL` (facultatif, `mistral-medium-latest` par défaut). Demander la **conservation zéro** (« zero data retention ») sur le compte Mistral : sinon les échanges sont gardés 30 jours par Mistral.
    - `MEETING_TRANSCRIPTION` : `vexa` (par défaut ; Vexa transcrit en direct avec son service de transcription, qui demande un GPU, et aucun audio n'est gardé) ou `mistral` (Vexa enregistre seulement l'audio ; Voxtral transcrit après la réunion, sans GPU, les voix sont nommées « Voix 1, 2… »).
-4. Après `npm run db:push`, activer la RLS sur les nouvelles tables (section « Sécurité de la base »).
+4. **Gmail (facultatif, page E-mails).**
+   - Dans Google Cloud : activer l'**API Gmail**, et ajouter le champ d'accès `.../auth/gmail.readonly` à l'écran de consentement (Accès aux données). C'est un champ « restreint » : tant que l'application n'est pas validée par Google, l'avertissement reste affiché et la limite de 100 comptes s'applique ; la validation complète demande une évaluation de sécurité (payante).
+   - Chaque membre clique sur **Paramètres › Google Agenda › Connecter Gmail** (second consentement, lecture seule : ni envoi, ni suppression).
+   - Lecture : 30 derniers jours à la connexion, puis les nouveaux messages, par lots de 12 à chaque passage du cron (« Actualiser » sur la page E-mails pour avancer tout de suite). Lettres d'information, notifications et catégories Promotions / Réseaux sociaux / Forums / Mises à jour sont ignorées.
+   - Rattachement : contact connu, puis domaine d'un client (jamais gmail.com et autres messageries), puis fil de discussion, puis clé ou nom du projet dans l'objet. Seuls les e-mails rattachés à un client sont gardés ; leur texte est effacé après 30 jours. Pour les inconnus, seuls des compteurs : ceux avec qui l'agence a vraiment échangé sont proposés comme nouveaux contacts.
+   - Avec `MISTRAL_API_KEY`, chaque e-mail reçu d'un client **après la connexion** est lu par Mistral (`MISTRAL_EMAIL_MODEL`, `mistral-small-latest` par défaut) : actions proposées avec citation vérifiée, et réunion proposée si l'e-mail contient un lien Meet, Teams ou Zoom et une heure claire (à confirmer dans Réunions avant tout enregistrement).
+5. Après `npm run db:push`, activer la RLS sur les nouvelles tables (section « Sécurité de la base »).
 
 Fonctionnement : rien n'est enregistré sans qu'un membre clique sur « Enregistrer » (le membre dont l'agenda porte la réunion, ou un administrateur) ; le robot part 2 minutes avant le début, se présente sous son nom dans la liste des participants, et sort à la fin. Le compte rendu propose des actions avec leur citation ; aucune tâche n'est créée sans validation. Audio supprimé après 30 jours, transcription après un an (étape quotidienne `meeting-retention`).
 

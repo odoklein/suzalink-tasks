@@ -109,6 +109,7 @@ model Client {
 
   projects       Project[]
   contactRecords Contact[]
+  emails         EmailMessage[]
 }
 
 /// Interlocuteur d'un client ou d'une agence (remplace le champ libre Client.contacts).
@@ -146,13 +147,14 @@ model FeedbackRound {
   createdAt  DateTime    @default(now())
 
   projectId     String
-  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   fromContactId String?
-  fromContact   Contact?  @relation(fields: [fromContactId], references: [id], onDelete: SetNull)
+  fromContact   Contact?      @relation(fields: [fromContactId], references: [id], onDelete: SetNull)
   closedById    String?
-  closedBy      Delivery? @relation(fields: [closedById], references: [id], onDelete: SetNull)
+  closedBy      Delivery?     @relation(fields: [closedById], references: [id], onDelete: SetNull)
   tasks         Task[]
   meeting       Meeting? // lot créé depuis le compte rendu d'une réunion (channel CALL)
+  email         EmailMessage? // lot créé depuis un e-mail client (channel EMAIL)
 
   @@index([projectId, receivedAt])
 }
@@ -238,6 +240,7 @@ model Project {
   extras     Extra[]
 
   meetings Meeting[]
+  emails   EmailMessage[]
 }
 
 enum ExtraStatus {
@@ -386,6 +389,7 @@ model Task {
   round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
 
   meetingProposals MeetingProposal[] // action de réunion qui a créé la tâche, ou qui y a été rattachée
+  emailProposals   EmailProposal[] // action d'un e-mail client qui a créé la tâche, ou qui y a été rattachée
 
   @@unique([projectId, number])
   @@unique([projectId, externalKey]) // plusieurs NULL autorisés
@@ -555,12 +559,18 @@ model OAuthAccount {
   lastError         String?
   lastErrorAt       DateTime?
   reconnectRequired Boolean   @default(false) // accès retiré chez Google : la synchronisation s'arrête
+  gmailConnectedAt  DateTime? // accès Gmail (lecture seule) accordé : seuls les e-mails reçus ensuite sont analysés
+  gmailHistoryId    String? // curseur de l'historique Gmail
+  gmailPendingIds   String[] // messages à lire aux prochains passages (lots bornés)
+  gmailSyncedAt     DateTime?
+  gmailError        String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   userId   String
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   meetings Meeting[]
+  emails   EmailMessage[]
 
   @@unique([provider, providerAccountId])
   @@unique([userId, provider]) // un compte Google par membre
@@ -628,6 +638,9 @@ model Meeting {
   passcode        String? // Teams grand public, Zoom : code extrait du lien
   attendees       Json             @default("[]") // [{ email, name?, organizer?, self?, responseStatus? }]
   internalOnly    Boolean          @default(false) // aucun invité hors de l'agence : jamais proposée à l'enregistrement
+  source          String           @default("calendar") // calendar, email (réunion trouvée dans un e-mail)
+  emailMessageId  String? // e-mail d'où vient la réunion proposée
+  confirmedAt     DateTime? // réunion trouvée dans un e-mail : confirmée par un membre avant tout enregistrement
 
   // Origine : un événement de l'agenda principal d'un membre
   oauthAccountId  String?
@@ -728,4 +741,102 @@ model MeetingProposal {
   meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId, status])
+}
+
+// ─── E-mails clients (Gmail, lecture seule) ──────────────────────────────────
+// Chaque e-mail échangé avec un client est rattaché au client, puis au projet ;
+// l'IA propose des actions (citations vérifiées) et des réunions, validées par
+// un membre. Le texte n'est gardé que 30 jours ; les inconnus, en compteurs.
+
+enum EmailDirection {
+  IN // reçu
+  OUT // envoyé par un membre
+}
+
+enum EmailAnalysis {
+  NONE // pas analysé (avant la connexion de Gmail, envoyé, sans texte…)
+  PENDING
+  READY // actions à revoir
+  REVIEWED // toutes traitées, ou rien à faire
+  FAILED
+}
+
+/// E-mail échangé avec un client, lu dans Gmail.
+model EmailMessage {
+  id             String         @id @default(cuid())
+  gmailMessageId String
+  gmailThreadId  String
+  rfcMessageId   String?        @unique // en-tête Message-ID : un e-mail reçu par deux membres n'est gardé qu'une fois
+  direction      EmailDirection
+  fromEmail      String
+  fromName       String?
+  toEmails       String[] // destinataires (À et Cc)
+  subject        String
+  snippet        String?
+  sentAt         DateTime
+  bodyText       String? // texte sans l'historique cité ; effacé après 30 jours
+  bodyPurgedAt   DateTime?
+  meetingLink    String? // lien Meet, Teams ou Zoom trouvé dans le message
+  routedBy       String? // contact, domaine, titre, fil, manuel
+  analysis       EmailAnalysis  @default(NONE)
+  analysisError  String?
+  summary        String?
+  createdAt      DateTime       @default(now())
+
+  oauthAccountId String?
+  oauthAccount   OAuthAccount?   @relation(fields: [oauthAccountId], references: [id], onDelete: SetNull)
+  clientId       String?
+  client         Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId      String?
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  roundId        String?         @unique // lot « E-mail du 12/10 » (channel EMAIL), créé à la première validation
+  round          FeedbackRound?  @relation(fields: [roundId], references: [id], onDelete: SetNull)
+  proposals      EmailProposal[]
+
+  @@unique([oauthAccountId, gmailMessageId])
+  @@index([clientId, sentAt])
+  @@index([projectId, sentAt])
+  @@index([gmailThreadId])
+  @@index([analysis, sentAt])
+}
+
+/// Action proposée par l'IA à partir d'un e-mail client, validée une par une.
+model EmailProposal {
+  id              String         @id @default(cuid())
+  position        Int            @default(0)
+  title           String
+  description     String?
+  basis           ProposalBasis
+  quote           String // citation exacte, vérifiée dans l'e-mail
+  ownerText       String?
+  suggestedUserId String?
+  dueText         String?
+  suggestedDue    DateTime?
+  zone            String?
+  duplicateOfId   String?
+  status          ProposalStatus @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+
+  taskId  String?
+  task    Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  emailId String
+  email   EmailMessage @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([emailId, status])
+}
+
+/// Interlocuteur inconnu (ni membre, ni contact) : des compteurs, jamais le contenu.
+/// Proposé comme nouveau contact quand l'agence a vraiment échangé avec lui.
+model EmailSender {
+  email       String    @id
+  name        String?
+  domain      String
+  received    Int       @default(0) // messages reçus de lui
+  sent        Int       @default(0) // messages que l'agence lui a envoyés
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  dismissedAt DateTime?
+
+  @@index([dismissedAt, lastSeenAt])
 }

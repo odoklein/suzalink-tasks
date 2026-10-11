@@ -4,8 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { acceptMeetingProposals, ignoreMeetingProposal, linkMeetingProposal } from "@/app/actions/meetings";
 import { AutoRefresh } from "@/components/meetings/auto-refresh";
 import { CaptureControl } from "@/components/meetings/capture-control";
+import { EmailMeetingReview } from "@/components/meetings/email-meeting-review";
 import { DeleteMeetingButton, RetryReportButton } from "@/components/meetings/meeting-actions";
 import { ProjectPicker } from "@/components/meetings/project-picker";
 import { ProposalReview } from "@/components/meetings/proposal-review";
@@ -70,7 +72,8 @@ export default async function MeetingPage(props: PageProps<"/reunions/[id]">) {
               locked={!!meeting.roundId}
             />
             {meeting.reportStatus !== "NONE" && <Badge tone={report.tone}>{report.label}</Badge>}
-            {integrationEnabled("vexa") && meeting.platform && !hasReport && (
+            {meeting.source === "email" && !meeting.confirmedAt && <EmailMeetingReview meetingId={meeting.id} canManage={meeting.canManage} />}
+            {integrationEnabled("vexa") && meeting.platform && !hasReport && (meeting.source !== "email" || !!meeting.confirmedAt) && (
               <CaptureControl
                 meetingId={meeting.id}
                 status={meeting.captureStatus}
@@ -159,7 +162,11 @@ export default async function MeetingPage(props: PageProps<"/reunions/[id]">) {
                 </p>
               </div>
               <ProposalReview
-                meetingId={meeting.id}
+                actions={{
+                  accept: acceptMeetingProposals.bind(null, meeting.id),
+                  link: linkMeetingProposal.bind(null, meeting.id),
+                  ignore: ignoreMeetingProposal.bind(null, meeting.id),
+                }}
                 hasProject={!!meeting.projectId}
                 proposals={meeting.proposals}
                 segments={meeting.segments}

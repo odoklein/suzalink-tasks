@@ -12,6 +12,7 @@ import {
   deleteMeetingContent,
   linkProposal,
   retryReport,
+  reviewEmailMeeting,
   setMeetingProject,
   setProposalIgnored,
   type AcceptProposalInput,
@@ -119,6 +120,17 @@ export async function deleteMeeting(meetingId: string) {
   return safe(() =>
     runService(async () => {
       await deleteMeetingContent(await webUser(), id(meetingId));
+      refresh(meetingId);
+      return { ok: true as const };
+    }),
+  );
+}
+
+/** Réunion trouvée dans un e-mail : « Confirmer » ou « Ignorer ». */
+export async function reviewEmailMeetingAction(meetingId: string, keep: boolean) {
+  return safe(() =>
+    runService(async () => {
+      await reviewEmailMeeting(await webUser(), id(meetingId), keep);
       refresh(meetingId);
       return { ok: true as const };
     }),
