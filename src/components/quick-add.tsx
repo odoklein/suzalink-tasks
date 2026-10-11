@@ -109,7 +109,7 @@ export function QuickAdd({
   return (
     <div
       className={cn(
-        "rounded-md border border-control bg-surface transition-colors focus-within:border-accent focus-within:shadow-[var(--ring)]",
+        "rounded-md border border-control bg-surface transition-colors focus-within:border-accent focus-within:shadow-[var(--ring-field)]",
         compact ? "px-2 py-1.5" : "px-3 py-2",
       )}
     >

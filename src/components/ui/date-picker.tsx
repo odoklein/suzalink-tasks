@@ -162,7 +162,7 @@ function Panel({ value, onChoose }: { value: ISODate | null; onChoose: (value: I
           aria-label="Saisir une date"
           aria-invalid={invalid || undefined}
           placeholder="demain, +3j, 12/10…"
-          className="h-8 w-full rounded-md border border-control bg-surface-2 px-3 text-ui outline-hidden placeholder:text-muted focus-visible:border-accent focus-visible:shadow-[var(--ring)] aria-invalid:border-danger pointer-coarse:text-[16px]"
+          className="h-8 w-full rounded-md border border-control bg-surface-2 px-3 text-ui outline-hidden placeholder:text-muted focus-visible:border-accent focus-visible:shadow-[var(--ring-field)] aria-invalid:border-danger pointer-coarse:text-[16px]"
         />
         {invalid && (
           <p role="alert" className="mt-1 text-xs text-danger-text">
@@ -178,8 +178,8 @@ function Panel({ value, onChoose }: { value: ISODate | null; onChoose: (value: I
             type="button"
             onClick={() => onChoose(pick.value)}
             className={cn(
-              "rounded-sm border px-2 py-1 text-xs font-medium outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
-              pick.value && pick.value === value ? "border-accent bg-accent-soft text-accent" : "border-line text-ink-2 hover:border-line-strong hover:text-ink",
+              "rounded-full border px-2.5 py-1 text-xs font-medium outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
+              pick.value && pick.value === value ? "border-primary bg-primary text-primary-ink" : "border-line text-ink-2 hover:border-line-strong hover:text-ink",
             )}
           >
             {pick.label}
@@ -224,13 +224,13 @@ function Panel({ value, onChoose }: { value: ISODate | null; onChoose: (value: I
                       onClick={() => onChoose(day.value)}
                       onFocus={() => setFocused(day.value)}
                       className={cn(
-                        "tabular mx-auto my-px grid size-8 place-items-center rounded-md text-xs outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
+                        "tabular mx-auto my-px grid size-8 place-items-center rounded-full text-xs outline-hidden transition-colors focus-visible:shadow-[var(--ring)]",
                         selected
-                          ? "bg-accent font-semibold text-accent-ink"
+                          ? "bg-primary font-semibold text-primary-ink"
                           : day.inMonth
                             ? "text-ink hover:bg-sunken"
                             : "text-muted hover:bg-sunken",
-                        !selected && day.value === today && "font-semibold text-accent ring-1 ring-accent/40",
+                        !selected && day.value === today && "font-semibold text-ink ring-1 ring-line-strong",
                       )}
                     >
                       {day.day}

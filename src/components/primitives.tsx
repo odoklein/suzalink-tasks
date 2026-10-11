@@ -265,10 +265,12 @@ export function BillableBadge() {
 export { Kbd } from "@/components/ui/kbd";
 
 /**
- * Pastille de projet. La couleur claire/sombre vient de la palette (classe project-swatch,
- * voir globals.css). Sous 20 px, pas de lettres : une forme pleine ; rayon = 28 % du côté.
+ * Pastille de projet. La couleur claire/sombre vient de la palette (classes project-soft et
+ * project-swatch, voir globals.css). Dès 20 px : lettres de la clé sur fond teinté ; en dessous,
+ * pas de lettres, une forme pleine. Rayon = 28 % du côté.
  */
 export function ProjectTile({ color, label, size = 20 }: { color: string; label: string; size?: number }) {
+  const withLabel = size >= 20;
   return (
     <span
       aria-hidden="true"
@@ -276,12 +278,15 @@ export function ProjectTile({ color, label, size = 20 }: { color: string; label:
         ...projectSwatchVars(color),
         width: size,
         height: size,
-        fontSize: size * 0.4,
+        fontSize: Math.round(size * 0.42),
         borderRadius: Math.round(size * 0.28),
       }}
-      className="project-swatch inline-flex shrink-0 items-center justify-center font-mono font-semibold tracking-tight"
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center font-semibold leading-none tracking-tight",
+        withLabel ? "project-soft" : "project-swatch",
+      )}
     >
-      {size >= 20 ? label.slice(0, 2) : null}
+      {withLabel ? label.slice(0, 2) : null}
     </span>
   );
 }

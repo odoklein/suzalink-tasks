@@ -59,32 +59,32 @@ export function Dialog({
         tabIndex={-1}
         onMouseDown={(event) => event.stopPropagation()}
         className={cn(
-          "animate-pop-in flex max-h-[80vh] w-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-overlay outline-hidden",
+          "animate-pop-in flex max-h-[80vh] w-full flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-overlay outline-hidden",
           wide ? "max-w-2xl" : "max-w-lg",
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 px-5 pb-2 pt-5">
           <div>
-            <h2 id={titleId} className="text-title font-semibold tracking-[-0.01em]">{title}</h2>
-            {description && <p className="mt-0.5 text-ui text-muted">{description}</p>}
+            <h2 id={titleId} className="text-title font-semibold tracking-title">{title}</h2>
+            {description && <p className="mt-1 text-ui text-muted">{description}</p>}
           </div>
           <IconButton label="Fermer" onClick={onClose}>
             <X className="size-4" />
           </IconButton>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 scroll-thin">{children}</div>
-        {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">{footer}</div>}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-3 scroll-thin">{children}</div>
+        {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-line px-5 py-3.5">{footer}</div>}
       </div>
     </div>
   );
 }
 
 export const fieldClass =
-  "w-full rounded-md border border-control bg-surface-2 px-3 py-2 text-body outline-hidden transition-colors placeholder:text-muted focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]";
+  "w-full rounded-md border border-control bg-surface-2 px-3 py-2 text-body outline-hidden transition-colors placeholder:text-muted focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring-field)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]";
 
 /** Champ dense (lignes de tableau, formulaires en ligne) : mêmes jetons que fieldClass, en text-ui. */
 export const compactFieldClass =
-  "rounded-md border border-control bg-surface-2 px-2 py-1 text-ui text-ink outline-hidden transition-colors placeholder:text-muted focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]";
+  "rounded-md border border-control bg-surface-2 px-2 py-1 text-ui text-ink outline-hidden transition-colors placeholder:text-muted focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring-field)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]";
 
 export const labelClass = "mb-1.5 block text-xs font-medium text-ink-2";
 

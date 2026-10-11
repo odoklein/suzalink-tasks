@@ -8,7 +8,7 @@ type Size = "md" | "lg";
 
 const control =
   "w-full border border-control bg-surface-2 text-ink outline-hidden placeholder:text-muted transition-[border-color,background-color,box-shadow] duration-[var(--dur-1)] " +
-  "focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring)] " +
+  "focus-visible:border-accent focus-visible:bg-surface focus-visible:shadow-[var(--ring-field)] " +
   "disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-danger " +
   // 16 px minimum sur écran tactile : sinon iOS zoome à la prise de focus.
   "pointer-coarse:text-[16px]";

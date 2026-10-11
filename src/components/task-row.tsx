@@ -6,6 +6,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateTask } from "@/app/actions/tasks";
+import { useAnnounce } from "@/components/announcer";
 import { useApp } from "@/components/app-context";
 import {
   AgeChip,
@@ -19,7 +20,7 @@ import {
   ZoneChip,
 } from "@/components/primitives";
 import { SelectMenu } from "@/components/select-menu";
-import { TASK_STATUSES } from "@/lib/constants";
+import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { plural } from "@/lib/plural";
 import type { TaskCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export function TaskRow({
   arrived?: boolean;
 }) {
   const { openTask } = useApp();
+  const announce = useAnnounce();
   const [pending, startTransition] = useTransition();
   const done = task.status === "DONE";
 
@@ -48,8 +50,11 @@ export function TaskRow({
     startTransition(async () => {
       const result = await updateTask(task.id, { status });
       if (!result.ok) toast.error(result.error);
-      else if (status === "WAITING_CLIENT" && task.status !== "WAITING_CLIENT") {
-        promptWaitingFor({ taskId: task.id, ref: `${projectKey}-${task.number}` });
+      else {
+        announce(`${projectKey}-${task.number} : ${STATUS_BY_VALUE[status].label}.`);
+        if (status === "WAITING_CLIENT" && task.status !== "WAITING_CLIENT") {
+          promptWaitingFor({ taskId: task.id, ref: `${projectKey}-${task.number}` });
+        }
       }
     });
 
@@ -73,7 +78,7 @@ export function TaskRow({
         onClick={() => openTask(task.id, `${projectKey}-${task.number}`)}
         className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left"
       >
-        <span className="w-12 shrink-0 font-mono text-meta text-muted">
+        <span className="min-w-12 shrink-0 whitespace-nowrap font-mono text-meta text-muted">
           {projectKey}-{task.number}
         </span>
         {project && <ProjectTile color={project.color} label={projectKey} size={16} />}

@@ -12,7 +12,8 @@ const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       text: ["meta", "ui", "body", "title", "h2", "h1", "hero"],
-      shadow: ["xs", "card", "raised", "pop", "overlay"],
+      shadow: ["xs", "card", "raised", "pop", "overlay", "button"],
+      tracking: ["title"],
     },
     classGroups: {
       z: [{ z: ["sidebar", "drawer", "dialog", "palette", "popover", "toast"] }],

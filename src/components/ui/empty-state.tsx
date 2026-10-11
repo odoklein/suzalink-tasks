@@ -33,11 +33,11 @@ export function EmptyState({
   return (
     <div className={cn("flex flex-col items-center text-center", compact ? "px-3 py-6" : "px-4 py-12", className)}>
       {icon && (
-        <span className={cn("mb-3 grid shrink-0 place-items-center rounded-lg [&>svg]:size-5", compact ? "size-8" : "size-10", TILE[tone] ?? TILE.neutral)}>
+        <span className={cn("mb-3 grid shrink-0 place-items-center rounded-full ring-4 ring-surface-2 [&>svg]:size-5", compact ? "size-9" : "size-11", TILE[tone] ?? TILE.neutral)}>
           {icon}
         </span>
       )}
-      <p className={cn("font-semibold", compact ? "text-ui" : "font-display text-h2 tracking-[-0.01em]")}>{title}</p>
+      <p className={cn("font-semibold", compact ? "text-ui" : "font-display text-h2 tracking-title")}>{title}</p>
       {children && <div className="mx-auto mt-1 max-w-sm text-ui text-muted">{children}</div>}
       {action && <div className="mt-4">{action}</div>}
     </div>

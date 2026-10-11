@@ -1,10 +1,27 @@
 "use client";
 
-import { cloneElement, useEffect, useId, useRef, useState } from "react";
+import { cloneElement, use, useEffect, useId, useRef, useState } from "react";
 
 import { Floating } from "@/components/ui/floating";
 import { Kbd } from "@/components/ui/kbd";
 import type { Placement } from "@/lib/floating";
+
+const LAZY = Symbol.for("react.lazy");
+
+/**
+ * En développement, React 19.2 peut transmettre l’enfant créé par un composant serveur sous forme
+ * paresseuse (lazy), parfois une référence dans une autre : cloneElement en ferait un élément sans
+ * type (« Element type is invalid »). On déroule d’abord les références, comme Radix Slot.
+ */
+function useResolvedChild(child: React.ReactElement): React.ReactElement {
+  let node: unknown = child;
+  for (let depth = 0; depth < 8; depth++) {
+    const lazy = node as { $$typeof?: symbol; _payload?: PromiseLike<unknown> } | null;
+    if (lazy?.$$typeof !== LAZY || typeof lazy._payload?.then !== "function") break;
+    node = use(lazy._payload);
+  }
+  return node as React.ReactElement;
+}
 
 /**
  * Infobulle : apparaît après 120 ms au survol ou au focus clavier, jamais au toucher, et se
@@ -29,6 +46,7 @@ export function Tooltip({
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const id = useId();
+  const child = useResolvedChild(children);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -44,7 +62,7 @@ export function Tooltip({
     setOpen(false);
   };
 
-  if (!content) return children;
+  if (!content) return child;
 
   return (
     <span
@@ -58,7 +76,7 @@ export function Tooltip({
       onBlur={hide}
       onKeyDown={(event) => event.key === "Escape" && hide()}
     >
-      {cloneElement(children, { "aria-describedby": open ? id : undefined } as React.HTMLAttributes<HTMLElement>)}
+      {cloneElement(child, { "aria-describedby": open ? id : undefined } as React.HTMLAttributes<HTMLElement>)}
       <Floating
         anchor={anchor}
         open={open}

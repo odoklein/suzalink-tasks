@@ -5,10 +5,12 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
+  type Announcements,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -26,11 +28,12 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { moveTask } from "@/app/actions/tasks";
+import { useAnnounce } from "@/components/announcer";
 import { StatusIcon } from "@/components/primitives";
 import { QuickAdd } from "@/components/quick-add";
 import { TaskCard } from "@/components/task-card";
 import { IconButton } from "@/components/ui/button";
-import { TASK_STATUSES } from "@/lib/constants";
+import { STATUS_BY_VALUE, TASK_STATUSES } from "@/lib/constants";
 import { computePosition } from "@/lib/position";
 import { useArrivals } from "@/lib/use-arrivals";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
@@ -90,10 +93,40 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     setColumns(toColumns(tasks));
   }
 
+  const announce = useAnnounce();
+
+  // Souris et toucher sont deux capteurs : au doigt, le glisser démarre après un appui court, pour
+  // que le défilement de la colonne et de la page reste possible. Espace lève, Entrée ouvre la tâche.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space"] },
+    }),
   );
+
+  const refOf = (id: string | number) => {
+    const task = Object.values(columns).flat().find((candidate) => candidate.id === String(id));
+    return task ? `${projectKey}-${task.number}` : "La tâche";
+  };
+  const where = (id: string | number) => {
+    const column = findColumn(columns, String(id));
+    if (!column) return "";
+    const index = columns[column].findIndex((task) => task.id === String(id));
+    const place = index === -1 ? "" : `, position ${index + 1} sur ${columns[column].length}`;
+    return `« ${STATUS_BY_VALUE[column].label} »${place}`;
+  };
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `${refOf(active.id)} saisie. ${where(active.id)}.`,
+    onDragOver: ({ active, over }) => (over ? `${refOf(active.id)} au-dessus de ${where(over.id) || "la colonne"}.` : undefined),
+    onDragEnd: ({ active, over }) => {
+      if (!over) return `${refOf(active.id)} remise à sa place.`;
+      // Le réordonnancement dans une même colonne n’est appliqué qu’au dépôt : la position finale est celle de la cible.
+      return `${refOf(active.id)} déplacée dans ${where(over.id !== active.id && findColumn(columns, String(over.id)) === findColumn(columns, String(active.id)) ? over.id : active.id)}.`;
+    },
+    onDragCancel: ({ active }) => `Déplacement de ${refOf(active.id)} annulé.`,
+  };
 
   const activeTask = useMemo(
     () => (activeId ? Object.values(columns).flat().find((task) => task.id === activeId) : undefined),
@@ -157,15 +190,19 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
 
     list[index] = { ...list[index], position, status: column };
     setColumns((current) => ({ ...current, [column]: list }));
+    saveMove(String(active.id), column, position, before);
+  };
 
-    const taskBefore = tasks.find((task) => task.id === active.id);
+  // Enregistre un déplacement déjà appliqué à l’écran ; en cas de refus, la carte revient où elle était.
+  const saveMove = (taskId: string, column: TaskStatus, position: number, before: Columns) => {
+    const taskBefore = tasks.find((task) => task.id === taskId);
     setInflight((count) => count + 1);
     startTransition(async () => {
       try {
-        const result = await moveTask(String(active.id), column, position);
+        const result = await moveTask(taskId, column, position);
         if (!result.ok) {
           toast.error(result.error);
-          setColumns(before); // la carte revient là où elle était
+          setColumns(before);
         } else if (taskBefore && column === "WAITING_CLIENT" && taskBefore.status !== "WAITING_CLIENT") {
           promptWaitingFor({ taskId: taskBefore.id, ref: `${projectKey}-${taskBefore.number}` });
         }
@@ -175,9 +212,35 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
     });
   };
 
+  // « Déplacer vers… » : le déplacement sans glisser. La carte prend la fin de la colonne cible
+  // (la tête de « Fait », triée par date), comme le serveur la classera.
+  const moveToColumn = (taskId: string, to: TaskStatus) => {
+    const from = findColumn(columns, taskId);
+    const moving = from && columns[from].find((task) => task.id === taskId);
+    if (!from || !moving || from === to) return;
+    const target = columns[to];
+    const position = to === "DONE" ? computePosition(undefined, target[0]?.position) : computePosition(target[target.length - 1]?.position);
+    const moved = { ...moving, position, status: to };
+    const before = columns;
+    setColumns({
+      ...columns,
+      [from]: columns[from].filter((task) => task.id !== taskId),
+      [to]: to === "DONE" ? [moved, ...target] : [...target, moved],
+    });
+    announce(`${projectKey}-${moving.number} déplacée dans « ${STATUS_BY_VALUE[to].label} ».`);
+    saveMove(taskId, to, position, before);
+  };
+
   return (
     <DndContext
       sensors={sensors}
+      accessibility={{
+        announcements,
+        screenReaderInstructions: {
+          draggable:
+            "Appuyez sur Espace pour saisir la tâche, sur les flèches pour la déplacer, sur Espace pour la déposer, sur Échap pour annuler. Entrée ouvre la tâche.",
+        },
+      }}
       collisionDetection={closestCorners}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -216,6 +279,7 @@ export function Board({ projectId, projectKey, tasks }: { projectId: string; pro
             projectKey={projectKey}
             dragging={activeId !== null}
             arrived={arrived}
+            onMove={moveToColumn}
           />
         ))}
       </div>
@@ -234,6 +298,7 @@ function Column({
   projectKey,
   dragging,
   arrived,
+  onMove,
 }: {
   status: TaskStatus;
   label: string;
@@ -242,6 +307,7 @@ function Column({
   projectKey: string;
   dragging: boolean;
   arrived: ReadonlySet<string>;
+  onMove: (taskId: string, to: TaskStatus) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const oldest = status === "WAITING_CLIENT" ? oldestWaitingDays(tasks) : 0;
@@ -323,7 +389,7 @@ function Column({
             <QuickAdd projectId={projectId} status={status} compact autoFocus onDone={() => setAdding(false)} />
           )}
           {visible.map((task) => (
-            <SortableCard key={task.id} task={task} projectKey={projectKey} arrived={arrived.has(task.id)} />
+            <SortableCard key={task.id} task={task} projectKey={projectKey} arrived={arrived.has(task.id)} onMove={onMove} />
           ))}
           {visible.length < tasks.length && (
             <button
@@ -350,8 +416,18 @@ function Column({
   );
 }
 
-function SortableCard({ task, projectKey, arrived }: { task: TaskCardData; projectKey: string; arrived: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
+function SortableCard({
+  task,
+  projectKey,
+  arrived,
+  onMove,
+}: {
+  task: TaskCardData;
+  projectKey: string;
+  arrived: boolean;
+  onMove: (taskId: string, to: TaskStatus) => void;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: task.id,
     // Les cartes voisines glissent avec la même durée et la même courbe que le reste de l’interface.
     transition: { duration: 180, easing: EASE_OUT },
@@ -365,10 +441,15 @@ function SortableCard({ task, projectKey, arrived }: { task: TaskCardData; proje
         isDragging && "opacity-30",
         isOver && !isDragging && "before:absolute before:-top-[5px] before:inset-x-1 before:h-0.5 before:rounded-full before:bg-accent",
       )}
-      {...attributes}
-      {...listeners}
     >
-      <TaskCard task={task} projectKey={projectKey} className={arrived ? "animate-arrive" : undefined} />
+      <TaskCard
+        task={task}
+        projectKey={projectKey}
+        className={arrived ? "animate-arrive" : undefined}
+        // La carte entière est la poignée : un seul élément focusable, Espace lève, Entrée ouvre.
+        handle={{ ref: setActivatorNodeRef, props: { ...attributes, ...listeners } as React.HTMLAttributes<HTMLElement> }}
+        onMove={(status) => onMove(task.id, status)}
+      />
     </div>
   );
 }

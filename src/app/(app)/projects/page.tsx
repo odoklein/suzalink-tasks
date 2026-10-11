@@ -124,7 +124,7 @@ export default async function ProjectsPage(props: PageProps<"/projects">) {
 
         {all.length === 0 && (
           <div className="mt-10 rounded-lg border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
-            <p className="text-title font-semibold tracking-[-0.01em]">Aucun projet</p>
+            <p className="text-title font-semibold tracking-title">Aucun projet</p>
             <p className="mt-1 text-ui text-muted">Créez le premier projet pour commencer à suivre les tâches.</p>
             <div className="mt-5 flex justify-center">
               <NewProjectButton />
@@ -252,7 +252,7 @@ function ProjectCard({ project, compact }: { project: ProjectRow; compact: boole
       <div className="flex items-start gap-3">
         <ProjectTile color={project.color} label={project.key} size={34} />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-title font-semibold tracking-[-0.01em] group-hover:text-accent">{project.name}</h3>
+          <h3 className="truncate text-title font-semibold tracking-title group-hover:text-accent">{project.name}</h3>
           <p className="truncate text-xs text-muted">
             {[project.client?.name, project.endClient].filter(Boolean).join(" · ") || "Projet interne"}
           </p>

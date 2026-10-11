@@ -85,7 +85,7 @@ export function ActionMenu({
           role="menu"
           aria-label={label}
           onKeyDown={onKeyDown}
-          className={cn("min-w-48 rounded-md border border-line bg-surface p-1 shadow-pop", className)}
+          className={cn("min-w-48 rounded-lg border border-line bg-surface p-1.5 shadow-pop", className)}
         >
           {items.map((item) => (
             <button
@@ -100,7 +100,7 @@ export function ActionMenu({
                 item.onSelect();
               }}
               className={cn(
-                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-ui outline-hidden hover:bg-sunken focus-visible:bg-sunken disabled:opacity-45 pointer-coarse:min-h-11",
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui outline-hidden hover:bg-sunken focus-visible:bg-sunken disabled:opacity-45 pointer-coarse:min-h-11",
                 item.tone === "danger" ? "text-danger-text" : "text-ink",
               )}
             >

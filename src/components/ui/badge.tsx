@@ -5,16 +5,17 @@ export type BadgeVariant = "soft" | "outline" | "solid";
 
 // Classes écrites en entier pour que Tailwind les détecte. « solid » prend le ton -text en fond
 // et la couleur de page en texte : contraste AA dans les deux thèmes (vérifié par contrast.mjs).
+// « soft » porte un liseré intérieur du même ton : la pastille se détache sur une ligne survolée.
 export const TONE_CLASSES: Record<Tone, Record<BadgeVariant, string>> = {
-  neutral: { soft: "bg-sunken text-ink-2", outline: "border border-line-strong text-ink-2", solid: "bg-ink text-bg" },
-  accent: { soft: "bg-accent-soft text-accent", outline: "border border-accent/40 text-accent", solid: "bg-accent text-accent-ink" },
-  todo: { soft: "bg-todo-soft text-todo-text", outline: "border border-todo/40 text-todo-text", solid: "bg-todo-text text-bg" },
-  progress: { soft: "bg-progress-soft text-progress-text", outline: "border border-progress/40 text-progress-text", solid: "bg-progress text-accent-ink" },
-  waiting: { soft: "bg-waiting-soft text-waiting-text", outline: "border border-waiting/40 text-waiting-text", solid: "bg-waiting-text text-bg" },
-  review: { soft: "bg-review-soft text-review-text", outline: "border border-review/40 text-review-text", solid: "bg-review-text text-bg" },
-  done: { soft: "bg-done-soft text-done-text", outline: "border border-done/40 text-done-text", solid: "bg-done-text text-bg" },
-  danger: { soft: "bg-danger-soft text-danger-text", outline: "border border-danger/40 text-danger-text", solid: "bg-danger-text text-bg" },
-  soon: { soft: "bg-soon-soft text-soon-text", outline: "border border-soon/40 text-soon-text", solid: "bg-soon-text text-bg" },
+  neutral: { soft: "bg-sunken text-ink-2 ring-1 ring-inset ring-line", outline: "border border-line-strong text-ink-2", solid: "bg-ink text-bg" },
+  accent: { soft: "bg-accent-soft text-accent ring-1 ring-inset ring-accent/20", outline: "border border-accent/40 text-accent", solid: "bg-accent text-accent-ink" },
+  todo: { soft: "bg-todo-soft text-todo-text ring-1 ring-inset ring-todo/20", outline: "border border-todo/40 text-todo-text", solid: "bg-todo-text text-bg" },
+  progress: { soft: "bg-progress-soft text-progress-text ring-1 ring-inset ring-progress/20", outline: "border border-progress/40 text-progress-text", solid: "bg-progress text-accent-ink" },
+  waiting: { soft: "bg-waiting-soft text-waiting-text ring-1 ring-inset ring-waiting/25", outline: "border border-waiting/40 text-waiting-text", solid: "bg-waiting-text text-bg" },
+  review: { soft: "bg-review-soft text-review-text ring-1 ring-inset ring-review/20", outline: "border border-review/40 text-review-text", solid: "bg-review-text text-bg" },
+  done: { soft: "bg-done-soft text-done-text ring-1 ring-inset ring-done/20", outline: "border border-done/40 text-done-text", solid: "bg-done-text text-bg" },
+  danger: { soft: "bg-danger-soft text-danger-text ring-1 ring-inset ring-danger/20", outline: "border border-danger/40 text-danger-text", solid: "bg-danger-text text-bg" },
+  soon: { soft: "bg-soon-soft text-soon-text ring-1 ring-inset ring-soon/25", outline: "border border-soon/40 text-soon-text", solid: "bg-soon-text text-bg" },
 };
 
 /**

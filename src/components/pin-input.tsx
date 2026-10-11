@@ -97,7 +97,7 @@ export function PinInput({
             }}
             className={cn(
               "tabular w-full min-w-0 rounded-lg border border-control bg-surface text-center font-mono font-semibold text-ink caret-accent outline-hidden transition-[border-color,box-shadow,transform]",
-              "focus-visible:border-accent focus-visible:shadow-[var(--ring)]",
+              "focus-visible:border-accent focus-visible:shadow-[var(--ring-field)]",
               size === "lg" ? "h-14 text-h2" : "h-11 text-title",
               invalid && "border-danger focus-visible:border-danger",
             )}

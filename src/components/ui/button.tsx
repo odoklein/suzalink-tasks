@@ -10,9 +10,9 @@ const base =
   "active:scale-[.98] focus-visible:shadow-[var(--ring)] disabled:pointer-events-none disabled:opacity-45";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-primary-ink hover:bg-primary/90",
-  accent: "bg-accent text-accent-ink hover:bg-accent/90",
-  secondary: "border border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink",
+  primary: "bg-primary text-primary-ink shadow-button hover:bg-primary/90",
+  accent: "bg-accent text-accent-ink shadow-button hover:bg-accent/90",
+  secondary: "border border-line bg-surface text-ink-2 shadow-xs hover:border-line-strong hover:text-ink",
   ghost: "text-ink-2 hover:bg-sunken hover:text-ink",
   danger: "bg-danger text-accent-ink hover:bg-danger/90",
 };

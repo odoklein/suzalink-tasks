@@ -2,7 +2,7 @@
 
 import type { ActivityType, ClientKind, MessageKind, ProjectStatus } from "@prisma/client";
 import { ChevronDown, ExternalLink, FileSpreadsheet, MessageSquareText, MoreHorizontal, Rocket } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -32,6 +32,7 @@ import { chaseLabel, chaseState, waitingStart } from "@/lib/chasing";
 import { PROJECT_STATUSES, PROJECT_STATUS_BY_VALUE } from "@/lib/constants";
 import { looksLikeTable } from "@/lib/feedback-import";
 import { plural } from "@/lib/plural";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { PROJECT_ACTION_EVENT, type ProjectAction } from "@/lib/project-actions";
 import { formatParis } from "@/lib/time";
 import type { TaskCard } from "@/lib/types";
@@ -91,6 +92,9 @@ const STATUS_TONE: Record<ProjectStatus, Tone> = {
   DONE: "done",
 };
 
+/** Sous cette largeur (md de Tailwind), la barre latérale devient un tiroir : c'est un téléphone. */
+const PHONE_QUERY = "(max-width: 767px)";
+
 const TAB_LABELS: Record<ProjectTab, string> = {
   tableau: "Tableau",
   liste: "Liste",
@@ -110,9 +114,10 @@ export function ProjectView({
   /** Source d'import à isoler dans la liste (atterrissage après un import). */
   sourceFilter?: string | null;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [tab, setTab] = useState<ProjectTab>(initialTab);
+  const searchParams = useSearchParams();
+  const phone = useMediaQuery(PHONE_QUERY);
+  const [chosenTab, setTab] = useState<ProjectTab>(initialTab);
   const [dialog, setDialog] = useState<"import" | "recap" | "delivery" | null>(null);
   const [editingDelivery, setEditingDelivery] = useState<EditableDelivery | null>(null);
   const [importText, setImportText] = useState("");
@@ -139,12 +144,17 @@ export function ProjectView({
   }, []);
   const tabIds = useTabIds();
 
-  // L'URL gouverne la vue : un lien (ou l'atterrissage après un import) change d'onglet.
-  const [seenInitialTab, setSeenInitialTab] = useState(initialTab);
-  if (seenInitialTab !== initialTab) {
-    setSeenInitialTab(initialTab);
-    setTab(initialTab);
+  // L'URL gouverne la vue : un lien (ou l'atterrissage après un import) change d'onglet. On lit le
+  // paramètre dans l'URL du navigateur, que `selectTab` met à jour sans repasser par le serveur.
+  const vue = searchParams.get("vue");
+  const urlTab = (Object.keys(TAB_LABELS) as ProjectTab[]).find((candidate) => candidate === vue) ?? "tableau";
+  const [seenUrlTab, setSeenUrlTab] = useState(urlTab);
+  if (seenUrlTab !== urlTab) {
+    setSeenUrlTab(urlTab);
+    setTab(urlTab);
   }
+  // Sur téléphone, un projet s'ouvre sur la liste : le tableau n'y est affiché que si l'URL le demande.
+  const tab = chosenTab === "tableau" && phone && !vue ? "liste" : chosenTab;
 
   // Coller un tableau n'importe où sur la page ouvre l'import, déjà rempli.
   useEffect(() => {
@@ -188,9 +198,12 @@ export function ProjectView({
     { label: "Mise en ligne", icon: <Rocket />, onSelect: () => setDialog("delivery") },
   ] as const;
 
+  // Les données de tous les onglets sont déjà là : l'URL suit le choix sans nouveau rendu serveur.
+  // Le tableau est la vue sans paramètre, sauf sur téléphone où la liste l'est : il y faut `?vue=tableau`.
   const selectTab = (next: ProjectTab) => {
     setTab(next);
-    router.replace(next === "tableau" ? pathname : `${pathname}?vue=${next}`, { scroll: false });
+    const bare = next === "tableau" && !phone;
+    window.history.replaceState(null, "", bare ? pathname : `${pathname}?vue=${next}`);
   };
 
   const openRoundsCount = project.rounds.filter((round) => round.status === "OPEN").length;

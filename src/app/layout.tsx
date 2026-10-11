@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 
@@ -7,16 +7,9 @@ import { parseTheme, THEME_COOKIE, themeAttribute } from "@/lib/theme";
 
 import "./globals.css";
 
-const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-// Bricolage Grotesque : uniquement à partir de 22 px (h1 de page, héros d’Aujourd’hui,
-// valeurs des statistiques, titres d’états vides, connexion). Les titres de cartes, de
-// dialogues et de panneaux restent en Instrument Sans 17 px semi-gras.
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
-  axes: ["opsz", "wdth"],
-  variable: "--font-display-face",
-  display: "swap",
-});
+// Inter partout, une seule famille : l’axe de taille optique (opsz) resserre d’office les titres
+// et les chiffres des statistiques, sans seconde police de titrage.
+const body = Inter({ subsets: ["latin"], axes: ["opsz"], variable: "--font-body", display: "swap" });
 // JetBrains Mono : identifiants de tâche, PIN et clés uniquement, jamais les dates.
 const code = JetBrains_Mono({
   subsets: ["latin"],
@@ -33,8 +26,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#101216" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f1f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
   ],
 };
 
@@ -42,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Le thème choisi (Paramètres › Préférences) est rendu par le serveur : pas de flash.
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <html lang="fr" data-theme={themeAttribute(theme)} className={`${body.variable} ${display.variable} ${code.variable}`}>
+    <html lang="fr" data-theme={themeAttribute(theme)} className={`${body.variable} ${code.variable}`}>
       <body>
         {children}
         {/* En bas au centre : ne couvre plus le bouton « Commenter » du tiroir. */}
@@ -51,6 +44,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           containerAriaLabel="Notifications"
           toastOptions={{
             closeButtonAriaLabel: "Fermer",
+            // Le style de sonner impose son rayon : le nôtre (rounded-xl) passe en important.
+            className: "rounded-xl!",
             style: {
               background: "var(--surface)",
               color: "var(--ink)",

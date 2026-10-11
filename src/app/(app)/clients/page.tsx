@@ -94,7 +94,7 @@ export default async function ClientsPage() {
                 <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-md bg-sunken text-ui font-semibold text-ink-2">
                   {initials(client.name)}
                 </span>
-                <h2 className="text-title font-semibold tracking-[-0.01em]">{client.name}</h2>
+                <h2 className="text-title font-semibold tracking-title">{client.name}</h2>
                 <Badge tone={client.kind === "AGENCY" ? "accent" : "neutral"}>
                   {client.kind === "AGENCY" ? "Agence partenaire" : "Client direct"}
                 </Badge>

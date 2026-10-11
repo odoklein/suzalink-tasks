@@ -461,7 +461,7 @@ function TitleField({
           (event.target as HTMLTextAreaElement).blur();
         }
       }}
-      className="w-full resize-none rounded-sm bg-transparent text-h2 font-semibold leading-snug tracking-[-0.01em] outline-hidden focus-visible:shadow-[var(--ring)]"
+      className="w-full resize-none rounded-sm bg-transparent text-h2 font-semibold leading-snug tracking-title outline-hidden focus-visible:shadow-[var(--ring)]"
     />
   );
 }
@@ -540,7 +540,7 @@ function CommentComposer({ taskId, onSubmit }: { taskId: string; onSubmit: (body
       if (await onSubmit(body)) update("");
     });
   return (
-    <div className="mt-4 rounded-md border border-line bg-surface-2 focus-within:border-accent focus-within:shadow-[var(--ring)]">
+    <div className="mt-4 rounded-md border border-line bg-surface-2 focus-within:border-accent focus-within:shadow-[var(--ring-field)]">
       <textarea
         value={body}
         rows={2}

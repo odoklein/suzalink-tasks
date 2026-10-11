@@ -209,7 +209,7 @@ export function SelectMenu<T extends string>({
               }}
               placeholder="Filtrer…"
               aria-label={`Filtrer : ${label}`}
-              className="mb-1 w-full rounded-sm bg-surface-2 px-2 py-1.5 text-ui outline-hidden placeholder:text-muted focus-visible:shadow-[var(--ring)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]"
+              className="mb-1 w-full rounded-sm border border-transparent bg-surface-2 px-2 py-1.5 text-ui outline-hidden placeholder:text-muted focus-visible:border-accent focus-visible:shadow-[var(--ring-field)] pointer-coarse:min-h-11 pointer-coarse:text-[16px]"
             />
           )}
           <ul

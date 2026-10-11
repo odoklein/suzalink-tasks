@@ -111,7 +111,8 @@ const TEXT = [
   "ink", "ink-2", "muted", "accent", "progress-text", "todo-text", "waiting-text",
   "done-text", "review-text", "danger-text", "soon-text",
 ];
-const GROUNDS = ["surface", "bg", "sunken"];
+// chrome : fond de la barre latérale et de la coque, sous les libellés du menu.
+const GROUNDS = ["surface", "bg", "sunken", "chrome"];
 const TONES = ["progress", "todo", "waiting", "done", "review", "danger", "soon"];
 
 let failures = 0;
