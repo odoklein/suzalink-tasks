@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { revokeToken } from "@/lib/google/oauth";
 import { enqueueJob } from "@/lib/jobs/queue";
 import { MEETING_JOBS } from "@/lib/meetings/job-kinds";
+import { syncCalendars } from "@/lib/meetings/sync";
 import { open, seal } from "@/lib/secret-box";
 
 type GoogleGrant = {
@@ -40,7 +41,13 @@ export async function linkGoogleAccount(userId: string, grant: GoogleGrant): Pro
     update: tokens,
     select: { id: true },
   });
-  await enqueueJob(MEETING_JOBS.calendarSync, { accountId: account.id }, { dedupeKey: `calsync:connect:${account.id}:${Date.now()}` });
+  // Première lecture tout de suite, sans attendre le cron ; en cas d'échec, la file la refera.
+  try {
+    await syncCalendars(account.id);
+  } catch (error) {
+    console.error("calendar-sync-on-connect", error);
+    await enqueueJob(MEETING_JOBS.calendarSync, { accountId: account.id }, { dedupeKey: `calsync:connect:${account.id}:${Date.now()}` });
+  }
   return "ok";
 }
 

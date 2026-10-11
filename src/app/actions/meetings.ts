@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { safe } from "@/lib/action";
 import { verifySession } from "@/lib/dal";
+import { db } from "@/lib/db";
 import { disconnectGoogleAccount } from "@/lib/meetings/accounts";
 import { approveCapture, withdrawCapture } from "@/lib/meetings/capture";
 import {
@@ -15,6 +16,7 @@ import {
   setProposalIgnored,
   type AcceptProposalInput,
 } from "@/lib/meetings/review";
+import { syncCalendars } from "@/lib/meetings/sync";
 import { runService, ServiceError } from "@/lib/services/core";
 import { idSchema } from "@/lib/validation";
 
@@ -121,6 +123,22 @@ export async function deleteMeeting(meetingId: string) {
       return { ok: true as const };
     }),
   );
+}
+
+/** « Actualiser » : relit tout de suite l'agenda du membre, sans attendre le passage du cron. */
+export async function refreshMyCalendar() {
+  return safe(async () => {
+    const { userId } = await verifySession();
+    const account = await db.oAuthAccount.findUnique({ where: { userId_provider: { userId, provider: "google" } }, select: { id: true, reconnectRequired: true } });
+    if (!account) return { error: "Connectez d’abord votre agenda Google." };
+    if (account.reconnectRequired) return { error: "L’accès à votre agenda a été retiré : reconnectez-le." };
+    await syncCalendars(account.id);
+    const after = await db.oAuthAccount.findUnique({ where: { id: account.id }, select: { lastError: true, reconnectRequired: true } });
+    refresh();
+    if (after?.reconnectRequired) return { error: "L’accès à votre agenda a été retiré : reconnectez-le." };
+    if (after?.lastError) return { error: `Lecture de l’agenda impossible : ${after.lastError}` };
+    return { ok: true as const };
+  });
 }
 
 /** Paramètres › Google Agenda › « Déconnecter ». */

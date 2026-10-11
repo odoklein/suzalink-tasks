@@ -116,6 +116,13 @@ async function markCancelled(accountId: string, calendarEventId: string) {
   await cancelMeetingCapture(meeting.id, "Réunion annulée dans l’agenda.");
 }
 
+/**
+ * Gardée : une visio que le robot peut rejoindre, ou un rendez-vous avec un
+ * invité extérieur (téléphone, sur place), utile pour suivre le client même
+ * sans enregistrement. Un créneau interne sans lien (déjeuner…) est ignoré.
+ */
+const isWorthKeeping = (draft: MeetingDraft) => !!draft.link || !draft.internalOnly;
+
 /** Relit la fenêtre de l'agenda principal d'un compte. */
 export async function syncAccount(account: OAuthAccount) {
   const token = await accessTokenFor(account);
@@ -131,8 +138,7 @@ export async function syncAccount(account: OAuthAccount) {
     if (result.kind === "ignored") continue;
     seen.add(event.id);
     if (result.kind === "cancelled") await markCancelled(account.id, event.id);
-    else if (result.draft.link) await upsertMeeting(account, result.draft, context);
-    // Sans lien de visioconférence reconnu : rien à enregistrer.
+    else if (isWorthKeeping(result.draft)) await upsertMeeting(account, result.draft, context);
   }
 
   // Réunions suivies qui ne sont plus dans la liste : déplacées hors de la fenêtre, ou supprimées.
@@ -149,7 +155,7 @@ export async function syncAccount(account: OAuthAccount) {
     if (!calendarEventId) continue;
     const event = await getEvent(token, calendarEventId);
     const result = event ? toMeetingDraft(event, context.agency) : null;
-    if (result?.kind === "meeting" && result.draft.link) await upsertMeeting(account, result.draft, context);
+    if (result?.kind === "meeting" && isWorthKeeping(result.draft)) await upsertMeeting(account, result.draft, context);
     else await markCancelled(account.id, calendarEventId);
   }
 

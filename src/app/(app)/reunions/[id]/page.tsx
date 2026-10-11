@@ -70,7 +70,7 @@ export default async function MeetingPage(props: PageProps<"/reunions/[id]">) {
               locked={!!meeting.roundId}
             />
             {meeting.reportStatus !== "NONE" && <Badge tone={report.tone}>{report.label}</Badge>}
-            {integrationEnabled("vexa") && !hasReport && (
+            {integrationEnabled("vexa") && meeting.platform && !hasReport && (
               <CaptureControl
                 meetingId={meeting.id}
                 status={meeting.captureStatus}

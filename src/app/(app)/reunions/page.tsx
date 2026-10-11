@@ -2,9 +2,11 @@ import { CalendarClock, CalendarX2, ChevronRight, TriangleAlert, Video } from "l
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { LocalTime } from "@/components/local-time";
 import { AutoRefresh } from "@/components/meetings/auto-refresh";
 import { CaptureControl } from "@/components/meetings/capture-control";
 import { ProjectPicker } from "@/components/meetings/project-picker";
+import { RefreshCalendarButton } from "@/components/meetings/refresh-calendar-button";
 import { ProjectTile } from "@/components/primitives";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
@@ -90,8 +92,8 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
       <div className="mx-auto max-w-[var(--page-medium)] px-4 py-6 sm:px-8 sm:py-8">
         <h1 className="font-display text-h1 font-semibold tracking-tight">Réunions</h1>
         <p className="mt-1 max-w-prose text-body text-muted">
-          Les réunions de vos agendas avec un lien Meet, Teams ou Zoom. Rien n’est enregistré sans votre accord, et aucune tâche n’est
-          créée sans votre validation.
+          Les rendez-vous de vos agendas avec un client, ou avec un lien Meet, Teams ou Zoom. Rien n’est enregistré sans votre accord, et
+          aucune tâche n’est créée sans votre validation.
         </p>
 
         {!google.enabled ? (
@@ -122,7 +124,24 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
               Reconnecter
             </a>
           </p>
-        ) : null}
+        ) : (
+          <div className="mt-4">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-ui text-muted">
+              <span>
+                Agenda {google.account.email} ·{" "}
+                {google.account.calendarSyncedAt ? (
+                  <>
+                    lu <LocalTime date={google.account.calendarSyncedAt} relative />
+                  </>
+                ) : (
+                  "pas encore lu"
+                )}
+              </span>
+              <RefreshCalendarButton />
+            </p>
+            {google.account.lastError && <p className="mt-1 text-meta text-danger-text">Dernière lecture en échec : {google.account.lastError}</p>}
+          </div>
+        )}
 
         {google.enabled && !captureAvailable && (
           <p className="mt-4 text-ui text-muted">
@@ -168,9 +187,9 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
             title="À venir"
             count={upcoming.length}
             action={
-              hiddenInternal > 0 || showInternal ? (
-                <Link href={showInternal ? "/reunions" : "/reunions?internes=1"} className="text-xs font-medium text-accent hover:underline">
-                  {showInternal ? "Masquer les réunions internes" : `Afficher les réunions internes (${hiddenInternal})`}
+              showInternal ? (
+                <Link href="/reunions" className="text-xs font-medium text-accent hover:underline">
+                  Masquer les réunions internes
                 </Link>
               ) : undefined
             }
@@ -178,7 +197,7 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
           {upcoming.length === 0 ? (
             <Card>
               <EmptyState compact icon={<Video />} tone="neutral" title="Aucune réunion à venir">
-                Les rendez-vous des 30 prochains jours avec un lien Meet, Teams ou Zoom apparaissent ici.
+                Les rendez-vous des 30 prochains jours avec un client, ou avec un lien Meet, Teams ou Zoom, apparaissent ici.
               </EmptyState>
             </Card>
           ) : (
@@ -194,7 +213,7 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
                             {time(meeting.startsAt)} – {time(meeting.endsAt)}
                           </span>
                           <span className="block text-meta text-muted">
-                            {meeting.platform ? PLATFORM_LABELS[meeting.platform] : "Visio"} · {formatDuration(meeting.startsAt, meeting.endsAt)}
+                            {meeting.platform ? PLATFORM_LABELS[meeting.platform] : "Sans visio"} · {formatDuration(meeting.startsAt, meeting.endsAt)}
                           </span>
                         </span>
                         <span className="min-w-0 flex-1 basis-56">
@@ -216,7 +235,7 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
                           suggested={!!meeting.projectId && !meeting.projectConfirmedAt}
                           locked={!!meeting.roundId}
                         />
-                        {captureAvailable && (
+                        {captureAvailable && meeting.platform && (
                           <CaptureControl
                             meetingId={meeting.id}
                             status={meeting.captureStatus}
@@ -231,6 +250,14 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
                 </div>
               ))}
             </div>
+          )}
+          {!showInternal && hiddenInternal > 0 && (
+            <p className="mt-3 text-ui text-muted">
+              {plural(hiddenInternal, "réunion interne masquée", "réunions internes masquées")} (aucun invité extérieur).{" "}
+              <Link href="/reunions?internes=1" className="font-medium text-accent hover:underline">
+                Afficher
+              </Link>
+            </p>
           )}
         </section>
 
