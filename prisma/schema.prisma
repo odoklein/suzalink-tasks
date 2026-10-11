@@ -66,7 +66,6 @@ enum Priority {
   URGENT
 }
 
-
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -95,7 +94,9 @@ model User {
   clientMessages ClientMessage[]
 
   // Intégrations (Phases 6-8) : relations regroupées ici pour faciliter la fusion.
-  loginEvents    LoginEvent[]
+  loginEvents      LoginEvent[]
+  oauthAccounts    OAuthAccount[]
+  approvedCaptures Meeting[]      @relation("MeetingCaptureApprover")
 }
 
 model Client {
@@ -151,6 +152,7 @@ model FeedbackRound {
   closedById    String?
   closedBy      Delivery? @relation(fields: [closedById], references: [id], onDelete: SetNull)
   tasks         Task[]
+  meeting       Meeting? // lot créé depuis le compte rendu d'une réunion (channel CALL)
 
   @@index([projectId, receivedAt])
 }
@@ -234,6 +236,8 @@ model Project {
   zones      Zone[]
   milestones Milestone[]
   extras     Extra[]
+
+  meetings Meeting[]
 }
 
 enum ExtraStatus {
@@ -380,6 +384,8 @@ model Task {
 
   roundId String? // lot de retours d'origine (P4-06)
   round   FeedbackRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
+
+  meetingProposals MeetingProposal[] // action de réunion qui a créé la tâche, ou qui y a été rattachée
 
   @@unique([projectId, number])
   @@unique([projectId, externalKey]) // plusieurs NULL autorisés
@@ -529,4 +535,197 @@ model Activity {
   @@index([projectId, createdAt])
   @@index([taskId, createdAt])
   @@index([type, createdAt])
+}
+
+// ─── Réunions (docs/REUNIONS-PLAN.md) ────────────────────────────────────────
+// Agenda Google → réunion associée à un projet → enregistrement validé par un
+// humain → transcription → actions proposées par l'IA, validées une par une.
+
+/// Compte Google relié par un membre (P7-08) : jetons chiffrés, état de la synchronisation d'agenda.
+model OAuthAccount {
+  id                String    @id @default(cuid())
+  provider          String // google
+  providerAccountId String // « sub » du jeton d'identité
+  email             String
+  scopes            String[]
+  refreshTokenEnc   String // AES-256-GCM (src/lib/secret-box.ts, clé TOKEN_ENC_KEY)
+  accessTokenEnc    String?
+  expiresAt         DateTime?
+  calendarSyncedAt  DateTime?
+  lastError         String?
+  lastErrorAt       DateTime?
+  reconnectRequired Boolean   @default(false) // accès retiré chez Google : la synchronisation s'arrête
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetings Meeting[]
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider]) // un compte Google par membre
+}
+
+/// Appel à un modèle d'IA : volumes et durée, jamais le contenu envoyé.
+model AiRun {
+  id           String   @id @default(cuid())
+  kind         String // meeting_transcription, meeting_report…
+  provider     String   @default("mistral")
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  audioSeconds Int?
+  costMicros   Int?
+  durationMs   Int?
+  ok           Boolean  @default(true)
+  error        String?
+  projectId    String?
+  meetingId    String?
+  userId       String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([kind, createdAt])
+}
+
+enum MeetingPlatform {
+  GOOGLE_MEET
+  TEAMS
+  ZOOM
+}
+
+/// Capture par le robot : rien ne part sans validation humaine.
+enum CaptureStatus {
+  OFF // pas d'enregistrement (défaut)
+  APPROVED // validé ; envoi du robot programmé avant le début
+  JOINING // robot envoyé
+  WAITING_ADMISSION // dans la salle d'attente
+  RECORDING
+  ENDED
+  FAILED
+  CANCELLED // réunion annulée ou validation retirée
+}
+
+enum ReportStatus {
+  NONE
+  TRANSCRIBING
+  EXTRACTING
+  READY // actions à revoir
+  REVIEWED // toutes traitées
+  FAILED
+}
+
+/// Réunion trouvée dans un agenda (Gmail viendra plus tard).
+model Meeting {
+  id              String           @id @default(cuid())
+  title           String
+  startsAt        DateTime
+  endsAt          DateTime
+  cancelledAt     DateTime?
+  platform        MeetingPlatform?
+  joinUrl         String? // lien normalisé (sans paramètres de suivi)
+  nativeMeetingId String? // abc-defg-hij (Meet), identifiant Teams/Zoom attendu par le robot
+  passcode        String? // Teams grand public, Zoom : code extrait du lien
+  attendees       Json             @default("[]") // [{ email, name?, organizer?, self?, responseStatus? }]
+  internalOnly    Boolean          @default(false) // aucun invité hors de l'agence : jamais proposée à l'enregistrement
+
+  // Origine : un événement de l'agenda principal d'un membre
+  oauthAccountId  String?
+  oauthAccount    OAuthAccount? @relation(fields: [oauthAccountId], references: [id], onDelete: SetNull)
+  calendarEventId String? // identifiant de l'occurrence (singleEvents=true)
+  iCalUid         String?
+
+  projectId          String?
+  project            Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectSuggestedBy String? // contact, titre, manuel
+  projectConfirmedAt DateTime?
+
+  captureStatus       CaptureStatus @default(OFF)
+  captureApprovedById String?
+  captureApprovedBy   User?         @relation("MeetingCaptureApprover", fields: [captureApprovedById], references: [id], onDelete: SetNull)
+  captureApprovedAt   DateTime?
+  captureExternalId   String? // identifiant de la réunion chez Vexa
+  captureError        String? // message français affiché dans Réunions
+  joinedAt            DateTime?
+  leftAt              DateTime?
+  recordingKey        String? // enregistrement audio, sur le serveur de capture
+  recordingPurgedAt   DateTime?
+
+  reportStatus     ReportStatus @default(NONE)
+  reportError      String?
+  transcriptSource String? // vexa, mistral
+  summary          String?
+  decisions        String[]
+  openQuestions    String[]
+  reportReadyAt    DateTime?
+  segmentsPurgedAt DateTime?
+  deletedAt        DateTime? // supprimée par un membre : contenu effacé, identité gardée pour que l'agenda ne la recrée pas
+
+  roundId   String?           @unique // lot « Réunion du 12/10 » (channel CALL), créé à la première validation
+  round     FeedbackRound?    @relation(fields: [roundId], references: [id], onDelete: SetNull)
+  segments  MeetingSegment[]
+  proposals MeetingProposal[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([oauthAccountId, calendarEventId])
+  @@index([startsAt])
+  @@index([captureStatus, startsAt])
+  @@index([reportStatus, startsAt])
+  @@index([projectId, startsAt])
+}
+
+/// Passage de transcription : la preuve citée par une action proposée.
+model MeetingSegment {
+  id      String  @id @default(cuid())
+  index   Int
+  speaker String? // nom affiché dans la réunion ; vide quand l'attribution est incertaine
+  startMs Int
+  endMs   Int
+  text    String
+
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, index])
+}
+
+enum ProposalBasis {
+  REQUESTED // le client l'a demandé
+  COMMITTED // quelqu'un s'y est engagé
+  INFERRED // déduit, à confirmer
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED // tâche créée
+  LINKED // rattachée à une tâche existante
+  REJECTED
+}
+
+/// Action proposée par l'IA, validée une par une : la tâche garde sa preuve.
+model MeetingProposal {
+  id              String         @id @default(cuid())
+  position        Int            @default(0)
+  title           String
+  description     String?
+  basis           ProposalBasis
+  quote           String // citation exacte, vérifiée dans la transcription
+  segmentIndexes  Int[]
+  ownerText       String? // « Hichem », « l'équipe Suzali », tel que dit
+  suggestedUserId String? // membre reconnu sans ambiguïté
+  dueText         String? // « mardi prochain », tel que dit
+  suggestedDue    DateTime? // minuit à Paris ; null si la date dite est ambiguë
+  zone            String?
+  duplicateOfId   String? // tâche ouverte probablement identique
+  status          ProposalStatus @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+
+  taskId    String? // tâche créée (ACCEPTED) ou rattachée (LINKED)
+  task      Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, status])
 }

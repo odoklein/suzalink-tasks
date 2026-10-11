@@ -15,6 +15,12 @@ export type EventPayloads = {
   "project.created": { key: string; name: string };
   "project.note_updated": { note: string | null };
   "client_message.sent": { kind: string; messageId?: string; channel?: string };
+  "meeting.capture_approved": { meetingId: string; title: string; startsAt: string };
+  "meeting.capture_cancelled": { meetingId: string; title: string };
+  "meeting.capture_failed": { meetingId: string; title: string; error: string };
+  "meeting.report_ready": { meetingId: string; title: string; proposals: number };
+  "meeting.proposal_reviewed": { meetingId: string; proposalId: string; status: string; ref: string | null };
+  "meeting.deleted": { meetingId: string; title: string };
 };
 
 export type EventType = keyof EventPayloads;
@@ -30,6 +36,12 @@ export const EVENT_TYPES = [
   "project.created",
   "project.note_updated",
   "client_message.sent",
+  "meeting.capture_approved",
+  "meeting.capture_cancelled",
+  "meeting.capture_failed",
+  "meeting.report_ready",
+  "meeting.proposal_reviewed",
+  "meeting.deleted",
 ] as const satisfies readonly EventType[];
 
 export type EventDraft<T extends EventType = EventType> = {

@@ -88,66 +88,84 @@ export async function createTasks(
   actor: Actor,
   projectId: string,
   rawTasks: Omit<NewTaskInput, "projectId">[],
-  options: { activityMessage?: string } = {},
+  options: CreateTasksOptions = {},
+) {
+  if (rawTasks.length === 0) return { tasks: [], refs: [] as string[] };
+  return db.$transaction((tx) => createTasksTx(tx, actor, projectId, rawTasks, options));
+}
+
+export type CreateTasksOptions = {
+  activityMessage?: string;
+  /** Lot de retours d'origine (P4-06), commun à toutes les tâches. */
+  roundId?: string | null;
+};
+
+/** `createTasks` dans une transaction existante (actions validées d'une réunion, par exemple). */
+export async function createTasksTx(
+  tx: Tx,
+  actor: Actor,
+  projectId: string,
+  rawTasks: Omit<NewTaskInput, "projectId">[],
+  options: CreateTasksOptions = {},
 ) {
   const inputs = rawTasks.map((task) => parseInput(newTaskSchema, { ...task, projectId }));
   if (inputs.length === 0) return { tasks: [], refs: [] as string[] };
 
-  return db.$transaction(async (tx) => {
-    const project = await tx.project.update({
-      where: { id: projectId },
-      data: { taskCounter: { increment: inputs.length } },
-      select: { taskCounter: true, key: true },
-    });
-    const start = project.taskCounter - inputs.length + 1;
-
-    const tops = await tx.task.groupBy({ by: ["status"], where: { projectId }, _max: { position: true } });
-    const nextByStatus = new Map<TaskStatus, number>(tops.map((top) => [top.status, top._max.position ?? 0]));
-    const now = new Date();
-
-    const tasks = await tx.task.createManyAndReturn({
-      data: inputs.map((input, index) => {
-        const status = input.status ?? "TODO";
-        const position = (nextByStatus.get(status) ?? 0) + POSITION_STEP;
-        nextByStatus.set(status, position);
-        return {
-          projectId,
-          number: start + index,
-          title: input.title,
-          description: input.description ?? null,
-          status,
-          priority: input.priority ?? "NONE",
-          zone: input.zone ?? null,
-          source: input.source ?? null,
-          billable: input.billable ?? false,
-          assigneeId: input.assigneeId ?? null,
-          dueDate: input.dueDate ?? null,
-          creatorId: actor.userId,
-          position,
-          completedAt: status === "DONE" ? now : null,
-        };
-      }),
-    });
-    tasks.sort((a, b) => a.number - b.number);
-
-    await logActivity(tx, {
-      projectId,
-      actorId: actor.userId,
-      message: options.activityMessage ?? `a créé ${tasks.length} tâche${tasks.length > 1 ? "s" : ""}`,
-    });
-    const refs = tasks.map((task) => taskRef(project.key, task.number));
-    await emitEvents(
-      tx,
-      actor,
-      tasks.map((task, index) => ({
-        type: "task.created" as const,
-        projectId,
-        taskId: task.id,
-        payload: { ref: refs[index], title: task.title, status: task.status, assigneeId: task.assigneeId },
-      })),
-    );
-    return { tasks, refs };
+  const project = await tx.project.update({
+    where: { id: projectId },
+    data: { taskCounter: { increment: inputs.length } },
+    select: { taskCounter: true, key: true },
   });
+  const start = project.taskCounter - inputs.length + 1;
+
+  const tops = await tx.task.groupBy({ by: ["status"], where: { projectId }, _max: { position: true } });
+  const nextByStatus = new Map<TaskStatus, number>(tops.map((top) => [top.status, top._max.position ?? 0]));
+  const now = new Date();
+
+  const tasks = await tx.task.createManyAndReturn({
+    data: inputs.map((input, index) => {
+      const status = input.status ?? "TODO";
+      const position = (nextByStatus.get(status) ?? 0) + POSITION_STEP;
+      nextByStatus.set(status, position);
+      return {
+        projectId,
+        number: start + index,
+        title: input.title,
+        description: input.description ?? null,
+        status,
+        priority: input.priority ?? "NONE",
+        zone: input.zone ?? null,
+        source: input.source ?? null,
+        billable: input.billable ?? false,
+        assigneeId: input.assigneeId ?? null,
+        dueDate: input.dueDate ?? null,
+        creatorId: actor.userId,
+        position,
+        completedAt: status === "DONE" ? now : null,
+        waitingSince: status === "WAITING_CLIENT" ? now : null,
+        roundId: options.roundId ?? null,
+      };
+    }),
+  });
+  tasks.sort((a, b) => a.number - b.number);
+
+  await logActivity(tx, {
+    projectId,
+    actorId: actor.userId,
+    message: options.activityMessage ?? `a créé ${tasks.length} tâche${tasks.length > 1 ? "s" : ""}`,
+  });
+  const refs = tasks.map((task) => taskRef(project.key, task.number));
+  await emitEvents(
+    tx,
+    actor,
+    tasks.map((task, index) => ({
+      type: "task.created" as const,
+      projectId,
+      taskId: task.id,
+      payload: { ref: refs[index], title: task.title, status: task.status, assigneeId: task.assigneeId },
+    })),
+  );
+  return { tasks, refs };
 }
 
 /** Saisie rapide : `Retirer l'ombre @odo !haute #homepage demain $`. */

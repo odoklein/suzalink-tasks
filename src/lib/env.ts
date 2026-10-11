@@ -28,6 +28,28 @@ const schema = z.object({
 
   SENTRY_DSN: optional(url),
   SENTRY_ENVIRONMENT: optional(z.string()),
+
+  /** Google (agenda des membres, docs/REUNIONS-PLAN.md) : client OAuth « Interne » de l'espace Workspace. */
+  GOOGLE_CLIENT_ID: optional(z.string().min(10, "GOOGLE_CLIENT_ID invalide.")),
+  GOOGLE_CLIENT_SECRET: optional(z.string().min(10, "GOOGLE_CLIENT_SECRET invalide.")),
+  /** Clé AES-256 des jetons OAuth : 32 octets en base64 (`openssl rand -base64 32`). */
+  TOKEN_ENC_KEY: optional(
+    z.string().refine((value) => Buffer.from(value, "base64").length === 32, "TOKEN_ENC_KEY : 32 octets en base64 attendus."),
+  ),
+
+  /** Robot de réunion Vexa, auto-hébergé (réseau privé). */
+  VEXA_API_URL: optional(url).transform((value) => value?.replace(/\/$/, "")),
+  VEXA_API_KEY: optional(z.string().min(8, "VEXA_API_KEY invalide.")),
+  /** Nom affiché du robot dans la réunion : il doit dire qu'il enregistre. */
+  VEXA_BOT_NAME: optional(z.string().max(60)).transform((value) => value ?? "Suzali · prise de notes"),
+
+  /** Mistral : comptes rendus et actions proposées, et transcription si MEETING_TRANSCRIPTION=mistral. */
+  MISTRAL_API_KEY: optional(z.string().min(8, "MISTRAL_API_KEY invalide.")),
+  MISTRAL_MODEL: optional(z.string()).transform((value) => value ?? "mistral-medium-latest"),
+  /** Qui transcrit : `vexa` (service de transcription du serveur de capture) ou `mistral` (Voxtral, après la réunion). */
+  MEETING_TRANSCRIPTION: optional(z.enum(["vexa", "mistral"], { error: "MEETING_TRANSCRIPTION : vexa ou mistral." })).transform(
+    (value) => value ?? "vexa",
+  ),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -36,6 +58,9 @@ export type Env = z.infer<typeof schema>;
 export const INTEGRATION_GROUPS = {
   cron: ["CRON_SECRET"],
   sentry: ["SENTRY_DSN"],
+  google: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "TOKEN_ENC_KEY"],
+  vexa: ["VEXA_API_URL", "VEXA_API_KEY"],
+  mistral: ["MISTRAL_API_KEY"],
 } as const satisfies Record<string, readonly (keyof Env)[]>;
 
 export type Integration = keyof typeof INTEGRATION_GROUPS;

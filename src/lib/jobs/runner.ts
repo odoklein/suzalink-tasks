@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getJobHandler } from "@/lib/jobs/handlers";
+import { extraRecurringJobs, getJobHandler } from "@/lib/jobs/handlers";
 import { claimJobs, completeJob, ensureRecurringJobs, failJob } from "@/lib/jobs/queue";
 import { recurringJobs } from "@/lib/jobs/schedule";
 // Branche les consommateurs d'événements et les étapes quotidiennes.
@@ -10,7 +10,8 @@ export type TickReport = { claimed: number; done: number; failed: { id: string; 
 
 /** Un passage du cron : travaux récurrents, puis jusqu'à `limit` travaux dus. */
 export async function runTick(limit = 10, deadline = Date.now() + 50_000): Promise<TickReport> {
-  await ensureRecurringJobs(recurringJobs(new Date()));
+  const now = new Date();
+  await ensureRecurringJobs([...recurringJobs(now), ...extraRecurringJobs(now)]);
   const jobs = await claimJobs(limit);
   const report: TickReport = { claimed: jobs.length, done: 0, failed: [] };
 

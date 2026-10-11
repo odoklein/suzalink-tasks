@@ -3,6 +3,7 @@ import "server-only";
 import type { Job } from "@prisma/client";
 
 import { dispatchPendingEvents } from "@/lib/jobs/dispatch";
+import type { RecurringJob } from "@/lib/jobs/schedule";
 
 export type JobHandler = (job: Job) => Promise<void>;
 export type DailyStep = { name: string; run: (job: Job) => Promise<void> };
@@ -48,4 +49,16 @@ export function registerJobHandler(kind: string, handler: JobHandler) {
 
 export function getJobHandler(kind: string): JobHandler | undefined {
   return handlers[kind];
+}
+
+type RecurringSource = (now: Date) => RecurringJob[];
+const recurringSources = new Map<string, RecurringSource>();
+
+/** Travaux récurrents d'une intégration (en plus de ceux de schedule.ts), insérés à chaque passage du cron. */
+export function registerRecurringJobs(name: string, source: RecurringSource) {
+  recurringSources.set(name, source);
+}
+
+export function extraRecurringJobs(now: Date): RecurringJob[] {
+  return [...recurringSources.values()].flatMap((source) => source(now));
 }

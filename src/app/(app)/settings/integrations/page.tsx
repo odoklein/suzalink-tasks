@@ -22,6 +22,8 @@ const PROVIDERS: Record<string, string> = {
   slack: "Slack",
   sheets: "Google Sheets",
   resend: "E-mails sortants (Resend)",
+  google: "Google Agenda (lecture des agendas)",
+  vexa: "Serveur d’enregistrement des réunions (Vexa)",
 };
 
 const when = (date: Date | null) => (date ? `${formatParis(date, "d MMM HH'h'mm")} (${timeAgo(date)})` : "jamais");

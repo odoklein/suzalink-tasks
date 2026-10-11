@@ -58,6 +58,11 @@ alter table "Job" enable row level security;
 alter table "IntegrationStatus" enable row level security;
 alter table "LoginEvent" enable row level security;
 alter table "RateLimit" enable row level security;
+alter table "OAuthAccount" enable row level security;
+alter table "AiRun" enable row level security;
+alter table "Meeting" enable row level security;
+alter table "MeetingSegment" enable row level security;
+alter table "MeetingProposal" enable row level security;
 ```
 
 Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.
@@ -67,6 +72,15 @@ Chaque nouvelle table ajoutée par la suite doit recevoir la même ligne.
 1. **Base** : créer un projet Supabase, récupérer les deux chaînes de connexion, lancer `npm run db:push` puis `npm run db:seed` en local avec ces valeurs.
 2. **Hébergement** (Netlify, comme les autres sites, ou Vercel) : importer le dépôt, commande de build `npm run build`, et renseigner `DATABASE_URL`, `DIRECT_URL`, `SESSION_SECRET` dans les variables d'environnement.
 3. **Domaine** : ajouter `tasks.suzaliconseil.com` comme domaine personnalisé, puis créer chez le registrar de suzaliconseil.com un enregistrement **CNAME** `tasks` → l'adresse fournie par l'hébergeur (ex. `suzali-tasks.netlify.app`). Le HTTPS est activé automatiquement.
+
+### Sur un VPS avec Dokploy
+
+Les Réunions ont besoin d'un serveur qui tourne en continu (transcription et compte rendu peuvent dépasser la minute) : Dokploy plutôt que Netlify.
+
+1. Dans Dokploy, créer une **Application** depuis le dépôt Git, type de build **Dockerfile** (`Dockerfile` à la racine : `next build` en mode « standalone », `BUILD_STANDALONE=1`), port **3000**.
+2. Renseigner les variables d'environnement (liste dans `.env.example`), puis le domaine `tasks.suzaliconseil.com` avec HTTPS (Let's Encrypt). Faire pointer l'enregistrement DNS `tasks` vers l'IP du VPS (enregistrement **A**).
+3. Le cron ne change pas : pg_cron appelle `https://tasks.suzaliconseil.com/api/cron/tick` (section suivante). À défaut, une tâche planifiée Dokploy (« Schedule » de type Application, `* * * * *`) peut lancer dans le conteneur `node -e "fetch('http://localhost:3000/api/cron/tick',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET}})"`.
+4. Une seule instance de l'application : au-delà, voir `node_modules/next/dist/docs/01-app/02-guides/self-hosting.md` (clé `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, cache partagé).
 
 ## Tâches de fond (cron)
 
@@ -96,6 +110,26 @@ select cron.schedule(
 ```
 
 Suivi : **Paramètres › Intégrations** (administrateurs) montre le dernier passage du cron, les derniers webhooks reçus et les travaux en échec (bouton « Relancer »). Pour arrêter : `select cron.unschedule('suzali-tick');`.
+
+## Réunions (Google Agenda, robot Vexa, Mistral)
+
+Plan complet et décisions : `docs/REUNIONS-PLAN.md`. Chaque partie s'active seule, dès que ses variables sont renseignées.
+
+1. **Google Agenda** (lecture seule).
+   - Dans Google Cloud (projet de l'espace Workspace suzaliconseil.com) : activer l'**API Google Calendar**, puis créer l'écran de consentement OAuth en type **Interne** (pas de validation Google ; seuls les comptes @suzaliconseil.com peuvent se connecter).
+   - Créer un identifiant **ID client OAuth** de type « Application Web », URI de redirection autorisée : `https://tasks.suzaliconseil.com/api/auth/google/callback`.
+   - Variables : `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENC_KEY` (`openssl rand -base64 32` ; la changer rend illisibles les jetons déjà enregistrés : chacun devra reconnecter son agenda).
+   - Chaque membre connecte son agenda dans **Paramètres › Google Agenda**. L'agenda est relu toutes les 5 minutes, sur 30 jours.
+2. **Robot d'enregistrement Vexa**, sur son propre VPS (les navigateurs du robot consomment beaucoup pendant les réunions).
+   - Installer une version **épinglée** de [Vexa](https://github.com/Vexa-ai/vexa) (Docker ≥ 26, Ubuntu 24.04) ; la passerelle écoute sur le port **18056**. Créer une clé d'API avec l'API d'administration de Vexa ; le jeton d'administration reste sur ce serveur.
+   - Ne pas exposer Vexa sur Internet : réseau privé entre les deux VPS (WireGuard, Tailscale) ou pare-feu n'acceptant que l'IP du VPS de l'application.
+   - Variables : `VEXA_API_URL` (ex. `http://10.0.0.2:18056`), `VEXA_API_KEY`, `VEXA_BOT_NAME` (facultatif, « Suzali · prise de notes » par défaut).
+3. **Transcription et compte rendu (Mistral).**
+   - `MISTRAL_API_KEY` ; `MISTRAL_MODEL` (facultatif, `mistral-medium-latest` par défaut). Demander la **conservation zéro** (« zero data retention ») sur le compte Mistral : sinon les échanges sont gardés 30 jours par Mistral.
+   - `MEETING_TRANSCRIPTION` : `vexa` (par défaut ; Vexa transcrit en direct avec son service de transcription, qui demande un GPU, et aucun audio n'est gardé) ou `mistral` (Vexa enregistre seulement l'audio ; Voxtral transcrit après la réunion, sans GPU, les voix sont nommées « Voix 1, 2… »).
+4. Après `npm run db:push`, activer la RLS sur les nouvelles tables (section « Sécurité de la base »).
+
+Fonctionnement : rien n'est enregistré sans qu'un membre clique sur « Enregistrer » (le membre dont l'agenda porte la réunion, ou un administrateur) ; le robot part 2 minutes avant le début, se présente sous son nom dans la liste des participants, et sort à la fin. Le compte rendu propose des actions avec leur citation ; aucune tâche n'est créée sans validation. Audio supprimé après 30 jours, transcription après un an (étape quotidienne `meeting-retention`).
 
 ## Configuration, erreurs, sauvegardes
 

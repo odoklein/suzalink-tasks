@@ -8,8 +8,10 @@ import { Avatar } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { getGoogleConnection } from "@/lib/meetings/queries";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 
+import { GoogleCalendarSettings } from "./google-calendar";
 import { PasswordForm } from "./password-form";
 import { SettingsLinks } from "./settings-links";
 import { TeamSection } from "./team-section";
@@ -19,7 +21,10 @@ export const metadata: Metadata = { title: "Paramètres" };
 
 export default async function SettingsPage(props: PageProps<"/settings">) {
   const user = await getCurrentUser();
-  const firstLogin = user.mustChangePin || (await props.searchParams)["premiere-connexion"] === "1";
+  const searchParams = await props.searchParams;
+  const firstLogin = user.mustChangePin || searchParams["premiere-connexion"] === "1";
+  const google = await getGoogleConnection(user.id);
+  const googleOutcome = typeof searchParams.google === "string" ? searchParams.google : null;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
   const members =
@@ -58,7 +63,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         <section className="mt-6 flex items-center gap-4 rounded-lg border border-line bg-surface p-5 shadow-card">
           <Avatar name={user.name} color={user.color} size={44} />
           <div>
-            <p className="text-title font-semibold tracking-[-0.01em]">{user.name}</p>
+            <p className="text-title font-semibold tracking-title">{user.name}</p>
             <p className="text-ui text-muted">
               {user.email} · {user.role === "ADMIN" ? "Administrateur" : "Membre"}
             </p>
@@ -72,7 +77,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         )}
 
         <section aria-labelledby="preferences" className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
-          <h2 id="preferences" className="text-title font-semibold tracking-[-0.01em]">Préférences</h2>
+          <h2 id="preferences" className="text-title font-semibold tracking-title">Préférences</h2>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-ui font-medium">Thème</p>
@@ -83,7 +88,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         </section>
 
         <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
-          <h2 className="text-title font-semibold tracking-[-0.01em]">Code PIN</h2>
+          <h2 className="text-title font-semibold tracking-title">Code PIN</h2>
           <p className="mt-1 text-ui text-muted">
             6 chiffres, ni suite (123456) ni chiffre répété (111111). Après 5 erreurs, le compte est bloqué 15 minutes, puis plus longtemps si les erreurs continuent.
           </p>
@@ -91,7 +96,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
         </section>
 
         <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
-          <h2 className="text-title font-semibold tracking-[-0.01em]">Sessions</h2>
+          <h2 className="text-title font-semibold tracking-title">Sessions</h2>
           <p className="mt-1 text-ui text-muted">
             Un téléphone perdu, un ordinateur partagé ? Déconnectez tous les appareils, y compris celui-ci.
           </p>
@@ -102,8 +107,17 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
           </form>
         </section>
 
+        <section id="google" aria-labelledby="google-titre" className="mt-6 scroll-mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
+          <h2 id="google-titre" className="text-title font-semibold tracking-title">Google Agenda</h2>
+          <p className="mt-1 text-ui text-muted">
+            Vos rendez-vous avec un lien Meet, Teams ou Zoom apparaissent dans Réunions. Lecture seule : l’outil ne modifie pas votre agenda
+            et ne lit pas vos e-mails.
+          </p>
+          <GoogleCalendarSettings enabled={google.enabled} account={google.enabled ? (google.account ?? null) : null} outcome={googleOutcome} />
+        </section>
+
         <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
-          <h2 className="text-title font-semibold tracking-[-0.01em]">Modèles de projet</h2>
+          <h2 className="text-title font-semibold tracking-title">Modèles de projet</h2>
           <p className="mt-1 text-ui text-muted">
             Jalons, pages et tâches de départ proposés à la création d’un projet (site vitrine, e-commerce…).
           </p>
@@ -114,7 +128,7 @@ export default async function SettingsPage(props: PageProps<"/settings">) {
 
         {user.role === "ADMIN" && (
           <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-card">
-            <h2 className="text-title font-semibold tracking-[-0.01em]">Équipe</h2>
+            <h2 className="text-title font-semibold tracking-title">Équipe</h2>
             <p className="mt-1 text-ui text-muted">
               Ajoutez un membre ou redonnez un code à quelqu’un qui l’a oublié ou dont le compte est bloqué.
             </p>

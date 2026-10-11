@@ -66,6 +66,11 @@ export async function retryJob(id: string) {
   await db.job.update({ where: { id }, data: { attempts: 0, runAt: new Date(), lockedAt: null } });
 }
 
+/** Travaux terminés depuis plus de `days` jours : le cron en crée plusieurs par minute. */
+export async function purgeDoneJobs(days = 14) {
+  await db.job.deleteMany({ where: { doneAt: { lt: new Date(Date.now() - days * 24 * 3600_000) } } });
+}
+
 /** Travaux en échec (définitif ou en attente de nouvelle tentative). */
 export function failedJobs(take = 20) {
   return db.job.findMany({

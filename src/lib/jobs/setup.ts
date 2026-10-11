@@ -1,6 +1,8 @@
 import "server-only";
 
 import { registerDailyStep } from "@/lib/jobs/handlers";
+import { purgeDoneJobs } from "@/lib/jobs/queue";
+import { registerMeetingJobs } from "@/lib/meetings/jobs";
 import { purgeRateLimits } from "@/lib/rate-limit";
 
 /**
@@ -8,3 +10,5 @@ import { purgeRateLimits } from "@/lib/rate-limit";
  * consommateurs d'événements, étapes quotidiennes, types de travaux.
  */
 registerDailyStep({ name: "purge-rate-limits", run: purgeRateLimits });
+registerDailyStep({ name: "purge-done-jobs", run: () => purgeDoneJobs() });
+registerMeetingJobs();
