@@ -30,7 +30,7 @@ One narrow path first: a Calendar event with a meeting link → associated with 
 | 8 new models (Discovery, Capture, Transcript, Summary, ActionProposal…) | Repo style: few models, `FeedbackRound` already groups tasks by origin, `Channel.CALL` exists | 3 models: `Meeting`, `MeetingSegment`, `MeetingProposal` (§5) |
 | `/api/meetings/*` REST routes | Repo uses Server Actions + services with an `Actor` (P6-02) | Server Actions for the UI. The only new route is OAuth's callback (plus a webhook route, only if Vexa signs webhooks) |
 | "Restrict transcripts to authorized project members" | No per-project permissions anywhere; PLAN.md §11 rules them out before multi-tenancy | All active members see meetings, like tasks. Capture approval is limited (R5) |
-| Gmail `gmail.readonly` needs a security assessment | P7-08 uses an **Internal** consent screen (Workspace only), which avoids Google's app verification **[verify for restricted scopes]** | Still deferred to the last phase: it reads the whole mailbox, and invitations already reach Calendar |
+| Gmail `gmail.readonly` needs a security assessment | The consent screen is **External and published** (2026-10-11: members may use @gmail.com accounts), so restricted scopes would need Google's verification and assessment | Still deferred to the last phase: it reads the whole mailbox, and invitations already reach Calendar |
 | "Existing app VPS" | Today: Netlify + Supabase, cron every minute, 60 s cap | M0 moves the app to Dokploy first; the bot runs on its own VPS |
 | Weeks 1–4 | No Google OAuth, no AI client, no token encryption, no bot host exist yet | Phases M0–M6 (§12), each ending in something usable |
 
@@ -504,6 +504,7 @@ Each phase ends in something usable. Estimates assume one engineer who knows the
 - **Deleting a meeting keeps an empty row** (`deletedAt`) so the next calendar read doesn't recreate it.
 - **Dates said in the meeting** are resolved by code only when unambiguous (« demain », « jeudi », « le 20 octobre »). « Mardi prochain » and « la semaine prochaine » stay empty, with the words shown.
 - **Done jobs are purged after 14 days** (daily step `purge-done-jobs`): the cron now adds rows every 5 minutes for the calendar and the bot watch.
+- **Any Google account can connect** (consent screen External and published, not Internal). Who is « internal » is decided by `AGENCY_DOMAIN` plus the members' own addresses (account and connected calendar), so a member on @gmail.com is internal and a client on @gmail.com is not.
 - **Every Vexa exchange updates Paramètres › Intégrations** (`vexa` row), as does every calendar read (`google` row).
 
 **Not verified against real services yet (M1):** a bot joining a real Meet, Teams and Zoom call; French quality and speaker names; Voxtral's `speaker_id` format and the multipart encoding of `timestamp_granularities` / `context_bias`; `DELETE /recordings/{id}` on Vexa.

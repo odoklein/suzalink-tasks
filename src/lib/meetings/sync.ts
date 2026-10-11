@@ -8,6 +8,8 @@ import { getEvent, listEvents } from "@/lib/google/calendar";
 import { GoogleAuthError } from "@/lib/google/oauth";
 import { recordIntegrationSignal } from "@/lib/integration-status";
 import { cancelMeetingCapture, scheduleDispatch } from "@/lib/meetings/capture";
+import { getEnv } from "@/lib/env";
+import type { Agency } from "@/lib/meetings/agency";
 import { toMeetingDraft, type MeetingDraft } from "@/lib/meetings/drafts";
 import { suggestProject, type MatchContact, type MatchProject } from "@/lib/meetings/matching";
 
@@ -15,19 +17,20 @@ import { suggestProject, type MatchContact, type MatchProject } from "@/lib/meet
 const WINDOW_BACK_MS = 6 * 3600_000;
 const WINDOW_AHEAD_MS = 30 * 24 * 3600_000;
 
-const domainOf = (email: string) => email.slice(email.lastIndexOf("@") + 1).toLowerCase();
+type MatchContext = { contacts: MatchContact[]; projects: MatchProject[]; agency: Agency };
 
-type MatchContext = { contacts: MatchContact[]; projects: MatchProject[]; agencyDomain: string };
-
-async function matchContext(agencyDomain: string): Promise<MatchContext> {
-  const [contacts, projects] = await Promise.all([
+async function matchContext(): Promise<MatchContext> {
+  const [contacts, projects, members, accounts] = await Promise.all([
     db.contact.findMany({ where: { email: { not: null } }, select: { email: true, clientId: true } }),
     db.project.findMany({
       where: { archived: false, status: { not: "DONE" } },
       select: { id: true, key: true, name: true, clientId: true },
     }),
+    db.user.findMany({ select: { email: true } }),
+    db.oAuthAccount.findMany({ select: { email: true } }),
   ]);
-  return { contacts, projects, agencyDomain };
+  const memberEmails = new Set([...members, ...accounts].map((row) => row.email.toLowerCase()));
+  return { contacts, projects, agency: { domain: getEnv().AGENCY_DOMAIN, memberEmails } };
 }
 
 function linkFields(draft: MeetingDraft) {
@@ -90,7 +93,7 @@ async function upsertMeeting(account: OAuthAccount, draft: MeetingDraft, context
     { title: draft.title, attendeeEmails: draft.attendees.map((attendee) => attendee.email) },
     context.contacts,
     context.projects,
-    context.agencyDomain,
+    context.agency,
   );
   await db.meeting.create({
     data: {
@@ -120,11 +123,11 @@ export async function syncAccount(account: OAuthAccount) {
   const from = new Date(now - WINDOW_BACK_MS);
   const to = new Date(now + WINDOW_AHEAD_MS);
   const events = await listEvents(token, from, to);
-  const context = await matchContext(domainOf(account.email));
+  const context = await matchContext();
 
   const seen = new Set<string>();
   for (const event of events) {
-    const result = toMeetingDraft(event, context.agencyDomain);
+    const result = toMeetingDraft(event, context.agency);
     if (result.kind === "ignored") continue;
     seen.add(event.id);
     if (result.kind === "cancelled") await markCancelled(account.id, event.id);
@@ -145,7 +148,7 @@ export async function syncAccount(account: OAuthAccount) {
   for (const { calendarEventId } of missing) {
     if (!calendarEventId) continue;
     const event = await getEvent(token, calendarEventId);
-    const result = event ? toMeetingDraft(event, context.agencyDomain) : null;
+    const result = event ? toMeetingDraft(event, context.agency) : null;
     if (result?.kind === "meeting" && result.draft.link) await upsertMeeting(account, result.draft, context);
     else await markCancelled(account.id, calendarEventId);
   }

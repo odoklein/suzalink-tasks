@@ -21,6 +21,10 @@ const schema = z.object({
   SESSION_SECRET: z.string({ error: "SESSION_SECRET manquant." }).min(32, "SESSION_SECRET : 32 caractères minimum."),
   /** Adresse publique de l'outil (liens dans les e-mails, ICS, webhooks). */
   APP_URL: optional(url).transform((value) => (value ?? "https://tasks.suzaliconseil.com").replace(/\/$/, "")),
+  /** Domaine de l'agence : ses adresses sont « internes » dans les Réunions (les membres en @gmail.com aussi, par leur adresse). */
+  AGENCY_DOMAIN: optional(z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, "AGENCY_DOMAIN : un domaine, ex. suzaliconseil.com.")).transform(
+    (value) => (value ?? "suzaliconseil.com").toLowerCase(),
+  ),
 
   CRON_SECRET: optional(z.string().min(16, "CRON_SECRET : 16 caractères minimum.")),
   /** Ping de surveillance après chaque passage du cron (healthchecks.io, Sentry Crons…). */

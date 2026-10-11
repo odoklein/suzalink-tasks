@@ -16,6 +16,7 @@ import { getCurrentUser } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { getEnv, integrationEnabled } from "@/lib/env";
 import { capitalizeFirst, NNBSP } from "@/lib/fr";
+import { domainOf } from "@/lib/meetings/agency";
 import { CAPTURE_LABELS, formatDuration, PLATFORM_LABELS, REPORT_LABELS } from "@/lib/meetings/labels";
 import { getGoogleConnection, listMeetings, type MeetingListItem } from "@/lib/meetings/queries";
 import { isLive } from "@/lib/meetings/vexa-status";
@@ -35,9 +36,10 @@ function dayLabel(date: Date, now: Date) {
 }
 
 /** « Luna Cervi, Marie Dupont +2 » : les invités extérieurs d'abord. */
-function attendeeSummary(meeting: MeetingListItem) {
+function attendeeSummary(meeting: MeetingListItem, agencyDomain: string) {
   const others = meeting.attendees.filter((attendee) => !attendee.self);
-  const external = [...others].sort((a, b) => Number(a.email.endsWith("@suzaliconseil.com")) - Number(b.email.endsWith("@suzaliconseil.com")));
+  const internal = (email: string) => Number(domainOf(email) === agencyDomain);
+  const external = [...others].sort((a, b) => internal(a.email) - internal(b.email));
   const names = external.slice(0, 2).map((attendee) => attendee.name ?? attendee.email);
   return names.length ? `${names.join(", ")}${external.length > 2 ? ` +${external.length - 2}` : ""}` : "Sans autre participant";
 }
@@ -74,7 +76,7 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
   ]);
   const projects = new Map(projectRows.map((project) => [project.id, project]));
   const captureAvailable = integrationEnabled("vexa");
-  const botName = getEnv().VEXA_BOT_NAME;
+  const { VEXA_BOT_NAME: botName, AGENCY_DOMAIN: agencyDomain } = getEnv();
 
   const upcoming = showInternal ? meetings.upcoming : meetings.upcoming.filter((meeting) => !meeting.internalOnly);
   const hiddenInternal = meetings.upcoming.length - upcoming.length;
@@ -200,7 +202,7 @@ export default async function ReunionsPage(props: PageProps<"/reunions">) {
                             {meeting.title}
                           </Link>
                           <span className="block truncate text-meta text-muted">
-                            {attendeeSummary(meeting)}
+                            {attendeeSummary(meeting, agencyDomain)}
                             {meeting.ownerName && meeting.ownerName !== user.name ? ` · agenda de ${meeting.ownerName}` : ""}
                           </span>
                           {meeting.captureStatus === "FAILED" && meeting.captureError && (

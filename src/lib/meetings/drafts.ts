@@ -1,4 +1,5 @@
 import type { CalendarEvent } from "@/lib/google/calendar";
+import { isAgencyEmail, type Agency } from "@/lib/meetings/agency";
 import { findMeetingLink, type MeetingLink } from "@/lib/meetings/links";
 
 /** Participant tel qu'enregistré dans `Meeting.attendees`. */
@@ -27,13 +28,11 @@ export type DraftResult = { kind: "meeting"; draft: MeetingDraft } | { kind: "ca
 // « fromGmail » : réservations (vols, restaurants) ajoutées par Gmail, pas des réunions.
 const IGNORED_TYPES = new Set(["workingLocation", "outOfOffice", "focusTime", "birthday", "fromGmail"]);
 
-const domainOf = (email: string) => email.slice(email.lastIndexOf("@") + 1).toLowerCase();
-
 /**
  * Événement Google → brouillon de réunion. Module pur.
- * `agencyDomain` (suzaliconseil.com) sert à repérer les réunions internes.
+ * `agency` sert à repérer les réunions internes (aucun invité extérieur).
  */
-export function toMeetingDraft(event: CalendarEvent, agencyDomain: string): DraftResult {
+export function toMeetingDraft(event: CalendarEvent, agency: Agency): DraftResult {
   if (event.status === "cancelled") return { kind: "cancelled", calendarEventId: event.id };
   if (event.eventType && IGNORED_TYPES.has(event.eventType)) return { kind: "ignored" };
   const start = event.start?.dateTime;
@@ -56,8 +55,7 @@ export function toMeetingDraft(event: CalendarEvent, agencyDomain: string): Draf
     return { kind: "cancelled", calendarEventId: event.id };
   }
 
-  const domain = agencyDomain.toLowerCase();
-  const internalOnly = attendees.every((attendee) => domainOf(attendee.email) === domain);
+  const internalOnly = attendees.every((attendee) => attendee.self || isAgencyEmail(attendee.email, agency));
 
   return {
     kind: "meeting",

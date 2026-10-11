@@ -1,3 +1,5 @@
+import { domainOf, isAgencyEmail, type Agency } from "@/lib/meetings/agency";
+
 /**
  * Projet suggéré pour une réunion, d'après ses invités et son titre. Module pur.
  * Une suggestion seulement : le manager la confirme dans Réunions.
@@ -31,8 +33,6 @@ const PUBLIC_DOMAINS = new Set([
   "protonmail.com",
 ]);
 
-const domainOf = (email: string) => email.slice(email.lastIndexOf("@") + 1).toLowerCase();
-
 const normalize = (text: string) =>
   text
     .toLowerCase()
@@ -56,10 +56,10 @@ export function suggestProject(
   meeting: { title: string; attendeeEmails: string[] },
   contacts: MatchContact[],
   projects: MatchProject[],
-  agencyDomain: string,
+  agency: Agency,
 ): ProjectSuggestion | null {
   const emails = meeting.attendeeEmails.map((email) => email.toLowerCase());
-  const external = emails.filter((email) => domainOf(email) !== agencyDomain.toLowerCase());
+  const external = emails.filter((email) => !isAgencyEmail(email, agency));
 
   // 1. Invités connus comme contacts, ou du même domaine d'entreprise qu'un contact.
   const known = new Map(contacts.filter((contact) => contact.email).map((contact) => [contact.email!.toLowerCase(), contact.clientId]));
