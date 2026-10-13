@@ -33,6 +33,7 @@ export function TaskRow({
   project,
   showZone = true,
   arrived = false,
+  compact = false,
 }: {
   task: TaskCard;
   projectKey: string;
@@ -40,6 +41,8 @@ export function TaskRow({
   showZone?: boolean;
   /** La ligne vient d’arriver (nouvelle tâche, changement de statut) : fondu d’entrée. */
   arrived?: boolean;
+  /** Ligne allégée (Aujourd’hui) : titre, projet, échéance et priorité seulement. */
+  compact?: boolean;
 }) {
   const { openTask } = useApp();
   const announce = useAnnounce();
@@ -78,20 +81,27 @@ export function TaskRow({
         onClick={() => openTask(task.id, `${projectKey}-${task.number}`)}
         className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left"
       >
-        <span className="min-w-12 shrink-0 whitespace-nowrap font-mono text-meta text-muted">
-          {projectKey}-{task.number}
-        </span>
+        {compact ? (
+          <span className="sr-only">
+            {projectKey}-{task.number}
+          </span>
+        ) : (
+          <span className="min-w-12 shrink-0 whitespace-nowrap font-mono text-meta text-muted">
+            {projectKey}-{task.number}
+          </span>
+        )}
         {project && <ProjectTile color={project.color} label={projectKey} size={16} />}
         <span className={cn("min-w-0 flex-1 truncate text-ui", done && "text-muted line-through decoration-faint")}>
           {task.title}
+          {compact && project && <span className="ml-2 text-xs text-muted">{project.name}</span>}
         </span>
         {task.billable && <BillableBadge />}
-        {showZone && (
+        {showZone && !compact && (
           <span className="hidden sm:contents">
             <ZoneChip zone={task.zone} />
           </span>
         )}
-        {task._count.comments > 0 && (
+        {!compact && task._count.comments > 0 && (
           <span className="tabular flex items-center gap-0.5 text-meta text-muted">
             <MessageSquare className="size-3" />
             <span aria-hidden="true">{task._count.comments}</span>
@@ -101,7 +111,7 @@ export function TaskRow({
         {task.status === "WAITING_CLIENT" && <AgeChip since={task.statusChangedAt} />}
         <DueChip date={task.dueDate} done={done} />
         <PriorityIcon priority={task.priority} />
-        {task.assignee ? (
+        {compact ? null : task.assignee ? (
           <Avatar name={task.assignee.name} color={task.assignee.color} size={20} />
         ) : (
           <EmptyAvatar size={20} />
